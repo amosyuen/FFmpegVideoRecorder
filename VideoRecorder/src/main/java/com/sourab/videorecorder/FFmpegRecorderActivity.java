@@ -1,6 +1,5 @@
 package com.sourab.videorecorder;
 
-import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
@@ -9,8 +8,10 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
+import android.graphics.drawable.Drawable;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.Parameters;
@@ -28,10 +29,16 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.PowerManager;
 import android.provider.MediaStore.Video;
-import android.provider.Settings;
+import android.support.annotation.CallSuper;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.widget.AppCompatImageButton;
+import android.support.v7.widget.AppCompatImageView;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.OrientationEventListener;
 import android.view.SurfaceHolder;
@@ -39,10 +46,10 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnTouchListener;
-import android.view.ViewGroup.LayoutParams;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -65,7 +72,8 @@ import java.util.List;
 /**
  * Created by Sourab Sharma (sourab.sharma@live.in)  on 1/19/2016.
  */
-public class FFmpegRecorderActivity extends Activity implements OnClickListener, OnTouchListener, Interfaces.AddBitmapOverlayListener {
+public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
+        implements OnClickListener, OnTouchListener, Interfaces.AddBitmapOverlayListener {
 
     private final static String CLASS_LABEL = "RecordActivity";
     private PowerManager.WakeLock mWakeLock;
@@ -81,10 +89,11 @@ public class FFmpegRecorderActivity extends Activity implements OnClickListener,
     private RecorderThread recorderThread;
     private Dialog creatingProgress;
 
-    private Button flashIcon, cancelBtn, nextBtn, switchCameraIcon;
+    private ImageButton flashIcon, switchCameraIcon;
     private RelativeLayout topLayout = null;
     private SavedFrames lastSavedframe = new SavedFrames(null, 0L, false, false);
 
+    private boolean initSuccess = false;
     private boolean recording = false;
     private boolean isRecordingStarted = false;
     private boolean isFlashOn = false;
@@ -123,7 +132,6 @@ public class FFmpegRecorderActivity extends Activity implements OnClickListener,
     private volatile long mAudioTimeRecorded;
 
     private ProgressView progressView;
-    private TextView stateTextView;
     private String imagePath = null;
     private RecorderState currentRecorderState = RecorderState.PRESS;
 
@@ -135,26 +143,12 @@ public class FFmpegRecorderActivity extends Activity implements OnClickListener,
     private int deviceOrientation = OrientationEventListener.ORIENTATION_UNKNOWN;
     private Handler mHandler;
 
-
     private void initHandler() {
         mHandler = new Handler() {
             @Override
             public void dispatchMessage(Message msg) {
                 switch (msg.what) {
                     case 2:
-                        int recorderStateMsg = 0;
-                        if (currentRecorderState == RecorderState.RECORDING) {
-                            recorderStateMsg = R.string.recorder_state_recording;
-                        } else if (currentRecorderState == RecorderState.MINIMUM_RECORDING_REACHED) {
-                            recorderStateMsg = R.string.recorder_state_min_video_crossed;
-                        } else if (currentRecorderState == RecorderState.MINIMUM_RECORDED) {
-                            recorderStateMsg = R.string.recorder_state_min_recorded;
-                        } else if (currentRecorderState == RecorderState.PRESS) {
-                            recorderStateMsg = R.string.recorder_state_press_to_record;
-                        } else if (currentRecorderState == RecorderState.SUCCESS) {
-                            recorderStateMsg = R.string.recorder_state_complete;
-                        }
-                        stateTextView.setText(getResources().getText(recorderStateMsg));
                         break;
                     case 3:
                         if (!isRecordingStarted)
@@ -196,18 +190,9 @@ public class FFmpegRecorderActivity extends Activity implements OnClickListener,
         };
     }
 
-	/*static {
-        System.loadLibrary("checkneon");
-	}*/
-
-    //public native static int  checkNeonFromJNI();
-    private boolean initSuccess = false;
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        setContentView(R.layout.activity_recorder);
 
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         mWakeLock = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, CLASS_LABEL);
@@ -215,7 +200,6 @@ public class FFmpegRecorderActivity extends Activity implements OnClickListener,
 
         DisplayMetrics displaymetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
-        //Find screen dimensions
         screenWidth = displaymetrics.widthPixels;
 
         orientationListener = new DeviceOrientationEventListener(FFmpegRecorderActivity.this);
@@ -223,6 +207,57 @@ public class FFmpegRecorderActivity extends Activity implements OnClickListener,
         initHandler();
 
         initLayout();
+    }
+
+    @Override
+    protected void layoutView() {
+        setContentView(R.layout.activity_recorder);
+    }
+
+    @Override
+    protected void setupToolbar(android.support.v7.widget.Toolbar toolbar) {
+        Drawable stateButtonDrawable =
+                ContextCompat.getDrawable(this, R.drawable.ic_close_white_24dp);
+        if (mToolbarWidgetColor != NOT_SET_COLOR) {
+            stateButtonDrawable = stateButtonDrawable.mutate();
+            stateButtonDrawable.setColorFilter(mToolbarWidgetColor, PorterDuff.Mode.SRC_ATOP);
+        }
+        toolbar.setNavigationIcon(stateButtonDrawable);
+        super.setupToolbar(toolbar);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(final Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_next, menu);
+        super.onCreateOptionsMenu(menu);
+        return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        menu.findItem(R.id.menu_finish).setVisible(nextEnabled);
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    @CallSuper
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.menu_finish) {
+            if (isRecordingStarted) {
+                recording = false;
+                saveRecording();
+            }
+            return true;
+        } else if (item.getItemId() == android.R.id.home) {
+            if (isRecordingStarted) {
+                showCancelDialog();
+            } else {
+                videoTheEnd(false);
+            }
+            return true;
+        } else {
+            return super.onOptionsItemSelected(item);
+        }
     }
 
     @Override
@@ -287,15 +322,10 @@ public class FFmpegRecorderActivity extends Activity implements OnClickListener,
     }
 
     private void initLayout() {
-        stateTextView = (TextView) findViewById(R.id.recorder_surface_state);
         progressView = (ProgressView) findViewById(R.id.recorder_progress);
         progressView.setTotalTime(totalRecordingTime);
-        cancelBtn = (Button) findViewById(R.id.recorder_cancel);
-        cancelBtn.setOnClickListener(this);
-        nextBtn = (Button) findViewById(R.id.recorder_next);
-        nextBtn.setOnClickListener(this);
-        flashIcon = (Button) findViewById(R.id.recorder_flashlight);
-        switchCameraIcon = (Button) findViewById(R.id.recorder_frontcamera);
+        flashIcon = (ImageButton) findViewById(R.id.recorder_flashlight);
+        switchCameraIcon = (ImageButton) findViewById(R.id.recorder_frontcamera);
         flashIcon.setOnClickListener(this);
 
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FRONT)) {
@@ -569,7 +599,7 @@ public class FFmpegRecorderActivity extends Activity implements OnClickListener,
 
     }
 
-    private void showCancellDialog() {
+    private void showCancelDialog() {
         Util.showDialog(FFmpegRecorderActivity.this, getResources().getString(R.string.alert), getResources().getString(R.string.discard_video_msg), 2, new Handler() {
             @Override
             public void dispatchMessage(Message msg) {
@@ -582,7 +612,7 @@ public class FFmpegRecorderActivity extends Activity implements OnClickListener,
     @Override
     public void onBackPressed() {
         if (isRecordingStarted)
-            showCancellDialog();
+            showCancelDialog();
         else
             videoTheEnd(false);
     }
@@ -735,7 +765,7 @@ public class FFmpegRecorderActivity extends Activity implements OnClickListener,
                     totalTime = System.currentTimeMillis() - firstTime - pausedTime - ((long) (1.0 / (double) frameRate) * 1000);
                     if (!nextEnabled && totalTime >= minRecordingTime) {
                         nextEnabled = true;
-                        nextBtn.setEnabled(true);
+                        supportInvalidateOptionsMenu();
                     }
                     if (nextEnabled && totalTime >= totalRecordingTime) {
                         mHandler.sendEmptyMessage(5);
@@ -870,24 +900,19 @@ public class FFmpegRecorderActivity extends Activity implements OnClickListener,
 
     @Override
     public void onClick(View v) {
-        // If else is used here if you need it as library project, switch case will not work
-        if (v.getId() == R.id.recorder_next) {
-            if (isRecordingStarted) {
-                recording = false;
-                saveRecording();
-            } else
-                initiateRecording();
-        } else if (v.getId() == R.id.recorder_flashlight) {
+        if (v.getId() == R.id.recorder_flashlight) {
             if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)) {
                 return;
             }
             if (isFlashOn) {
                 isFlashOn = false;
-                flashIcon.setSelected(false);
+                flashIcon.setImageDrawable(
+                        ActivityCompat.getDrawable(this, R.drawable.ic_flash_off_white_24dp));
                 cameraParameters.setFlashMode(Parameters.FLASH_MODE_OFF);
             } else {
                 isFlashOn = true;
-                flashIcon.setSelected(true);
+                flashIcon.setImageDrawable(
+                        ActivityCompat.getDrawable(this, R.drawable.ic_flash_on_white_24dp));
                 cameraParameters.setFlashMode(Parameters.FLASH_MODE_TORCH);
             }
             cameraDevice.setParameters(cameraParameters);
@@ -906,11 +931,6 @@ public class FFmpegRecorderActivity extends Activity implements OnClickListener,
                     cameraDevice.setParameters(cameraParameters);
                 }
             }
-        } else if (v.getId() == R.id.recorder_cancel) {
-            if (isRecordingStarted)
-                showCancellDialog();
-            else
-                videoTheEnd(false);
         }
     }
 
@@ -924,19 +944,15 @@ public class FFmpegRecorderActivity extends Activity implements OnClickListener,
     }
 
     private void returnToCaller(boolean valid) {
-        try {
-            setActivityResult(valid);
-            if (valid) {
-                Intent intent = new Intent(this, FFmpegPreviewActivity.class);
-                intent.putExtra("path", strVideoPath);
-                intent.putExtra("imagePath", imagePath);
-                startActivity(intent);
-            }
-        } catch (Throwable e) {
-            e.printStackTrace();
-        } finally {
-            finish();
+        setActivityResult(valid);
+        if (valid) {
+            Intent intent = new Intent(this, FFmpegPreviewActivity.class);
+            intent.putExtra("path", strVideoPath);
+            intent.putExtra("imagePath", imagePath);
+            setNextIntentParams(intent);
+            startActivity(intent);
         }
+        finish();
     }
 
     private void setActivityResult(boolean valid) {

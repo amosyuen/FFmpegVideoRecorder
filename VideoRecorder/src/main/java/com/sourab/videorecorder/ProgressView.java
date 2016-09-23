@@ -2,6 +2,7 @@ package com.sourab.videorecorder;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -9,8 +10,13 @@ import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.view.View;
 
+import com.sourab.videorecorder.util.CustomUtil;
+
 import java.util.Iterator;
 import java.util.LinkedList;
+
+import static android.R.style.Theme;
+
 /**
  * Created by Sourab Sharma (sourab.sharma@live.in)  on 1/19/2016.
  */
@@ -32,7 +38,7 @@ public class ProgressView extends View
 		init(paramContext);
 	}
 
-	private Paint progressPaint, firstPaint, threePaint,breakPaint;
+	private Paint progressPaint, firstPaint, threePaint, breakPaint;
 	private float firstWidth = 4f, threeWidth = 1f;
 	private LinkedList<Integer> linkedList = new LinkedList<Integer>();
 	private float perPixel = 0l;
@@ -43,19 +49,20 @@ public class ProgressView extends View
 	}
 
 	private void init(Context paramContext) {
-
 		progressPaint = new Paint();
 		firstPaint = new Paint();
 		threePaint = new Paint();
 		breakPaint = new Paint();
 
-		setBackgroundColor(Color.parseColor("#19000000"));
+		Resources.Theme theme = getContext().getTheme();
+		int colorPrimary = CustomUtil.getThemeColorAttribute(theme, android.R.attr.colorPrimary);
+		int colorAccent = CustomUtil.getThemeColorAttribute(theme, android.R.attr.colorAccent);
 
 		progressPaint.setStyle(Paint.Style.FILL);
-		progressPaint.setColor(Color.parseColor("#19e3cf"));
+		progressPaint.setColor(colorAccent);
 
 		firstPaint.setStyle(Paint.Style.FILL);
-		firstPaint.setColor(Color.parseColor("#ffcc42"));
+		firstPaint.setColor(colorPrimary);
 
 		threePaint.setStyle(Paint.Style.FILL);
 		threePaint.setColor(Color.parseColor("#12a899"));
@@ -64,33 +71,15 @@ public class ProgressView extends View
 		breakPaint.setColor(Color.parseColor("#000000"));
 
 		DisplayMetrics dm = new DisplayMetrics();
-		((Activity)paramContext).getWindowManager().getDefaultDisplay().getMetrics(dm);
-		perPixel = dm.widthPixels/countRecorderTime;
+		((Activity) paramContext).getWindowManager().getDefaultDisplay().getMetrics(dm);
+		perPixel = dm.widthPixels / countRecorderTime;
 		perSecProgress = perPixel;
 	}
 
 
 	public enum State {
-		START(0x1),PAUSE(0x2);
-
-		static State mapIntToValue(final int stateInt) {
-			for (State value : State.values()) {
-				if (stateInt == value.getIntValue()) {
-					return value;
-				}
-			}
-			return PAUSE;
-		}
-
-		private int mIntValue;
-
-		State(int intValue) {
-			mIntValue = intValue;
-		}
-
-		int getIntValue() {
-			return mIntValue;
-		}
+		START,
+		PAUSE,
 	}
 
 

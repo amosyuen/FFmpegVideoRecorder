@@ -8,6 +8,8 @@ android {
         applicationId "com.sourab.videorecorder.demo"
         minSdkVersion 14
         targetSdkVersion 24
+        versionCode 1
+        versionName '1.0'
     }
 
     buildTypes {

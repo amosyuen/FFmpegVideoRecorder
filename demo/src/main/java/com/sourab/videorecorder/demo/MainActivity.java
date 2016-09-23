@@ -13,6 +13,7 @@ import android.app.Activity;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
 
@@ -26,12 +27,12 @@ import static java.security.AccessController.getContext;
  * Simple demo activity that request the required permissions if not granted, then starts the video
  * recording activity.
  */
-public class MainActivity extends Activity {
+public class MainActivity extends AppCompatActivity {
 
     private static final String[] VIDEO_PERMISSIONS = new String[]{
             Manifest.permission.CAMERA,
-            Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.WAKE_LOCK,
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
     };
 

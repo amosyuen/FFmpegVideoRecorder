@@ -1,43 +1,35 @@
 package com.sourab.videorecorder;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.graphics.SurfaceTexture;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.os.Bundle;
+import android.support.annotation.CallSuper;
 import android.util.DisplayMetrics;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.RelativeLayout.LayoutParams;
 import android.widget.Toast;
 
-public class FFmpegPreviewActivity extends Activity implements TextureView.SurfaceTextureListener
+public class FFmpegPreviewActivity extends AbstractDynamicStyledActivity implements TextureView.SurfaceTextureListener
         , OnClickListener, OnCompletionListener {
 
     private String path;
     private TextureView surfaceView;
-    private Button cancelBtn;
-    private Button finishBtn;
     private MediaPlayer mediaPlayer;
     private ImageView imagePlay;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_ffmpeg_preview);
-
-        cancelBtn = (Button) findViewById(R.id.play_cancel);
-        cancelBtn.setOnClickListener(this);
-
-        finishBtn = (Button) findViewById(R.id.play_finish);
-        finishBtn.setOnClickListener(this);
 
         DisplayMetrics displaymetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
@@ -60,6 +52,42 @@ public class FFmpegPreviewActivity extends Activity implements TextureView.Surfa
 
         mediaPlayer = new MediaPlayer();
         mediaPlayer.setOnCompletionListener(this);
+    }
+
+    @Override
+    protected void layoutView() {
+        setContentView(R.layout.activity_preview);
+    }
+
+    @Override
+    protected void setupToolbar(android.support.v7.widget.Toolbar toolbar) {
+        super.setupToolbar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(final Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_done, menu);
+        super.onCreateOptionsMenu(menu);
+        return true;
+    }
+
+    @Override
+    @CallSuper
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.menu_finish) {
+            stop();
+            Toast.makeText(this, getString(R.string.video_saved_path) + " " + path, Toast.LENGTH_SHORT).show();
+            finish();
+            return true;
+        } else if (item.getItemId() == android.R.id.home) {
+            stop();
+            onBackPressed();
+            return true;
+        } else {
+            return super.onOptionsItemSelected(item);
+        }
     }
 
     @Override
@@ -109,12 +137,7 @@ public class FFmpegPreviewActivity extends Activity implements TextureView.Surfa
     @Override
     public void onClick(View v) {
         int id = v.getId();
-        if (id == R.id.play_cancel) {
-            stop();
-        } else if (id == R.id.play_finish) {
-            Toast.makeText(FFmpegPreviewActivity.this, getResources().getString(R.string.video_saved_path) + " " + path, Toast.LENGTH_SHORT).show();
-            finish();
-        } else if (id == R.id.previre_play) {
+        if (id == R.id.previre_play) {
             if (!mediaPlayer.isPlaying()) {
                 mediaPlayer.start();
             }
