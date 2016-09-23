@@ -1,0 +1,34 @@
+[
+    {
+        "merged": "E:\\Dropbox\\Programming\\zon\\TouchToRecord\\videorecorder\\build\\intermediates\\res\\merged\\debug\\layout\\activity_recorder_progress.xml",
+        "source": "E:\\Dropbox\\Programming\\zon\\TouchToRecord\\videorecorder\\src\\main\\res\\layout\\activity_recorder_progress.xml"
+    },
+    {
+        "merged": "E:\\Dropbox\\Programming\\zon\\TouchToRecord\\VideoRecorder\\app\\build\\intermediates\\res\\merged\\debug\\layout\\activity_ffmpeg_preview.xml",
+        "source": "E:\\Dropbox\\Programming\\zon\\TouchToRecord\\VideoRecorder\\app\\src\\main\\res\\layout\\activity_ffmpeg_preview.xml"
+    },
+    {
+        "merged": "E:\\Dropbox\\Programming\\zon\\TouchToRecord\\videorecorder\\build\\intermediates\\res\\merged\\debug\\layout\\activity_ffmpeg_preview.xml",
+        "source": "E:\\Dropbox\\Programming\\zon\\TouchToRecord\\videorecorder\\src\\main\\res\\layout\\activity_ffmpeg_preview.xml"
+    },
+    {
+        "merged": "E:\\Dropbox\\Programming\\zon\\TouchToRecord\\videorecorder\\build\\intermediates\\res\\merged\\debug\\layout\\global_dialog.xml",
+        "source": "E:\\Dropbox\\Programming\\zon\\TouchToRecord\\videorecorder\\src\\main\\res\\layout\\global_dialog.xml"
+    },
+    {
+        "merged": "E:\\Dropbox\\Programming\\zon\\TouchToRecord\\VideoRecorder\\app\\build\\intermediates\\res\\merged\\debug\\layout\\activity_recorder_progress.xml",
+        "source": "E:\\Dropbox\\Programming\\zon\\TouchToRecord\\VideoRecorder\\app\\src\\main\\res\\layout\\activity_recorder_progress.xml"
+    },
+    {
+        "merged": "E:\\Dropbox\\Programming\\zon\\TouchToRecord\\videorecorder\\build\\intermediates\\res\\merged\\debug\\layout\\activity_recorder.xml",
+        "source": "E:\\Dropbox\\Programming\\zon\\TouchToRecord\\videorecorder\\src\\main\\res\\layout\\activity_recorder.xml"
+    },
+    {
+        "merged": "E:\\Dropbox\\Programming\\zon\\TouchToRecord\\VideoRecorder\\app\\build\\intermediates\\res\\merged\\debug\\layout\\activity_recorder.xml",
+        "source": "E:\\Dropbox\\Programming\\zon\\TouchToRecord\\VideoRecorder\\app\\src\\main\\res\\layout\\activity_recorder.xml"
+    },
+    {
+        "merged": "E:\\Dropbox\\Programming\\zon\\TouchToRecord\\VideoRecorder\\app\\build\\intermediates\\res\\merged\\debug\\layout\\global_dialog.xml",
+        "source": "E:\\Dropbox\\Programming\\zon\\TouchToRecord\\VideoRecorder\\app\\src\\main\\res\\layout\\global_dialog.xml"
+    }
+]

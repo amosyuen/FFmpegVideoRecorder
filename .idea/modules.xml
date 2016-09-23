@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/TouchToRecord.iml" filepath="$PROJECT_DIR$/TouchToRecord.iml" />
+      <module fileurl="file://$PROJECT_DIR$/videorecorder/videorecorder.iml" filepath="$PROJECT_DIR$/videorecorder/videorecorder.iml" />
+    </modules>
+  </component>
+</project>
