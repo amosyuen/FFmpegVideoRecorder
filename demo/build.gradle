@@ -1,10 +1,11 @@
-apply plugin: 'com.android.library'
+apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 24
     buildToolsVersion '24.0.2'
 
     defaultConfig {
+        applicationId "com.sourab.videorecorder.demo"
         minSdkVersion 14
         targetSdkVersion 24
     }
@@ -19,5 +20,5 @@ android {
 
 dependencies {
     compile 'com.android.support:support-v4:24.2.1'
-    compile group: 'org.bytedeco', name: 'javacv', version: '1.1'
+    compile project(':videorecorder')
 }

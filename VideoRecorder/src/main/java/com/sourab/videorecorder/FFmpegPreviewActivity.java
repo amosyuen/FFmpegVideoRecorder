@@ -108,28 +108,22 @@ public class FFmpegPreviewActivity extends Activity implements TextureView.Surfa
 
     @Override
     public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.play_cancel:
-                stop();
-                break;
-            case R.id.play_finish:
-                Toast.makeText(FFmpegPreviewActivity.this,getResources().getString(R.string.video_saved_path) + " " + path, Toast.LENGTH_SHORT).show();
-                finish();
-                break;
-            case R.id.previre_play:
-                if (!mediaPlayer.isPlaying()) {
-                    mediaPlayer.start();
-                }
-                imagePlay.setVisibility(View.GONE);
-                break;
-            case R.id.preview_video:
-                if (mediaPlayer.isPlaying()) {
-                    mediaPlayer.pause();
-                    imagePlay.setVisibility(View.VISIBLE);
-                }
-                break;
-            default:
-                break;
+        int id = v.getId();
+        if (id == R.id.play_cancel) {
+            stop();
+        } else if (id == R.id.play_finish) {
+            Toast.makeText(FFmpegPreviewActivity.this, getResources().getString(R.string.video_saved_path) + " " + path, Toast.LENGTH_SHORT).show();
+            finish();
+        } else if (id == R.id.previre_play) {
+            if (!mediaPlayer.isPlaying()) {
+                mediaPlayer.start();
+            }
+            imagePlay.setVisibility(View.GONE);
+        } else if (id == R.id.preview_video) {
+            if (mediaPlayer.isPlaying()) {
+                mediaPlayer.pause();
+                imagePlay.setVisibility(View.VISIBLE);
+            }
         }
     }
 

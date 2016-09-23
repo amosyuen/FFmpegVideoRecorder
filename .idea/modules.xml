@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/TouchToRecord.iml" filepath="$PROJECT_DIR$/TouchToRecord.iml" />
+      <module fileurl="file://$PROJECT_DIR$/demo/demo.iml" filepath="$PROJECT_DIR$/demo/demo.iml" />
       <module fileurl="file://$PROJECT_DIR$/videorecorder/videorecorder.iml" filepath="$PROJECT_DIR$/videorecorder/videorecorder.iml" />
     </modules>
   </component>
