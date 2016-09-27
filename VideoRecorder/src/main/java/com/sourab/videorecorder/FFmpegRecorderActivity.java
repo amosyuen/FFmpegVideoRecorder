@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.PorterDuff;
 import android.graphics.Rect;
@@ -28,13 +27,11 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.os.PowerManager;
+import android.os.Process;
 import android.provider.MediaStore.Video;
 import android.support.annotation.CallSuper;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.widget.AppCompatImageButton;
-import android.support.v7.widget.AppCompatImageView;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.Menu;
@@ -48,7 +45,6 @@ import android.view.View.OnClickListener;
 import android.view.View.OnTouchListener;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
@@ -61,13 +57,13 @@ import org.bytedeco.javacv.FrameRecorder;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.Buffer;
 import java.nio.ShortBuffer;
 import java.util.Collections;
 import java.util.List;
+
+import static android.media.AudioFormat.ENCODING_PCM_16BIT;
 
 /**
  * Created by Sourab Sharma (sourab.sharma@live.in)  on 1/19/2016.
@@ -75,9 +71,14 @@ import java.util.List;
 public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         implements OnClickListener, OnTouchListener, Interfaces.AddBitmapOverlayListener {
 
+    private final static int MSG_START_RECORDING = 1;
+    private final static int MSG_STOP_RECORDING = 2;
+    private final static int MSG_SAVE_RECORDING = 3;
+
     private final static String CLASS_LABEL = "RecordActivity";
     private PowerManager.WakeLock mWakeLock;
-    private String strVideoPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "rec_video.mp4";
+    private String strVideoPath = Environment.getExternalStorageDirectory().getAbsolutePath() +
+            "rec_video.mp4";
     private File fileVideoPath = null;
     private Uri uriVideoPath = null;
     private AudioRecordRunnable audioRecordRunnable;
@@ -89,8 +90,8 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     private RecorderThread recorderThread;
     private Dialog creatingProgress;
 
-    private ImageButton flashIcon, switchCameraIcon;
-    private RelativeLayout topLayout = null;
+    private ImageButton recordButton;
+    private ImageButton flashButton, switchCameraButton;
     private SavedFrames lastSavedframe = new SavedFrames(null, 0L, false, false);
 
     private boolean initSuccess = false;
@@ -102,28 +103,24 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     private boolean isPreviewOn = false;
     private boolean nextEnabled = false;
     private boolean recordFinish = false;
-    volatile boolean runAudioThread = true;
+    private volatile boolean runAudioThread = true;
     private boolean isRecordingSaved = false;
     private boolean isFinalizing = false;
 
-    private int currentResolution = CONSTANTS.RESOLUTION_MEDIUM_VALUE;
     private int previewWidth = 480;
-    private int screenWidth = 480;
     private int previewHeight = 480;
-    private int sampleRate = 44100;
+    private RecorderParameters recorderParameters = new RecorderParameters();
     private int defaultCameraId = -1;
     private int defaultScreenResolution = -1;
     private int cameraSelection = 0;
-    private int frameRate = 30;
+
     private int totalRecordingTime = 6000;
-    private int minRecordingTime = 3000;
+    private int minRecordingTime = 1000;
 
     private long firstTime = 0;
     private long startPauseTime = 0;
-    private long totalPauseTime = 0;
     private long pausedTime = 0;
     private long stopPauseTime = 0;
-    private long totalTime = 0;
 
     private volatile long mAudioTimestamp = 0L;
     private long mLastAudioTimestamp = 0L;
@@ -131,9 +128,10 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     private long mVideoTimestamp = 0L;
     private volatile long mAudioTimeRecorded;
 
-    private ProgressView progressView;
+
+    private RelativeLayout surfaceParent;
+    private ProgressSectionsView progressView;
     private String imagePath = null;
-    private RecorderState currentRecorderState = RecorderState.PRESS;
 
     private byte[] firstData = null;
     private byte[] bufferByte;
@@ -148,40 +146,27 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
             @Override
             public void dispatchMessage(Message msg) {
                 switch (msg.what) {
-                    case 2:
-                        break;
-                    case 3:
-                        if (!isRecordingStarted)
-                            initiateRecording();
-                        else {
+                    case MSG_START_RECORDING:
+                        if (!isRecordingStarted) {
+                            firstTime = System.currentTimeMillis();
+                            isRecordingStarted = true;
+                            pausedTime = 0;
+                        } else {
                             stopPauseTime = System.currentTimeMillis();
-                            totalPauseTime = stopPauseTime - startPauseTime - ((long) (1.0 / (double) frameRate) * 1000);
-                            pausedTime += totalPauseTime;
+                            long pauseInterval = stopPauseTime - startPauseTime - ((long) (1.0 /
+                                    (double) recorderParameters.getVideoFrameRate()) * 1000);
+                            pausedTime += pauseInterval;
                         }
                         recording = true;
-                        progressView.setCurrentState(ProgressView.State.START);
-                        currentRecorderState = RecorderState.RECORDING;
-                        mHandler.sendEmptyMessage(2);
                         break;
-                    case 4:
-                        progressView.setCurrentState(ProgressView.State.PAUSE);
-                        progressView.putProgressList((int) totalTime);
+                    case MSG_STOP_RECORDING:
                         recording = false;
                         startPauseTime = System.currentTimeMillis();
-                        if (totalTime >= totalRecordingTime) {
-                            currentRecorderState = RecorderState.SUCCESS;
-                            mHandler.sendEmptyMessage(2);
-                        } else if (totalTime >= minRecordingTime) {
-                            currentRecorderState = RecorderState.MINIMUM_RECORDED;
-                            mHandler.sendEmptyMessage(2);
-                        } else {
-                            currentRecorderState = RecorderState.PRESS;
-                            mHandler.sendEmptyMessage(2);
-                        }
+                        progressView.startNewProgressSection();
                         break;
-                    case 5:
-                        currentRecorderState = RecorderState.SUCCESS;
-                        mHandler.sendEmptyMessage(2);
+                    case MSG_SAVE_RECORDING:
+                        recording = false;
+                        saveRecording();
                         break;
                     default:
                         break;
@@ -197,10 +182,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         mWakeLock = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, CLASS_LABEL);
         mWakeLock.acquire();
-
-        DisplayMetrics displaymetrics = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
-        screenWidth = displaymetrics.widthPixels;
 
         orientationListener = new DeviceOrientationEventListener(FFmpegRecorderActivity.this);
 
@@ -244,8 +225,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.menu_finish) {
             if (isRecordingStarted) {
-                recording = false;
-                saveRecording();
+                mHandler.sendEmptyMessage(MSG_SAVE_RECORDING);
             }
             return true;
         } else if (item.getItemId() == android.R.id.home) {
@@ -271,7 +251,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     @Override
     protected void onResume() {
         super.onResume();
-        mHandler.sendEmptyMessage(2);
 
         if (orientationListener != null)
             orientationListener.enable();
@@ -305,15 +284,14 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         releaseResources();
 
         if (cameraView != null) {
-            cameraView.stopPreview();
-            if (cameraDevice != null) {
-                cameraDevice.setPreviewCallback(null);
-                cameraDevice.release();
-            }
+            stopPreview();
+        }
+        if (cameraDevice != null) {
+            cameraDevice.setPreviewCallback(null);
+            cameraDevice.release();
             cameraDevice = null;
         }
         firstData = null;
-        cameraDevice = null;
         cameraView = null;
         if (mWakeLock != null) {
             mWakeLock.release();
@@ -322,116 +300,48 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     }
 
     private void initLayout() {
-        progressView = (ProgressView) findViewById(R.id.recorder_progress);
-        progressView.setTotalTime(totalRecordingTime);
-        flashIcon = (ImageButton) findViewById(R.id.recorder_flashlight);
-        switchCameraIcon = (ImageButton) findViewById(R.id.recorder_frontcamera);
-        flashIcon.setOnClickListener(this);
+        surfaceParent = (RelativeLayout) findViewById(R.id.recorder_surface_parent);
 
-        if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FRONT)) {
-            switchCameraIcon.setVisibility(View.VISIBLE);
-        }
+        progressView = (ProgressSectionsView) findViewById(R.id.recorder_progress);
+        progressView.setMinProgress(minRecordingTime);
+        progressView.setMaxProgress(totalRecordingTime);
+
+        recordButton = (ImageButton) findViewById(R.id.record_button);
+        recordButton.setOnTouchListener(FFmpegRecorderActivity.this);
+
+        switchCameraButton = (ImageButton) findViewById(R.id.switch_camera_button);
+        switchCameraButton.setOnClickListener(FFmpegRecorderActivity.this);
+
+        flashButton = (ImageButton) findViewById(R.id.flash_button);
+        flashButton.setOnClickListener(this);
+
         initCameraLayout();
     }
 
     private void initCameraLayout() {
-        new AsyncTask<String, Integer, Boolean>() {
+        surfaceParent.removeAllViews();
+        recordButton.setVisibility(View.GONE);
+        switchCameraButton.setVisibility(View.GONE);
+        flashButton.setVisibility(View.GONE);
 
-            @Override
-            protected Boolean doInBackground(String... params) {
-                boolean result = setCamera();
-                if (!initSuccess) {
-                    initVideoRecorder();
-                    startRecording();
-                    initSuccess = true;
-                }
-                return result;
-            }
-
-            @Override
-            protected void onPostExecute(Boolean result) {
-                if (!result || cameraDevice == null) {
-                    finish();
-                    return;
-                }
-
-                topLayout = (RelativeLayout) findViewById(R.id.recorder_surface_parent);
-                if (topLayout != null && topLayout.getChildCount() > 0)
-                    topLayout.removeAllViews();
-
-                cameraView = new CameraView(FFmpegRecorderActivity.this, cameraDevice);
-
-                handleSurfaceChanged();
-                if (recorderThread == null) {
-                    recorderThread = new RecorderThread(videoRecorder, previewWidth, previewHeight);
-                    recorderThread.start();
-                }
-                RelativeLayout.LayoutParams layoutParam1 = new RelativeLayout.LayoutParams(screenWidth, (int) (screenWidth * (previewWidth / (previewHeight * 1f))));
-                layoutParam1.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
-                RelativeLayout.LayoutParams layoutParam2 = new RelativeLayout.LayoutParams(screenWidth,screenWidth);
-                layoutParam2.topMargin = screenWidth;
-
-                View view = new View(FFmpegRecorderActivity.this);
-                view.setFocusable(false);
-                view.setBackgroundColor(Color.BLACK);
-                view.setFocusableInTouchMode(false);
-
-                topLayout.addView(cameraView, layoutParam1);
-              //  topLayout.addView(view, layoutParam2);
-
-                topLayout.setOnTouchListener(FFmpegRecorderActivity.this);
-
-                switchCameraIcon.setOnClickListener(FFmpegRecorderActivity.this);
-                if (cameraSelection == CameraInfo.CAMERA_FACING_FRONT) {
-                    flashIcon.setVisibility(View.GONE);
-                    isFrontCam = true;
-                } else {
-                    flashIcon.setVisibility(View.VISIBLE);
-                    isFrontCam = false;
-                }
-            }
-
-        }.execute("start");
-    }
-
-    private boolean setCamera() {
-        try {
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.FROYO) {
-                int numberOfCameras = Camera.getNumberOfCameras();
-                CameraInfo cameraInfo = new CameraInfo();
-                for (int i = 0; i < numberOfCameras; i++) {
-                    Camera.getCameraInfo(i, cameraInfo);
-                    if (cameraInfo.facing == cameraSelection) {
-                        defaultCameraId = i;
-                    }
-                }
-            }
-            stopPreview();
-            if (cameraDevice != null)
-                cameraDevice.release();
-
-            if (defaultCameraId >= 0)
-                cameraDevice = Camera.open(defaultCameraId);
-            else
-                cameraDevice = Camera.open();
-
-        } catch (Exception e) {
-            return false;
+        stopPreview();
+        if (cameraDevice != null) {
+            cameraDevice.release();
+            cameraDevice = null;
         }
-        return true;
-    }
 
+        new SetupCamera().execute();
+    }
 
     private void initVideoRecorder() {
         strVideoPath = Util.createFinalPath(this);
 
-        RecorderParameters recorderParameters = Util.getRecorderParameter(currentResolution);
-        sampleRate = recorderParameters.getAudioSamplingRate();
-        frameRate = recorderParameters.getVideoFrameRate();
-        frameTime = (1000000L / frameRate);
+        frameTime = (1000000L / recorderParameters.getVideoFrameRate());
 
         fileVideoPath = new File(strVideoPath);
-        videoRecorder = new FFmpegFrameRecorder(strVideoPath, CONSTANTS.OUTPUT_WIDTH, CONSTANTS.OUTPUT_HEIGHT, recorderParameters.getAudioChannel());
+        videoRecorder = new FFmpegFrameRecorder(strVideoPath,
+                CONSTANTS.OUTPUT_WIDTH, CONSTANTS.OUTPUT_HEIGHT, recorderParameters
+                .getAudioChannel());
         videoRecorder.setFormat(recorderParameters.getVideoOutputFormat());
         videoRecorder.setSampleRate(recorderParameters.getAudioSamplingRate());
         videoRecorder.setFrameRate(recorderParameters.getVideoFrameRate());
@@ -444,22 +354,90 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         //videoRecorder.setVideoOption(recorderParameters.getAudioBitrate());
         audioRecordRunnable = new AudioRecordRunnable();
         audioThread = new Thread(audioRecordRunnable);
-    }
 
-    public void startRecording() {
         try {
-            if (videoRecorder != null)
-                videoRecorder.start();
-            else finish();
-            if (audioThread != null)
-                audioThread.start();
-            else finish();
+            videoRecorder.start();
         } catch (FFmpegFrameRecorder.Exception e) {
             e.printStackTrace();
+            finish();
+        }
+        audioThread.start();
+    }
+
+    private class SetupCamera extends AsyncTask<Void, Integer, Boolean> {
+
+        @Override
+        protected Boolean doInBackground(Void... params) {
+            try {
+                int numberOfCameras = Camera.getNumberOfCameras();
+                CameraInfo cameraInfo = new CameraInfo();
+                for (int i = 0; i < numberOfCameras; i++) {
+                    Camera.getCameraInfo(i, cameraInfo);
+                    if (cameraInfo.facing == cameraSelection) {
+                        defaultCameraId = i;
+                    }
+                }
+
+                if (defaultCameraId >= 0) {
+                    cameraDevice = Camera.open(defaultCameraId);
+                } else {
+                    cameraDevice = Camera.open();
+                }
+
+            } catch (Exception e) {
+                return false;
+            }
+
+            if (!initSuccess) {
+                initVideoRecorder();
+                initSuccess = true;
+            }
+            return true;
+        }
+
+        @Override
+        protected void onPostExecute(Boolean result) {
+            if (!result || cameraDevice == null) {
+                finish();
+                return;
+            }
+
+            cameraView = new CameraView(FFmpegRecorderActivity.this, cameraDevice);
+
+            handleSurfaceChanged();
+            if (recorderThread == null) {
+                recorderThread = new RecorderThread(videoRecorder, previewWidth, previewHeight);
+                recorderThread.start();
+            }
+
+            int screenWidth = surfaceParent.getMeasuredWidth();
+            RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(
+                    screenWidth,
+                    screenWidth * previewWidth / previewHeight);
+            layoutParams.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
+            surfaceParent.addView(cameraView, layoutParams);
+
+            recordButton.setVisibility(View.VISIBLE);
+
+            if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FRONT)) {
+                switchCameraButton.setVisibility(View.VISIBLE);
+            }
+
+            if (cameraSelection == CameraInfo.CAMERA_FACING_FRONT) {
+                flashButton.setVisibility(View.GONE);
+                isFrontCam = true;
+            } else {
+                flashButton.setVisibility(View.VISIBLE);
+                isFrontCam = false;
+                if (isFlashOn) {
+                    cameraParameters.setFlashMode(Parameters.FLASH_MODE_TORCH);
+                    cameraDevice.setParameters(cameraParameters);
+                }
+            }
         }
     }
 
-    public class AsyncStopRecording extends AsyncTask<Void, Integer, Void> {
+    private class AsyncStopRecording extends AsyncTask<Void, Integer, Void> {
 
         private ProgressBar bar;
         private TextView progress;
@@ -469,6 +447,8 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
             isFinalizing = true;
             recordFinish = true;
             runAudioThread = false;
+
+            surfaceParent.removeAllViews();
 
             creatingProgress = new Dialog(FFmpegRecorderActivity.this, R.style.Dialog_loading_noDim);
             Window dialogWindow = creatingProgress.getWindow();
@@ -497,29 +477,29 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
             String captureBitmapPath = Util.createImagePath(FFmpegRecorderActivity.this);
             YuvImage localYuvImage = new YuvImage(data, 17, previewWidth, previewHeight, null);
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            FileOutputStream outStream = null;
+            FileOutputStream outStream;
 
             try {
                 File file = new File(captureBitmapPath);
-                if (!file.exists())
+                if (!file.exists()) {
                     file.createNewFile();
-                localYuvImage.compressToJpeg(new Rect(0, 0, previewWidth, previewHeight), 100, bos);
-                Bitmap localBitmap1 = BitmapFactory.decodeByteArray(bos.toByteArray(),
-                        0, bos.toByteArray().length);
+                }
 
+                // Convert image to JPEG
+                localYuvImage.compressToJpeg(new Rect(0, 0, previewWidth, previewHeight), 100, bos);
+                byte[] bytes = bos.toByteArray();
+                Bitmap localBitmap1 = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
                 bos.close();
 
+                // Rotate image and write to file
                 Matrix localMatrix = new Matrix();
-                if (cameraSelection == 0)
+                if (cameraSelection == 0) {
                     localMatrix.setRotate(90.0F);
-                else
+                } else {
                     localMatrix.setRotate(270.0F);
-
+                }
                 Bitmap localBitmap2 = Bitmap.createBitmap(localBitmap1, 0, 0,
-                        localBitmap1.getHeight(),
-                        localBitmap1.getHeight(),
-                        localMatrix, true);
-
+                        localBitmap1.getWidth(), localBitmap1.getHeight(), localMatrix, true);
                 ByteArrayOutputStream bos2 = new ByteArrayOutputStream();
                 localBitmap2.compress(Bitmap.CompressFormat.JPEG, 100, bos2);
 
@@ -532,9 +512,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
 
                 isFirstFrame = false;
                 imagePath = captureBitmapPath;
-            } catch (FileNotFoundException e) {
-                isFirstFrame = true;
-                e.printStackTrace();
             } catch (IOException e) {
                 isFirstFrame = true;
                 e.printStackTrace();
@@ -543,23 +520,24 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
 
         @Override
         protected Void doInBackground(Void... params) {
-            if (firstData != null)
+            if (firstData != null) {
                 getFirstCapture(firstData);
+            }
 
             recorderThread.stopRecord();
 
             isFinalizing = false;
             if (videoRecorder != null && isRecordingStarted) {
-                isRecordingStarted = false;
                 releaseResources();
             }
             String finalOutputPath = null;
             if (CONSTANTS.DO_YOU_WANT_WATER_MARK_ON_VIDEO) {
                 publishProgress(50);
-                File file = Util.createWatermarkFilePath(FFmpegRecorderActivity.this);;
+                File file = Util.createWatermarkFilePath(FFmpegRecorderActivity.this);
                 try {
-                    if(file != null && !file.exists()) {
-                        Bitmap watermark = BitmapFactory.decodeResource(getResources(), R.drawable.replace_it_with_your_watermark);
+                    if (file != null && !file.exists()) {
+                        Bitmap watermark = BitmapFactory.decodeResource(getResources(), R
+                                .drawable.replace_it_with_your_watermark);
                         FileOutputStream outStream = new FileOutputStream(file);
                         watermark.compress(Bitmap.CompressFormat.PNG, 100, outStream);
                         outStream.flush();
@@ -571,7 +549,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
                 }
 
 
-                finalOutputPath =  Util.createFinalPath(FFmpegRecorderActivity.this);
+                finalOutputPath = Util.createFinalPath(FFmpegRecorderActivity.this);
                 if (!new File(finalOutputPath).exists()) {
                     try {
                         new File(finalOutputPath).createNewFile();
@@ -580,7 +558,8 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
                     }
                 }
                 publishProgress(60);
-                CustomUtil.addBitmapOverlayOnVideo(FFmpegRecorderActivity.this, strVideoPath, file.getAbsolutePath(), finalOutputPath);
+                CustomUtil.addBitmapOverlayOnVideo(FFmpegRecorderActivity.this, strVideoPath,
+                        file.getAbsolutePath(), finalOutputPath);
                 strVideoPath = finalOutputPath;
             }
             publishProgress(100);
@@ -600,7 +579,8 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     }
 
     private void showCancelDialog() {
-        Util.showDialog(FFmpegRecorderActivity.this, getResources().getString(R.string.alert), getResources().getString(R.string.discard_video_msg), 2, new Handler() {
+        Util.showDialog(FFmpegRecorderActivity.this, getResources().getString(R.string.alert),
+                getResources().getString(R.string.discard_video_msg), 2, new Handler() {
             @Override
             public void dispatchMessage(Message msg) {
                 if (msg.what == 1)
@@ -617,76 +597,62 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
             videoTheEnd(false);
     }
 
-    class AudioRecordRunnable implements Runnable {
+    private class AudioRecordRunnable implements Runnable {
 
-        int bufferSize;
-        short[] audioData;
-        int bufferReadResult;
-        private final AudioRecord audioRecord;
-        public volatile boolean isInitialized;
-        private int mCount = 0;
-
-        private AudioRecordRunnable() {
-            bufferSize = AudioRecord.getMinBufferSize(sampleRate,
-                    AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
-            audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, sampleRate,
-                    AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize);
-            audioData = new short[bufferSize];
-        }
-
-        private void record(ShortBuffer shortBuffer) {
-            try {
-                if (videoRecorder != null) {
-                    this.mCount += shortBuffer.limit();
-                    videoRecorder.recordSamples(new Buffer[]{shortBuffer});
-                }
-            } catch (FrameRecorder.Exception localException) {
-
-            }
-            return;
-        }
-
-        private void updateTimestamp() {
-            if (videoRecorder != null) {
-                int i = Util.getTimeStampInNsFromSampleCounted(this.mCount);
-                if (mAudioTimestamp != i) {
-                    mAudioTimestamp = i;
-                    mAudioTimeRecorded = System.nanoTime();
-                }
-            }
-        }
+        private AudioRecordRunnable() {}
 
         public void run() {
-            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO);
-            this.isInitialized = false;
-            if (audioRecord != null) {
-                while (this.audioRecord.getState() == 0) {
+            Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO);
+
+            int channelConfig = recorderParameters.getAudioChannel() == 2
+                    ? AudioFormat.CHANNEL_IN_STEREO
+                    : AudioFormat.CHANNEL_IN_MONO;
+            int sampleRate = recorderParameters.getAudioSamplingRate();
+            int bufferByteSize =
+                    AudioRecord.getMinBufferSize(sampleRate, channelConfig, ENCODING_PCM_16BIT);
+            AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
+                    sampleRate, channelConfig, ENCODING_PCM_16BIT, bufferByteSize);
+            short[] audioBuffer = new short[bufferByteSize / 2];
+
+            while (audioRecord.getState() == 0) {
+                try {
+                    Thread.sleep(100L);
+                } catch (InterruptedException localInterruptedException) {
+                }
+            }
+            audioRecord.startRecording();
+
+            long samplesRecorded = 0;
+            // We need to record audio past the video to prevent sharp cutoffs
+            while ((runAudioThread || mVideoTimestamp > mAudioTimestamp)
+                    && videoRecorder != null && mAudioTimestamp < 1000 * totalRecordingTime) {
+                int readShorts = audioRecord.read(audioBuffer, 0, audioBuffer.length);
+                if (readShorts > 0 && videoRecorder != null
+                        && (recording || mVideoTimestamp > mAudioTimestamp)) {
                     try {
-                        Thread.sleep(100L);
-                    } catch (InterruptedException localInterruptedException) {
+                        videoRecorder.recordSamples(sampleRate, audioRecord.getChannelCount(),
+                                ShortBuffer.wrap(audioBuffer, 0, readShorts));
+
+                        // Calculate the timestamp from the samples recorded and sample rate
+                        samplesRecorded += readShorts / audioRecord.getChannelCount();
+                        mAudioTimestamp = 1000000L * samplesRecorded / sampleRate;
+                        mAudioTimeRecorded = System.nanoTime();
+                    } catch (FrameRecorder.Exception localException) {
                     }
                 }
-                this.isInitialized = true;
-                this.audioRecord.startRecording();
-                while (((runAudioThread) || (mVideoTimestamp > mAudioTimestamp)) && (mAudioTimestamp < (1000 * totalRecordingTime))) {
-                    updateTimestamp();
-                    bufferReadResult = this.audioRecord.read(audioData, 0, audioData.length);
-                    if ((bufferReadResult > 0) && ((isRecordingStarted && recording) || (mVideoTimestamp > mAudioTimestamp)))
-                        record(ShortBuffer.wrap(audioData, 0, bufferReadResult));
-                }
-                this.audioRecord.stop();
-                this.audioRecord.release();
             }
+            audioRecord.stop();
+            audioRecord.release();
         }
     }
 
 
     private boolean isFirstFrame = true;
 
-    class CameraView extends SurfaceView implements SurfaceHolder.Callback, PreviewCallback {
+    private class CameraView extends SurfaceView implements SurfaceHolder.Callback,
+            PreviewCallback {
 
         private SurfaceHolder mHolder;
-
 
         public CameraView(Context context, Camera camera) {
             super(context);
@@ -697,7 +663,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
             mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
             cameraDevice.setPreviewCallbackWithBuffer(CameraView.this);
         }
-
 
         @Override
         public void surfaceCreated(SurfaceHolder holder) {
@@ -710,9 +675,11 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
             }
         }
 
+        @Override
         public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-            if (isPreviewOn)
+            if (isPreviewOn) {
                 cameraDevice.stopPreview();
+            }
             handleSurfaceChanged();
             startPreview();
             cameraDevice.autoFocus(null);
@@ -723,7 +690,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
             try {
                 mHolder.addCallback(null);
                 cameraDevice.setPreviewCallback(null);
-
             } catch (RuntimeException e) {
             }
         }
@@ -735,13 +701,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
             }
         }
 
-        public void stopPreview() {
-            if (isPreviewOn && cameraDevice != null) {
-                isPreviewOn = false;
-                cameraDevice.stopPreview();
-            }
-        }
-
         @Override
         public void onPreviewFrame(byte[] data, Camera camera) {
             long frameTimeStamp = 0L;
@@ -750,29 +709,31 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
             } else if (mLastAudioTimestamp == mAudioTimestamp) {
                 frameTimeStamp = mAudioTimestamp + frameTime;
             } else {
-                long l2 = (System.nanoTime() - mAudioTimeRecorded) / 1000L;
-                frameTimeStamp = l2 + mAudioTimestamp;
+                frameTimeStamp = mAudioTimestamp + (System.nanoTime() - mAudioTimeRecorded) / 1000L;
                 mLastAudioTimestamp = mAudioTimestamp;
             }
 
-            if (isRecordingStarted && recording) {
-                if (lastSavedframe != null
-                        && lastSavedframe.getFrameBytesData() != null) {
+            if (recording) {
+                if (lastSavedframe != null && lastSavedframe.getFrameBytesData() != null) {
                     if (isFirstFrame) {
                         isFirstFrame = false;
                         firstData = data;
                     }
-                    totalTime = System.currentTimeMillis() - firstTime - pausedTime - ((long) (1.0 / (double) frameRate) * 1000);
+
+                    // We skipped the first frame
+                    long totalTime = System.currentTimeMillis() - firstTime - pausedTime
+                            - ((long) (1.0 / (double) recorderParameters.getVideoFrameRate()) *
+                            1000);
+                    progressView.setCurrentProgress(
+                            (int)(totalTime - progressView.getTotalSectionProgress()));
+
                     if (!nextEnabled && totalTime >= minRecordingTime) {
                         nextEnabled = true;
                         supportInvalidateOptionsMenu();
                     }
                     if (nextEnabled && totalTime >= totalRecordingTime) {
-                        mHandler.sendEmptyMessage(5);
-                    }
-                    if (currentRecorderState == RecorderState.RECORDING && totalTime >= minRecordingTime) {
-                        currentRecorderState = RecorderState.MINIMUM_RECORDING_REACHED;
-                        mHandler.sendEmptyMessage(2);
+                        mHandler.sendEmptyMessage(MSG_SAVE_RECORDING);
+                        return;
                     }
 
                     mVideoTimestamp += frameTime;
@@ -783,43 +744,32 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
                 }
             }
             lastSavedframe = new SavedFrames(data, frameTimeStamp, isRotateVideo, isFrontCam);
-            cameraDevice.addCallbackBuffer(bufferByte);
+            if (cameraDevice != null) {
+                cameraDevice.addCallbackBuffer(bufferByte);
+            }
         }
     }
 
     @Override
     public boolean onTouch(View v, MotionEvent event) {
-
         if (!recordFinish) {
-            if (totalTime < totalRecordingTime) {
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        if (deviceOrientation == 0) {
-                            isRotateVideo = true;
-                        } else {
-                            isRotateVideo = false;
-                        }
-                        mHandler.removeMessages(3);
-                        mHandler.removeMessages(4);
-                        mHandler.sendEmptyMessageDelayed(3, 300);
-                        break;
-                    case MotionEvent.ACTION_UP:
-                        mHandler.removeMessages(3);
-                        if (recording) {
-                            recording = false;
-                            mHandler.removeMessages(4);
-                            mHandler.sendEmptyMessage(4);
-                        }
-
-                        break;
-                }
-            } else {
-
-                recording = false;
-                saveRecording();
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    if (deviceOrientation == 0) {
+                        isRotateVideo = true;
+                    } else {
+                        isRotateVideo = false;
+                    }
+                    mHandler.removeMessages(MSG_START_RECORDING);
+                    mHandler.sendEmptyMessage(MSG_START_RECORDING);
+                    break;
+                case MotionEvent.ACTION_UP:
+                    mHandler.removeMessages(MSG_STOP_RECORDING);
+                    mHandler.sendEmptyMessage(MSG_STOP_RECORDING);
+                    break;
             }
         }
-        return true;
+        return false;
     }
 
     public void stopPreview() {
@@ -874,66 +824,58 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
 
         cameraDevice.addCallbackBuffer(bufferByte);
 
-        cameraParameters.setPreviewFrameRate(frameRate);
+        cameraParameters.setPreviewFrameRate(recorderParameters.getVideoFrameRate());
 
+        cameraDevice.setDisplayOrientation(Util.determineDisplayOrientation
+                (FFmpegRecorderActivity.this, defaultCameraId));
+        List<String> focusModes = cameraParameters.getSupportedFocusModes();
+        if (focusModes != null) {
+            Log.i("video", Build.MODEL);
+            if (((Build.MODEL.startsWith("GT-I950"))
+                    || (Build.MODEL.endsWith("SCH-I959"))
+                    || (Build.MODEL.endsWith("MEIZU MX3"))) && focusModes.contains(Camera
+                    .Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
 
-        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.FROYO) {
-            cameraDevice.setDisplayOrientation(Util.determineDisplayOrientation(FFmpegRecorderActivity.this, defaultCameraId));
-            List<String> focusModes = cameraParameters.getSupportedFocusModes();
-            if (focusModes != null) {
-                Log.i("video", Build.MODEL);
-                if (((Build.MODEL.startsWith("GT-I950"))
-                        || (Build.MODEL.endsWith("SCH-I959"))
-                        || (Build.MODEL.endsWith("MEIZU MX3"))) && focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
-
-                    cameraParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
-                } else if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
-                    cameraParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
-                } else if (focusModes.contains(Camera.Parameters.FOCUS_MODE_FIXED)) {
-                    cameraParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_FIXED);
-                }
+                cameraParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+            } else if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
+                cameraParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
+            } else if (focusModes.contains(Camera.Parameters.FOCUS_MODE_FIXED)) {
+                cameraParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_FIXED);
             }
-        } else
-            cameraDevice.setDisplayOrientation(90);
+        }
         cameraDevice.setParameters(cameraParameters);
     }
 
     @Override
     public void onClick(View v) {
-        if (v.getId() == R.id.recorder_flashlight) {
+        if (v.getId() == R.id.flash_button) {
             if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)) {
                 return;
             }
             if (isFlashOn) {
                 isFlashOn = false;
-                flashIcon.setImageDrawable(
-                        ActivityCompat.getDrawable(this, R.drawable.ic_flash_off_white_24dp));
+                flashButton.setImageDrawable(
+                        ActivityCompat.getDrawable(this, R.drawable.ic_flash_off_white_36dp));
                 cameraParameters.setFlashMode(Parameters.FLASH_MODE_OFF);
             } else {
                 isFlashOn = true;
-                flashIcon.setImageDrawable(
-                        ActivityCompat.getDrawable(this, R.drawable.ic_flash_on_white_24dp));
+                flashButton.setImageDrawable(
+                        ActivityCompat.getDrawable(this, R.drawable.ic_flash_on_white_36dp));
                 cameraParameters.setFlashMode(Parameters.FLASH_MODE_TORCH);
             }
             cameraDevice.setParameters(cameraParameters);
-        } else if (v.getId() == R.id.recorder_frontcamera) {
-            cameraSelection = ((cameraSelection == CameraInfo.CAMERA_FACING_BACK) ? CameraInfo.CAMERA_FACING_FRONT : CameraInfo.CAMERA_FACING_BACK);
-            isFrontCam = ((cameraSelection == CameraInfo.CAMERA_FACING_BACK) ? false : true);
+        } else if (v.getId() == R.id.switch_camera_button) {
+            if (cameraSelection == CameraInfo.CAMERA_FACING_BACK) {
+                cameraSelection = CameraInfo.CAMERA_FACING_FRONT;
+                isFrontCam = true;
+            } else {
+                cameraSelection = CameraInfo.CAMERA_FACING_BACK;
+                isFrontCam = false;
+            }
 
             initCameraLayout();
-
-            if (cameraSelection == CameraInfo.CAMERA_FACING_FRONT)
-                flashIcon.setVisibility(View.GONE);
-            else {
-                flashIcon.setVisibility(View.VISIBLE);
-                if (isFlashOn) {
-                    cameraParameters.setFlashMode(Parameters.FLASH_MODE_TORCH);
-                    cameraDevice.setParameters(cameraParameters);
-                }
-            }
         }
     }
-
 
     public void videoTheEnd(boolean isSuccess) {
         releaseResources();
@@ -983,7 +925,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
 
     private void saveRecording() {
         if (isRecordingStarted) {
-            runAudioThread = false;
             if (!isRecordingSaved) {
                 isRecordingSaved = true;
                 new AsyncStopRecording().execute();
@@ -994,6 +935,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     }
 
     private void releaseResources() {
+        isRecordingStarted = false;
         if (recorderThread != null) {
             recorderThread.finish();
         }
@@ -1008,38 +950,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         }
         videoRecorder = null;
         lastSavedframe = null;
-        if (progressView != null)
-            progressView.setCurrentState(ProgressView.State.PAUSE);
-    }
-
-    private void initiateRecording() {
-        firstTime = System.currentTimeMillis();
-        isRecordingStarted = true;
-        totalPauseTime = 0;
-        pausedTime = 0;
-    }
-
-    public enum RecorderState {
-        PRESS(1), RECORDING(2), MINIMUM_RECORDING_REACHED(3), MINIMUM_RECORDED(4), SUCCESS(5);
-
-        static RecorderState mapIntToValue(final int stateInt) {
-            for (RecorderState value : RecorderState.values()) {
-                if (stateInt == value.getIntValue()) {
-                    return value;
-                }
-            }
-            return PRESS;
-        }
-
-        private int mIntValue;
-
-        RecorderState(int intValue) {
-            mIntValue = intValue;
-        }
-
-        int getIntValue() {
-            return mIntValue;
-        }
     }
 
     private class DeviceOrientationEventListener

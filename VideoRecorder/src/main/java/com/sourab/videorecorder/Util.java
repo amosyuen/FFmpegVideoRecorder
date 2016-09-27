@@ -318,5 +318,4 @@ public class Util {
 
         return strRecordingTime;
     }
-
 }
