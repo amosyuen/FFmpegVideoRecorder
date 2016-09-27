@@ -4,11 +4,14 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
 import android.content.Intent;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.os.Bundle;
 import android.support.annotation.CallSuper;
+import android.support.v4.content.ContextCompat;
 import android.util.DisplayMetrics;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -22,6 +25,8 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.RelativeLayout.LayoutParams;
 import android.widget.Toast;
+
+import com.sourab.videorecorder.util.CustomUtil;
 
 public class FFmpegPreviewActivity extends AbstractDynamicStyledActivity implements OnClickListener,
         OnCompletionListener, SurfaceHolder.Callback {
@@ -80,6 +85,10 @@ public class FFmpegPreviewActivity extends AbstractDynamicStyledActivity impleme
         super.setupToolbar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowHomeEnabled(true);
+
+        Drawable navButtonDrawable = toolbar.getNavigationIcon().mutate();
+        navButtonDrawable.setColorFilter(mToolbarWidgetColor, PorterDuff.Mode.SRC_ATOP);
+        toolbar.setNavigationIcon(navButtonDrawable);
     }
 
     @Override

@@ -49,6 +49,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.sourab.videorecorder.interfaces.Interfaces;
+import com.sourab.videorecorder.util.CustomUtil;
 
 import org.bytedeco.javacv.FrameRecorder;
 
@@ -71,9 +72,20 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     public static final String VIDEO_PATH_KEY = "video";
     public static final String THUMBNAIL_PATH_KEY = "thumbnail";
 
+    public static final String EXTRA_PROGRESS_COLOR = EXTRA_PREFIX + ".ProgressColor";
+    public static final String EXTRA_PROGRESS_CURSOR_COLOR = EXTRA_PREFIX + ".ProgressCursorColor";
+    public static final String EXTRA_PROGRESS_MIN_PROGRESS_COLOR =
+            EXTRA_PREFIX + ".ProgressMinProgressColor";
+    public static final String EXTRA_WIDGET_COLOR = EXTRA_PREFIX + ".WidgetColor";
+
     private final static int MSG_START_RECORDING = 1;
     private final static int MSG_STOP_RECORDING = 2;
     private final static int MSG_SAVE_RECORDING = 3;
+
+    private int mProgressColor;
+    private int mProgressCursorColor;
+    private int mProgressMinProgressColor;
+    private int mWidgetColor;
 
     private final static String CLASS_LABEL = "RecordActivity";
     private PowerManager.WakeLock mWakeLock;
@@ -196,14 +208,24 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         setContentView(R.layout.activity_recorder);
     }
 
+    @CallSuper
+    protected void extractIntentParams(Intent intent) {
+        super.extractIntentParams(intent);
+        mProgressColor = intent.getIntExtra(EXTRA_PROGRESS_COLOR,
+                CustomUtil.getThemeColorAttribute(getTheme(), R.attr.colorAccent));
+        mProgressCursorColor = intent.getIntExtra(EXTRA_PROGRESS_CURSOR_COLOR,
+                CustomUtil.getThemeColorAttribute(getTheme(), R.attr.colorPrimaryDark));
+        mProgressMinProgressColor = intent.getIntExtra(EXTRA_PROGRESS_MIN_PROGRESS_COLOR,
+                CustomUtil.getThemeColorAttribute(getTheme(), R.attr.colorPrimary));
+        mWidgetColor = intent.getIntExtra(EXTRA_WIDGET_COLOR, android.R.color.white);
+    }
+
     @Override
     protected void setupToolbar(android.support.v7.widget.Toolbar toolbar) {
         Drawable stateButtonDrawable =
                 ContextCompat.getDrawable(this, R.drawable.ic_close_white_24dp);
-        if (mToolbarWidgetColor != NOT_SET_COLOR) {
-            stateButtonDrawable = stateButtonDrawable.mutate();
-            stateButtonDrawable.setColorFilter(mToolbarWidgetColor, PorterDuff.Mode.SRC_ATOP);
-        }
+        stateButtonDrawable = stateButtonDrawable.mutate();
+        stateButtonDrawable.setColorFilter(mToolbarWidgetColor, PorterDuff.Mode.SRC_ATOP);
         toolbar.setNavigationIcon(stateButtonDrawable);
         super.setupToolbar(toolbar);
     }
@@ -306,15 +328,20 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         progressView = (ProgressSectionsView) findViewById(R.id.recorder_progress);
         progressView.setMinProgress(minRecordingTime);
         progressView.setMaxProgress(totalRecordingTime);
+        progressView.setProgressColor(mProgressColor);
+        progressView.setCursorColor(mProgressCursorColor);
+        progressView.setMinProgressColor(mProgressMinProgressColor);
 
         recordButton = (ImageButton) findViewById(R.id.record_button);
         recordButton.setOnTouchListener(FFmpegRecorderActivity.this);
 
         switchCameraButton = (ImageButton) findViewById(R.id.switch_camera_button);
         switchCameraButton.setOnClickListener(FFmpegRecorderActivity.this);
+        switchCameraButton.setColorFilter(mWidgetColor);
 
         flashButton = (ImageButton) findViewById(R.id.flash_button);
         flashButton.setOnClickListener(this);
+        flashButton.setColorFilter(mWidgetColor);
 
         mProgressBar = (ProgressBar) findViewById(R.id.progress_bar) ;
         mProgressText = (TextView) findViewById(R.id.progress_text) ;

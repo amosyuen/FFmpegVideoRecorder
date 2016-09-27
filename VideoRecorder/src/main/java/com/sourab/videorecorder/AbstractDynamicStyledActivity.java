@@ -17,6 +17,8 @@ import android.widget.TextView;
 
 import com.sourab.videorecorder.util.CustomUtil;
 
+import static com.sourab.videorecorder.R.id.toolbar;
+
 /**
  * Created by amosyuen on 9/22/2016.
  */
@@ -27,8 +29,6 @@ public abstract class AbstractDynamicStyledActivity extends AppCompatActivity {
     public static final String EXTRA_STATUS_BAR_COLOR = EXTRA_PREFIX + ".StatusBarColor";
     public static final String EXTRA_TOOLBAR_COLOR = EXTRA_PREFIX + ".ToolbarColor";
     public static final String EXTRA_TOOLBAR_WIDGET_COLOR = EXTRA_PREFIX + ".ToolbarWidgetColor";
-
-    protected static final int NOT_SET_COLOR = 0;
 
     // Enables dynamic coloring
     protected int mStatusBarColor;
@@ -41,14 +41,17 @@ public abstract class AbstractDynamicStyledActivity extends AppCompatActivity {
 
         extractIntentParams(getIntent());
         layoutView();
-        setupToolbar((Toolbar) findViewById(R.id.toolbar));
+        setupToolbar((Toolbar) findViewById(toolbar));
     }
 
     @CallSuper
     protected void extractIntentParams(Intent intent) {
-        mStatusBarColor = intent.getIntExtra(EXTRA_STATUS_BAR_COLOR, NOT_SET_COLOR);
-        mToolbarColor = intent.getIntExtra(EXTRA_TOOLBAR_COLOR, NOT_SET_COLOR);
-        mToolbarWidgetColor = intent.getIntExtra(EXTRA_TOOLBAR_WIDGET_COLOR, NOT_SET_COLOR);
+        mStatusBarColor = intent.getIntExtra(EXTRA_STATUS_BAR_COLOR,
+                CustomUtil.getThemeColorAttribute(getTheme(), R.attr.colorPrimaryDark));
+        mToolbarColor = intent.getIntExtra(EXTRA_TOOLBAR_COLOR,
+                CustomUtil.getThemeColorAttribute(getTheme(), R.attr.colorPrimary));
+        mToolbarWidgetColor = intent.getIntExtra(EXTRA_TOOLBAR_WIDGET_COLOR,
+                CustomUtil.getThemeColorAttribute(getTheme(), android.R.attr.textColor));
     }
 
     protected abstract void layoutView();
@@ -57,12 +60,8 @@ public abstract class AbstractDynamicStyledActivity extends AppCompatActivity {
     protected void setupToolbar(Toolbar toolbar) {
         TextView toolbarTitle = (TextView) toolbar.findViewById(R.id.toolbar_title);
 
-        if (mToolbarColor != NOT_SET_COLOR) {
-            toolbar.setBackgroundColor(mToolbarColor);
-        }
-        if (mToolbarWidgetColor != NOT_SET_COLOR) {
-            toolbarTitle.setTextColor(mToolbarWidgetColor);
-        }
+        toolbar.setBackgroundColor(mToolbarColor);
+        toolbarTitle.setTextColor(mToolbarWidgetColor);
 
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayShowTitleEnabled(false);
@@ -71,16 +70,14 @@ public abstract class AbstractDynamicStyledActivity extends AppCompatActivity {
     @Override
     @CallSuper
     public boolean onCreateOptionsMenu(final Menu menu) {
-        if (mToolbarWidgetColor != NOT_SET_COLOR) {
-            MenuItem menuItemFinish = menu.findItem(R.id.menu_finish);
-            if (menuItemFinish != null) {
-                Drawable menuItemFinishIcon = menuItemFinish.getIcon();
-                if (menuItemFinishIcon != null) {
-                    menuItemFinishIcon.mutate();
-                    menuItemFinishIcon.setColorFilter(mToolbarWidgetColor, PorterDuff.Mode.SRC_ATOP);
+        MenuItem menuItemFinish = menu.findItem(R.id.menu_finish);
+        if (menuItemFinish != null) {
+            Drawable menuItemFinishIcon = menuItemFinish.getIcon();
+            if (menuItemFinishIcon != null) {
+                menuItemFinishIcon.mutate();
+                menuItemFinishIcon.setColorFilter(mToolbarWidgetColor, PorterDuff.Mode.SRC_ATOP);
 
-                    menuItemFinish.setIcon(menuItemFinishIcon);
-                }
+                menuItemFinish.setIcon(menuItemFinishIcon);
             }
         }
         return true;
@@ -88,14 +85,8 @@ public abstract class AbstractDynamicStyledActivity extends AppCompatActivity {
 
     @CallSuper
     protected void setNextIntentParams(Intent intent) {
-        if (mStatusBarColor != NOT_SET_COLOR) {
-            intent.putExtra(EXTRA_STATUS_BAR_COLOR, mStatusBarColor);
-        }
-        if (mToolbarColor != NOT_SET_COLOR) {
-            intent.putExtra(EXTRA_TOOLBAR_COLOR, mToolbarColor);
-        }
-        if (mToolbarWidgetColor != NOT_SET_COLOR) {
-            intent.putExtra(EXTRA_TOOLBAR_WIDGET_COLOR, mToolbarWidgetColor);
-        }
+        intent.putExtra(EXTRA_STATUS_BAR_COLOR, mStatusBarColor);
+        intent.putExtra(EXTRA_TOOLBAR_COLOR, mToolbarColor);
+        intent.putExtra(EXTRA_TOOLBAR_WIDGET_COLOR, mToolbarWidgetColor);
     }
 }

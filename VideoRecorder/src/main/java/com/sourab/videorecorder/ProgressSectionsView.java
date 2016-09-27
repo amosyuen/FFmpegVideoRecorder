@@ -52,10 +52,9 @@ public class ProgressSectionsView extends View
         mSeparatorWidthPixels = Math.round(2 * displayMetrics.density);
 
 		Resources.Theme theme = getContext().getTheme();
-		int colorAccent = CustomUtil.getThemeColorAttribute(theme, android.R.attr.colorAccent);
-		int colorPrimary = CustomUtil.getThemeColorAttribute(theme, android.R.attr.colorPrimary);
-		int colorPrimaryDark =
-				CustomUtil.getThemeColorAttribute(theme, android.R.attr.colorPrimaryDark);
+		int colorAccent = CustomUtil.getThemeColorAttribute(theme, R.attr.colorAccent);
+		int colorPrimary = CustomUtil.getThemeColorAttribute(theme, R.attr.colorPrimary);
+		int colorPrimaryDark = CustomUtil.getThemeColorAttribute(theme, R.attr.colorPrimaryDark);
 
 		mProgressPaint = new Paint();
 		mProgressPaint.setStyle(Paint.Style.FILL);
