@@ -77,4 +77,21 @@
 
     </RelativeLayout>
 
+    <ProgressBar
+        style="@style/Widget.AppCompat.ProgressBar"
+        android:id="@+id/progress_bar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"/>
+
+    <TextView
+        android:id="@+id/progress_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/progress_bar"
+        android:layout_marginTop="4dp"
+        android:layout_centerHorizontal="true"
+        android:text="@string/initializing"
+        android:textColor="@android:color/white"/>
+
 </RelativeLayout>

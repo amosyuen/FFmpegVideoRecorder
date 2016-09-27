@@ -45,7 +45,7 @@ public class FFmpegPreviewActivity extends AbstractDynamicStyledActivity impleme
         surfaceView.setSurfaceTextureListener(this);
         surfaceView.setOnClickListener(this);
 
-        path = getIntent().getStringExtra("path");
+        path = getIntent().getStringExtra(FFmpegRecorderActivity.VIDEO_PATH_KEY);
 
         imagePlay = (ImageView) findViewById(R.id.previre_play);
         imagePlay.setOnClickListener(this);

@@ -1,7 +1,7 @@
 package com.sourab.videorecorder;
 
-import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -32,8 +32,8 @@ import android.provider.MediaStore.Video;
 import android.support.annotation.CallSuper;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AlertDialog;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -43,15 +43,12 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnTouchListener;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.sourab.videorecorder.interfaces.Interfaces;
-import com.sourab.videorecorder.util.CustomUtil;
 
 import org.bytedeco.javacv.FrameRecorder;
 
@@ -71,6 +68,9 @@ import static android.media.AudioFormat.ENCODING_PCM_16BIT;
 public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         implements OnClickListener, OnTouchListener, Interfaces.AddBitmapOverlayListener {
 
+    public static final String VIDEO_PATH_KEY = "video";
+    public static final String THUMBNAIL_PATH_KEY = "thumbnail";
+
     private final static int MSG_START_RECORDING = 1;
     private final static int MSG_STOP_RECORDING = 2;
     private final static int MSG_SAVE_RECORDING = 3;
@@ -88,7 +88,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     private Parameters cameraParameters = null;
     private volatile FFmpegFrameRecorder videoRecorder;
     private RecorderThread recorderThread;
-    private Dialog creatingProgress;
 
     private ImageButton recordButton;
     private ImageButton flashButton, switchCameraButton;
@@ -128,10 +127,12 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     private long mVideoTimestamp = 0L;
     private volatile long mAudioTimeRecorded;
 
-
     private RelativeLayout surfaceParent;
     private ProgressSectionsView progressView;
     private String imagePath = null;
+
+    private ProgressBar mProgressBar;
+    private TextView mProgressText;
 
     private byte[] firstData = null;
     private byte[] bufferByte;
@@ -230,9 +231,9 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
             return true;
         } else if (item.getItemId() == android.R.id.home) {
             if (isRecordingStarted) {
-                showCancelDialog();
+                showCancelConfirmationDialog();
             } else {
-                videoTheEnd(false);
+                cancel();
             }
             return true;
         } else {
@@ -315,14 +316,16 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         flashButton = (ImageButton) findViewById(R.id.flash_button);
         flashButton.setOnClickListener(this);
 
+        mProgressBar = (ProgressBar) findViewById(R.id.progress_bar) ;
+        mProgressText = (TextView) findViewById(R.id.progress_text) ;
+
         initCameraLayout();
     }
 
     private void initCameraLayout() {
         surfaceParent.removeAllViews();
-        recordButton.setVisibility(View.GONE);
-        switchCameraButton.setVisibility(View.GONE);
-        flashButton.setVisibility(View.GONE);
+        showProgress();
+        mProgressText.setText(R.string.initializing);
 
         stopPreview();
         if (cameraDevice != null) {
@@ -331,6 +334,18 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         }
 
         new SetupCamera().execute();
+    }
+
+    private void showProgress() {
+        hideControls();
+        mProgressBar.setVisibility(View.VISIBLE);
+        mProgressText.setVisibility(View.VISIBLE);
+    }
+
+    private void hideControls() {
+        recordButton.setVisibility(View.GONE);
+        switchCameraButton.setVisibility(View.GONE);
+        flashButton.setVisibility(View.GONE);
     }
 
     private void initVideoRecorder() {
@@ -402,23 +417,25 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
                 return;
             }
 
-            cameraView = new CameraView(FFmpegRecorderActivity.this, cameraDevice);
-
+            cameraParameters = cameraDevice.getParameters();
             handleSurfaceChanged();
             if (recorderThread == null) {
                 recorderThread = new RecorderThread(videoRecorder, previewWidth, previewHeight);
                 recorderThread.start();
             }
 
+            mProgressBar.setVisibility(View.GONE);
+            mProgressText.setVisibility(View.GONE);
+
             int screenWidth = surfaceParent.getMeasuredWidth();
             RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(
                     screenWidth,
                     screenWidth * previewWidth / previewHeight);
             layoutParams.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
+            cameraView = new CameraView(FFmpegRecorderActivity.this);
             surfaceParent.addView(cameraView, layoutParams);
 
             recordButton.setVisibility(View.VISIBLE);
-
             if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FRONT)) {
                 switchCameraButton.setVisibility(View.VISIBLE);
             }
@@ -439,9 +456,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
 
     private class AsyncStopRecording extends AsyncTask<Void, Integer, Void> {
 
-        private ProgressBar bar;
-        private TextView progress;
-
         @Override
         protected void onPreExecute() {
             isFinalizing = true;
@@ -449,28 +463,10 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
             runAudioThread = false;
 
             surfaceParent.removeAllViews();
-
-            creatingProgress = new Dialog(FFmpegRecorderActivity.this, R.style.Dialog_loading_noDim);
-            Window dialogWindow = creatingProgress.getWindow();
-            WindowManager.LayoutParams lp = dialogWindow.getAttributes();
-            lp.width = (int) (getResources().getDisplayMetrics().density * 240);
-            lp.height = (int) (getResources().getDisplayMetrics().density * 80);
-            lp.gravity = Gravity.CENTER;
-            dialogWindow.setAttributes(lp);
-            creatingProgress.setCanceledOnTouchOutside(false);
-            creatingProgress.setContentView(R.layout.activity_recorder_progress);
-
-            progress = (TextView) creatingProgress.findViewById(R.id.recorder_progress_progresstext);
-            bar = (ProgressBar) creatingProgress.findViewById(R.id.recorder_progress_progressbar);
-            creatingProgress.show();
+            showProgress();
+            mProgressText.setText(R.string.processing);
 
             super.onPreExecute();
-        }
-
-        @Override
-        protected void onProgressUpdate(Integer... values) {
-            progress.setText(values[0] + "%");
-            bar.setProgress(values[0]);
         }
 
         private void getFirstCapture(byte[] data) {
@@ -536,33 +532,38 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
 
         @Override
         protected void onPostExecute(Void result) {
-            if (!isFinishing()) {
-                creatingProgress.dismiss();
-            }
             registerVideo();
-            returnToCaller(true);
+
+            mProgressBar.setVisibility(View.GONE);
+            mProgressText.setVisibility(View.GONE);
+
+            startPreview();
             videoRecorder = null;
         }
 
     }
 
-    private void showCancelDialog() {
-        Util.showDialog(FFmpegRecorderActivity.this, getResources().getString(R.string.alert),
-                getResources().getString(R.string.discard_video_msg), 2, new Handler() {
-            @Override
-            public void dispatchMessage(Message msg) {
-                if (msg.what == 1)
-                    videoTheEnd(false);
-            }
-        });
+    private void showCancelConfirmationDialog() {
+         new AlertDialog.Builder(this)
+                .setTitle(R.string.are_you_sure)
+                .setMessage(R.string.discard_video_msg)
+                .setPositiveButton(R.string.confirm, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        cancel();
+                    }
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
     }
 
     @Override
     public void onBackPressed() {
-        if (isRecordingStarted)
-            showCancelDialog();
-        else
-            videoTheEnd(false);
+        if (isRecordingStarted) {
+            showCancelConfirmationDialog();
+        } else {
+            cancel();
+        }
     }
 
     private class AudioRecordRunnable implements Runnable {
@@ -622,10 +623,8 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
 
         private SurfaceHolder mHolder;
 
-        public CameraView(Context context, Camera camera) {
+        public CameraView(Context context) {
             super(context);
-            cameraDevice = camera;
-            cameraParameters = cameraDevice.getParameters();
             mHolder = getHolder();
             mHolder.addCallback(CameraView.this);
             mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
@@ -723,11 +722,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         if (!recordFinish) {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
-                    if (deviceOrientation == 0) {
-                        isRotateVideo = true;
-                    } else {
-                        isRotateVideo = false;
-                    }
+                    isRotateVideo = deviceOrientation == 0;
                     mHandler.removeMessages(MSG_START_RECORDING);
                     mHandler.sendEmptyMessage(MSG_START_RECORDING);
                     break;
@@ -845,36 +840,29 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         }
     }
 
-    public void videoTheEnd(boolean isSuccess) {
+    public void cancel() {
+        hideControls();
+        surfaceParent.removeAllViews();
         releaseResources();
-        if (fileVideoPath != null && fileVideoPath.exists() && !isSuccess)
+        if (fileVideoPath != null && fileVideoPath.exists()) {
             fileVideoPath.delete();
-
-        returnToCaller(isSuccess);
-    }
-
-    private void returnToCaller(boolean valid) {
-        setActivityResult(valid);
-        if (valid) {
-            Intent intent = new Intent(this, FFmpegPreviewActivity.class);
-            intent.putExtra("path", strVideoPath);
-            intent.putExtra("imagePath", imagePath);
-            setNextIntentParams(intent);
-            startActivity(intent);
+            fileVideoPath = null;
         }
+        setResult(RESULT_CANCELED);
         finish();
     }
 
-    private void setActivityResult(boolean valid) {
+    private void startPreview() {
         Intent resultIntent = new Intent();
-        int resultCode;
-        if (valid) {
-            resultCode = RESULT_OK;
-            resultIntent.setData(uriVideoPath);
-        } else
-            resultCode = RESULT_CANCELED;
+        resultIntent.setData(uriVideoPath);
+        resultIntent.putExtra(THUMBNAIL_PATH_KEY, imagePath);
+        setResult(RESULT_OK, resultIntent);
 
-        setResult(resultCode, resultIntent);
+        Intent previewIntent = new Intent(this, FFmpegPreviewActivity.class);
+        previewIntent.putExtra(VIDEO_PATH_KEY, strVideoPath);
+        setNextIntentParams(previewIntent);
+        startActivity(previewIntent);
+        finish();
     }
 
     private void registerVideo() {
@@ -892,13 +880,9 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     }
 
     private void saveRecording() {
-        if (isRecordingStarted) {
-            if (!isRecordingSaved) {
-                isRecordingSaved = true;
-                new AsyncStopRecording().execute();
-            }
-        } else {
-            videoTheEnd(false);
+        if (!isRecordingSaved) {
+            isRecordingSaved = true;
+            new AsyncStopRecording().execute();
         }
     }
 

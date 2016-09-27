@@ -1,27 +1,9 @@
 <resources>
 
     <style name="ActivityTheme" parent="Theme.AppCompat.Light.NoActionBar">
-        <item name="android:textColor">@android:color/white</item>
-        <item name="android:textColorPrimary">@android:color/white</item>
-        <item name="android:textColorSecondary">@android:color/white</item>
         <item name="colorPrimary">#3498D6</item>
         <item name="colorPrimaryDark">#0165A3</item>
         <item name="colorAccent">#67CBFF</item>
-    </style>
-
-    <style name="Dialog_loading" parent="android:style/Theme.Dialog">
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:windowFrame">@null</item>
-        <item name="android:windowNoTitle">true</item>
-        <item name="android:windowIsTranslucent">true</item>
-    </style>
-
-    <style name="Dialog_loading_noDim" parent="android:style/Theme.Dialog">
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:windowFrame">@null</item>
-        <item name="android:windowNoTitle">true</item>
-        <item name="android:windowIsTranslucent">true</item>
-        <item name="android:backgroundDimEnabled">false</item>
     </style>
 
 </resources>
