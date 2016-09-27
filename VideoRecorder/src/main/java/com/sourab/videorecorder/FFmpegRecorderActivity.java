@@ -530,38 +530,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
             if (videoRecorder != null && isRecordingStarted) {
                 releaseResources();
             }
-            String finalOutputPath = null;
-            if (CONSTANTS.DO_YOU_WANT_WATER_MARK_ON_VIDEO) {
-                publishProgress(50);
-                File file = Util.createWatermarkFilePath(FFmpegRecorderActivity.this);
-                try {
-                    if (file != null && !file.exists()) {
-                        Bitmap watermark = BitmapFactory.decodeResource(getResources(), R
-                                .drawable.replace_it_with_your_watermark);
-                        FileOutputStream outStream = new FileOutputStream(file);
-                        watermark.compress(Bitmap.CompressFormat.PNG, 100, outStream);
-                        outStream.flush();
-                        outStream.close();
-                        publishProgress(55);
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-
-                finalOutputPath = Util.createFinalPath(FFmpegRecorderActivity.this);
-                if (!new File(finalOutputPath).exists()) {
-                    try {
-                        new File(finalOutputPath).createNewFile();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                publishProgress(60);
-                CustomUtil.addBitmapOverlayOnVideo(FFmpegRecorderActivity.this, strVideoPath,
-                        file.getAbsolutePath(), finalOutputPath);
-                strVideoPath = finalOutputPath;
-            }
             publishProgress(100);
             return null;
         }

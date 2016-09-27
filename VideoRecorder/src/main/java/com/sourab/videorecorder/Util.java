@@ -87,16 +87,6 @@ public class Util {
         return filePath;
     }
 
-    public static File createWatermarkFilePath(Context context) {
-        String filename = CONSTANTS.FILE_START_NAME + CONSTANTS.WATERMARK_NAME + CONSTANTS.WATERMARK_EXTENSION;
-
-        String dirPath = Environment.getExternalStorageDirectory() + "/Android/data/" + context.getPackageName() + CONSTANTS.IMAGE_FOLDER;
-        File file = new File(dirPath);
-        if (!file.exists() || !file.isDirectory())
-            file.mkdirs();
-        return new File(file ,filename);
-    }
-
     public static String createFinalPath(Context context) {
         long dateTaken = System.currentTimeMillis();
         String title = CONSTANTS.FILE_START_NAME + dateTaken;
