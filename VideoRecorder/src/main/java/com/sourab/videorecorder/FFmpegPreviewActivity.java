@@ -1,7 +1,9 @@
 package com.sourab.videorecorder;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ObjectAnimator;
 import android.content.Intent;
-import android.graphics.SurfaceTexture;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
@@ -10,22 +12,29 @@ import android.support.annotation.CallSuper;
 import android.util.DisplayMetrics;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.Surface;
-import android.view.TextureView;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.RelativeLayout.LayoutParams;
 import android.widget.Toast;
 
-public class FFmpegPreviewActivity extends AbstractDynamicStyledActivity implements TextureView.SurfaceTextureListener
-        , OnClickListener, OnCompletionListener {
+public class FFmpegPreviewActivity extends AbstractDynamicStyledActivity implements OnClickListener,
+        OnCompletionListener, SurfaceHolder.Callback {
+
+    private static final int PROGRESS_UPDATE_INTERVAL_MILLIS = 50;
 
     private String path;
-    private TextureView surfaceView;
+    private SurfaceView surfaceView;
     private MediaPlayer mediaPlayer;
-    private ImageView imagePlay;
+    private ImageView playButton;
+    private ProgressBar mProgressBar;
+
+    private DecelerateInterpolator mInterpolator;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,7 +42,6 @@ public class FFmpegPreviewActivity extends AbstractDynamicStyledActivity impleme
 
         DisplayMetrics displaymetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
-        surfaceView = (TextureView) findViewById(R.id.preview_video);
 
         RelativeLayout preview_video_parent = (RelativeLayout) findViewById(R.id.preview_video_parent);
         LayoutParams layoutParams = (LayoutParams) preview_video_parent
@@ -42,16 +50,24 @@ public class FFmpegPreviewActivity extends AbstractDynamicStyledActivity impleme
         layoutParams.height = displaymetrics.widthPixels;
         preview_video_parent.setLayoutParams(layoutParams);
 
-        surfaceView.setSurfaceTextureListener(this);
+        surfaceView = (SurfaceView) findViewById(R.id.preview_video);
+        surfaceView.getHolder().addCallback(this);
         surfaceView.setOnClickListener(this);
 
         path = getIntent().getStringExtra(FFmpegRecorderActivity.VIDEO_PATH_KEY);
 
-        imagePlay = (ImageView) findViewById(R.id.previre_play);
-        imagePlay.setOnClickListener(this);
+        playButton = (ImageView) findViewById(R.id.play_button);
+        playButton.setOnClickListener(this);
 
-        mediaPlayer = new MediaPlayer();
-        mediaPlayer.setOnCompletionListener(this);
+        mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
+
+        mInterpolator = new DecelerateInterpolator();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
     }
 
     @Override
@@ -82,7 +98,6 @@ public class FFmpegPreviewActivity extends AbstractDynamicStyledActivity impleme
             finish();
             return true;
         } else if (item.getItemId() == android.R.id.home) {
-            stop();
             onBackPressed();
             return true;
         } else {
@@ -91,21 +106,47 @@ public class FFmpegPreviewActivity extends AbstractDynamicStyledActivity impleme
     }
 
     @Override
-    protected void onStop() {
-        if (mediaPlayer.isPlaying()) {
+    protected void onPause() {
+        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
             mediaPlayer.pause();
-            imagePlay.setVisibility(View.GONE);
+            playButton.setVisibility(View.VISIBLE);
         }
-        super.onStop();
+        super.onPause();
     }
 
-    private void prepare(Surface surface) {
+    @Override
+    public void onClick(View v) {
+        int id = v.getId();
+        if (id == R.id.play_button) {
+            if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
+                play();
+            }
+            playButton.setVisibility(View.GONE);
+        } else if (id == R.id.preview_video) {
+            if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+                pause();
+            }
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        stop();
+        Intent intent = new Intent(this, FFmpegRecorderActivity.class);
+        setNextIntentParams(intent);
+        startActivity(intent);
+        finish();
+    }
+
+    @Override
+    public void surfaceCreated(SurfaceHolder holder) {
         try {
+            mediaPlayer = new MediaPlayer();
+            mediaPlayer.setOnCompletionListener(this);
             mediaPlayer.reset();
             mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             mediaPlayer.setDataSource(path);
-            mediaPlayer.setSurface(surface);
-            mediaPlayer.setLooping(true);
+            mediaPlayer.setDisplay(holder);
             mediaPlayer.prepare();
             mediaPlayer.seekTo(0);
         } catch (Exception e) {
@@ -113,57 +154,68 @@ public class FFmpegPreviewActivity extends AbstractDynamicStyledActivity impleme
     }
 
     @Override
-    public void onSurfaceTextureAvailable(SurfaceTexture arg0, int arg1,
-                                          int arg2) {
-        prepare(new Surface(arg0));
-    }
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {}
 
     @Override
-    public boolean onSurfaceTextureDestroyed(SurfaceTexture arg0) {
-        return false;
-    }
-
-    @Override
-    public void onSurfaceTextureSizeChanged(SurfaceTexture arg0, int arg1,
-                                            int arg2) {
-
-    }
-
-    @Override
-    public void onSurfaceTextureUpdated(SurfaceTexture arg0) {
-
-    }
-
-    @Override
-    public void onClick(View v) {
-        int id = v.getId();
-        if (id == R.id.previre_play) {
-            if (!mediaPlayer.isPlaying()) {
-                mediaPlayer.start();
-            }
-            imagePlay.setVisibility(View.GONE);
-        } else if (id == R.id.preview_video) {
-            if (mediaPlayer.isPlaying()) {
-                mediaPlayer.pause();
-                imagePlay.setVisibility(View.VISIBLE);
-            }
-        }
-    }
-
-    private void stop() {
-        mediaPlayer.stop();
-        Intent intent = new Intent(this, FFmpegRecorderActivity.class);
-        startActivity(intent);
-        finish();
-    }
-
-    @Override
-    public void onBackPressed() {
+    public void surfaceDestroyed(SurfaceHolder holder) {
         stop();
     }
 
     @Override
     public void onCompletion(MediaPlayer mp) {
-        imagePlay.setVisibility(View.VISIBLE);
+        animateProgress(mProgressBar.getMax())
+                .addListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        super.onAnimationEnd(animation);
+                        if (mediaPlayer != null) {
+                            mediaPlayer.seekTo(0);
+                            animateProgress(0);
+                            playButton.setVisibility(View.VISIBLE);
+                        }
+                    }
+                });
+    }
+
+    private void play() {
+        mediaPlayer.start();
+        updateProgress();
+    }
+
+    private void pause() {
+        mediaPlayer.pause();
+        playButton.setVisibility(View.VISIBLE);
+    }
+
+    private void stop() {
+        if (mediaPlayer != null) {
+            mediaPlayer.stop();
+            mediaPlayer.release();
+            mediaPlayer = null;
+        }
+    }
+
+    private void updateProgress() {
+        if (mediaPlayer == null) {
+            return;
+        }
+        animateProgress(mProgressBar.getMax()
+                * mediaPlayer.getCurrentPosition() / mediaPlayer.getDuration());
+        if (mediaPlayer.isPlaying()) {
+            mProgressBar.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    updateProgress();
+                }
+            }, PROGRESS_UPDATE_INTERVAL_MILLIS);
+        }
+    }
+
+    private ObjectAnimator animateProgress(int progress) {
+        ObjectAnimator animation = ObjectAnimator.ofInt(mProgressBar, "progress", progress);
+        animation.setDuration(getResources().getInteger(android.R.integer.config_shortAnimTime));
+        animation.setInterpolator(mInterpolator);
+        animation.start();
+        return animation;
     }
 }

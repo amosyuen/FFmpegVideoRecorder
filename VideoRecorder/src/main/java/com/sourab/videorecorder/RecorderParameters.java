@@ -14,7 +14,7 @@ public class RecorderParameters {
     private int videoFrameRate = 24;
     private int videoQuality = 5;
     private int audioCodec = AAC_SUPPORTED ? avcodec.AV_CODEC_ID_AAC : avcodec.AV_CODEC_ID_AMR_NB;
-    private int audioChannel = 1;
+    private int audioChannels = 1;
     private int audioBitrate = 128000;
     private int videoBitrate = 1000000;
     private int audioSamplingRate = AAC_SUPPORTED ? 44100 : 8000;
@@ -61,7 +61,7 @@ public class RecorderParameters {
     }
 
     public int getAudioChannel() {
-        return audioChannel;
+        return audioChannels;
     }
 
 }
