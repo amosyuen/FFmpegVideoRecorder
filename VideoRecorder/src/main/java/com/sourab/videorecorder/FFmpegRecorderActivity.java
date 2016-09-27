@@ -435,6 +435,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
             cameraView = new CameraView(FFmpegRecorderActivity.this);
             surfaceParent.addView(cameraView, layoutParams);
 
+            progressView.setVisibility(View.VISIBLE);
             recordButton.setVisibility(View.VISIBLE);
             if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FRONT)) {
                 switchCameraButton.setVisibility(View.VISIBLE);
@@ -464,6 +465,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
 
             surfaceParent.removeAllViews();
             showProgress();
+            progressView.setVisibility(View.GONE);
             mProgressText.setText(R.string.processing);
 
             super.onPreExecute();

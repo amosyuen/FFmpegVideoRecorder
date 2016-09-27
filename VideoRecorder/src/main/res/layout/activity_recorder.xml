@@ -27,7 +27,8 @@
         android:layout_height="6dp"
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"/>
+        android:layout_alignParentStart="true"
+        android:visibility="gone"/>
 
     <RelativeLayout
         android:id="@+id/recorder_surface_parent"
