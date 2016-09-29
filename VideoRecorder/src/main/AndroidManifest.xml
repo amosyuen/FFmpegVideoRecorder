@@ -17,7 +17,8 @@
         android:name="android.hardware.camera.front"
         android:required="false" />
 
-    <application>
+    <application
+        android:largeHeap="true">
         <activity
             android:name=".FFmpegRecorderActivity"
             android:label="@string/app_name"

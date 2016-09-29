@@ -458,7 +458,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
                     screenWidth,
                     screenWidth * previewWidth / previewHeight);
             layoutParams.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
-            cameraView = new CameraView(FFmpegRecorderActivity.this);
+            cameraView = new CameraView(FFmpegRecorderActivity.this, cameraDevice);
             surfaceParent.addView(cameraView, layoutParams);
 
             progressView.setVisibility(View.VISIBLE);
@@ -650,13 +650,15 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
             PreviewCallback {
 
         private SurfaceHolder mHolder;
+        private Camera mCamera;
 
-        public CameraView(Context context) {
+        public CameraView(Context context, Camera camera) {
             super(context);
+            mCamera = camera;
             mHolder = getHolder();
             mHolder.addCallback(CameraView.this);
             mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-            cameraDevice.setPreviewCallbackWithBuffer(CameraView.this);
+            cameraDevice.setPreviewCallbackWithBuffer(this);
         }
 
         @Override

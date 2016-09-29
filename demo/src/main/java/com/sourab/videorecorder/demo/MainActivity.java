@@ -1,15 +1,12 @@
 package com.sourab.videorecorder.demo;
 
-import android.*;
 import android.Manifest;
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.app.Activity;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -18,10 +15,6 @@ import android.view.View;
 import android.widget.Button;
 
 import com.sourab.videorecorder.FFmpegRecorderActivity;
-
-import java.security.Permissions;
-
-import static java.security.AccessController.getContext;
 
 /**
  * Simple demo activity that request the required permissions if not granted, then starts the video
