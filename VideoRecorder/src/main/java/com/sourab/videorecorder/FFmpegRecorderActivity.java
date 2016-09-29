@@ -49,7 +49,6 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.sourab.videorecorder.interfaces.Interfaces;
-import com.sourab.videorecorder.util.CustomUtil;
 
 import org.bytedeco.javacv.FrameRecorder;
 
@@ -212,11 +211,11 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     protected void extractIntentParams(Intent intent) {
         super.extractIntentParams(intent);
         mProgressColor = intent.getIntExtra(EXTRA_PROGRESS_COLOR,
-                CustomUtil.getThemeColorAttribute(getTheme(), R.attr.colorAccent));
+                Util.getThemeColorAttribute(getTheme(), R.attr.colorAccent));
         mProgressCursorColor = intent.getIntExtra(EXTRA_PROGRESS_CURSOR_COLOR,
-                CustomUtil.getThemeColorAttribute(getTheme(), R.attr.colorPrimaryDark));
+                Util.getThemeColorAttribute(getTheme(), R.attr.colorPrimaryDark));
         mProgressMinProgressColor = intent.getIntExtra(EXTRA_PROGRESS_MIN_PROGRESS_COLOR,
-                CustomUtil.getThemeColorAttribute(getTheme(), R.attr.colorPrimary));
+                Util.getThemeColorAttribute(getTheme(), R.attr.colorPrimary));
         mWidgetColor = intent.getIntExtra(EXTRA_WIDGET_COLOR, android.R.color.white);
     }
 

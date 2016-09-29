@@ -26,8 +26,6 @@ import android.widget.RelativeLayout;
 import android.widget.RelativeLayout.LayoutParams;
 import android.widget.Toast;
 
-import com.sourab.videorecorder.util.CustomUtil;
-
 public class FFmpegPreviewActivity extends AbstractDynamicStyledActivity implements OnClickListener,
         OnCompletionListener, SurfaceHolder.Callback {
 

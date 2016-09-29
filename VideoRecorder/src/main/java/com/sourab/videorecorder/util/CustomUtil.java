@@ -36,12 +36,6 @@ public final class CustomUtil {
         (new Processor(getEncodingLibraryPath(context), context)).newCommand().enableOverwrite().addInputPath(videoPath).setWaterMark(bitmapPath).setThread().setPreset().setStrict().processToOutput(outputPath);
     }
 
-    @ColorInt
-    public static int getThemeColorAttribute(Resources.Theme theme, @AttrRes int attribute) {
-        TypedValue typedValue = new TypedValue();
-        theme.resolveAttribute(attribute, typedValue, true);
-        return typedValue.data;
-    }
 }
 
 

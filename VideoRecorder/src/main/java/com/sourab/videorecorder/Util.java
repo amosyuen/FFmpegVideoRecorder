@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.res.Resources;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.Parameters;
@@ -13,6 +14,9 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.MediaStore.Video;
+import android.support.annotation.AttrRes;
+import android.support.annotation.ColorInt;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.OrientationEventListener;
 import android.view.Surface;
@@ -137,6 +141,13 @@ public class Util {
             parameters.setVideoQuality(20);
         }
         return parameters;
+    }
+
+    @ColorInt
+    public static int getThemeColorAttribute(Resources.Theme theme, @AttrRes int attribute) {
+        TypedValue typedValue = new TypedValue();
+        theme.resolveAttribute(attribute, typedValue, true);
+        return typedValue.data;
     }
 
     public static class ResolutionComparator implements Comparator<Camera.Size> {

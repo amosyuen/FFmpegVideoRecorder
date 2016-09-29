@@ -11,8 +11,6 @@ import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.view.View;
 
-import com.sourab.videorecorder.util.CustomUtil;
-
 import java.util.ArrayList;
 
 /**
@@ -52,9 +50,9 @@ public class ProgressSectionsView extends View
         mSeparatorWidthPixels = Math.round(2 * displayMetrics.density);
 
 		Resources.Theme theme = getContext().getTheme();
-		int colorAccent = CustomUtil.getThemeColorAttribute(theme, R.attr.colorAccent);
-		int colorPrimary = CustomUtil.getThemeColorAttribute(theme, R.attr.colorPrimary);
-		int colorPrimaryDark = CustomUtil.getThemeColorAttribute(theme, R.attr.colorPrimaryDark);
+		int colorAccent = Util.getThemeColorAttribute(theme, R.attr.colorAccent);
+		int colorPrimary = Util.getThemeColorAttribute(theme, R.attr.colorPrimary);
+		int colorPrimaryDark = Util.getThemeColorAttribute(theme, R.attr.colorPrimaryDark);
 
 		mProgressPaint = new Paint();
 		mProgressPaint.setStyle(Paint.Style.FILL);

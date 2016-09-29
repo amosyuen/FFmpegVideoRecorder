@@ -2,20 +2,15 @@ package com.sourab.videorecorder;
 
 import android.content.Intent;
 import android.graphics.PorterDuff;
-import android.graphics.drawable.Animatable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.annotation.CallSuper;
 import android.support.annotation.Nullable;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
-
-import com.sourab.videorecorder.util.CustomUtil;
 
 import static com.sourab.videorecorder.R.id.toolbar;
 
@@ -47,11 +42,11 @@ public abstract class AbstractDynamicStyledActivity extends AppCompatActivity {
     @CallSuper
     protected void extractIntentParams(Intent intent) {
         mStatusBarColor = intent.getIntExtra(EXTRA_STATUS_BAR_COLOR,
-                CustomUtil.getThemeColorAttribute(getTheme(), R.attr.colorPrimaryDark));
+                Util.getThemeColorAttribute(getTheme(), R.attr.colorPrimaryDark));
         mToolbarColor = intent.getIntExtra(EXTRA_TOOLBAR_COLOR,
-                CustomUtil.getThemeColorAttribute(getTheme(), R.attr.colorPrimary));
+                Util.getThemeColorAttribute(getTheme(), R.attr.colorPrimary));
         mToolbarWidgetColor = intent.getIntExtra(EXTRA_TOOLBAR_WIDGET_COLOR,
-                CustomUtil.getThemeColorAttribute(getTheme(), android.R.attr.textColor));
+                Util.getThemeColorAttribute(getTheme(), android.R.attr.textColor));
     }
 
     protected abstract void layoutView();
