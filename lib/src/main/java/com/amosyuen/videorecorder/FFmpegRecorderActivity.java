@@ -7,10 +7,8 @@ import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
-import android.media.MediaActionSound;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.CallSuper;
 import android.support.annotation.ColorInt;
@@ -80,9 +78,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     protected ProgressBar mProgressBar;
     protected TextView mProgressText;
 
-    // Other vars
-    protected MediaActionSound mMediaActionSound;
-
     // State variables
     protected ListVideoFrameRecorder mVideoFrameRecorder;
     protected ListAudioRecorder mAudioRecorder;
@@ -131,10 +126,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
 
         mProgressBar = (ProgressBar) findViewById(R.id.progress_bar) ;
         mProgressText = (TextView) findViewById(R.id.progress_text) ;
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            mMediaActionSound = new MediaActionSound();
-        }
 
         mVideoFrameRecorder = new ListVideoFrameRecorder();
         mAudioRecorder = new ListAudioRecorder();
@@ -442,11 +433,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     }
 
     protected void startRecording() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN
-                && !mVideoFrameRecorderView.isRecording()) {
-            mMediaActionSound.play(MediaActionSound.START_VIDEO_RECORDING);
-            mMediaActionSound.load(MediaActionSound.STOP_VIDEO_RECORDING);
-        }
         mVideoFrameRecorderView.startRecording();
         mAudioRecorderThread.setRecording(true);
     }
@@ -454,11 +440,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     protected void stopRecording() {
         if (mParams == null) {
             return;
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN
-                && mVideoFrameRecorderView.isRecording()) {
-            mMediaActionSound.play(MediaActionSound.START_VIDEO_RECORDING);
-            mMediaActionSound.load(MediaActionSound.STOP_VIDEO_RECORDING);
         }
         mVideoFrameRecorderView.stopRecording();
         mAudioRecorderThread.setRecording(false);

@@ -10,8 +10,7 @@
         android:allowBackup="true">
 
         <activity
-            android:name="com.amosyuen.videorecorder.demo.MainActivity"
-            android:label="@string/title_activity_demo">
+            android:name="com.amosyuen.videorecorder.demo.MainActivity">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
