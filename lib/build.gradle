@@ -30,10 +30,18 @@ android {
 
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 24
+        targetSdkVersion 18
         versionCode 1
         versionName '1.0.0'
+
+        // Android has problems including the javacv native libraries, so we must include them
+        // manually rather than using gradle.
+        // https://github.com/bytedeco/javacpp-presets/wiki/The-UnsatisfiedLinkError-X-File-(a-real-experience)
+        // Compile the *.so files extracted from javacpp-presets:ffmpeg:3.1.2-1.2:android-*.jar
+        ndk { abiFilters "armeabi", "armeabi-v7a", "x86" }
     }
+
+    resourcePrefix 'ffmpegvideorecorder_'
 
     buildTypes {
         release {
@@ -42,21 +50,15 @@ android {
     }
 }
 
-// https://github.com/bytedeco/javacv/issues/395
-configurations {
-    all*.exclude group: 'org.bytedeco', module: 'javacpp-presets'
-}
-
 dependencies {
     compile 'com.android.support:appcompat-v7:24.2.1'
     compile 'com.android.support:support-v4:24.2.1'
-    //noinspection GradleDynamicVersion
-    compile 'com.android.support:support-annotations:+'
+    compile 'com.getkeepsafe.relinker:relinker:1.2.2'
 
-    compile group: 'org.bytedeco', name: 'javacpp', version: '1.2.4'
-    compile group: 'org.bytedeco', name: 'javacv', version: '1.2'
-    compile group: 'org.bytedeco.javacpp-presets', name: 'opencv', version: '3.1.0-1.2', classifier: 'android-arm'
-    compile group: 'org.bytedeco.javacpp-presets', name: 'ffmpeg', version: '3.0.2-1.2', classifier: 'android-arm'
+    compile files('libs/ffmpeg-3.1.2-1.2.jar')
+    // javacpp v1.2 has a crashing bug https://github.com/bytedeco/javacv/issues/412#issuecomment-220718619
+    compile files('libs/javacpp-1.2.4.jar')
+    compile files('libs/javacv-1.2.jar')
 }
 
 apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/installv1.gradle'

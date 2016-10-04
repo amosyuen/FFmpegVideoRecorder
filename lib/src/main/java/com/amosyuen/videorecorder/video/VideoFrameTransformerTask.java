@@ -1,6 +1,7 @@
 package com.amosyuen.videorecorder.video;
 
 
+import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
@@ -8,6 +9,7 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.amosyuen.videorecorder.util.TaskListener;
+import com.getkeepsafe.relinker.ReLinker;
 
 import org.bytedeco.javacpp.avutil;
 import org.bytedeco.javacv.FFmpegFrameFilter;

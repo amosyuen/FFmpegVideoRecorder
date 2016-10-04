@@ -569,6 +569,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
                 mVideoThumbnailOutputFile = new File(Uri.parse(videoThumbnailOutputUri).getPath());
             }
 
+            Util.loadFFmpegLibraries(FFmpegRecorderActivity.this);
             mRecorder = Util.createFrameRecorder(mVideoOutputFile, mParams);
 
             Camera.Size previewSize = mVideoFrameRecorderView.getPreviewSize();
