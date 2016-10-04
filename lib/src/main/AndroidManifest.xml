@@ -1,0 +1,34 @@
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.amosyuen.videorecorder" >
+
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+    <permission
+        android:name="android.permission.FLASHLIGHT"
+        android:permissionGroup="android.permission-group.HARDWARE_CONTROLS"
+        android:protectionLevel="normal" />
+
+    <uses-feature android:name="android.hardware.camera" />
+    <uses-feature
+        android:name="android.hardware.camera.front"
+        android:required="false" />
+
+    <application
+        android:largeHeap="true">
+        <activity
+            android:name="com.amosyuen.videorecorder.FFmpegRecorderActivity"
+            android:theme="@style/ActivityTheme"
+            android:screenOrientation="portrait" >
+        </activity>
+        <activity
+            android:name="com.amosyuen.videorecorder.FFmpegPreviewActivity"
+            android:theme="@style/ActivityTheme"
+            android:screenOrientation="portrait" >
+        </activity>
+    </application>
+
+</manifest>

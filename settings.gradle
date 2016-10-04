@@ -1,1 +1,1 @@
-include ':videorecorder', ':demo'
+include ':lib', ':demo'

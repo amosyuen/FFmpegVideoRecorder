@@ -5,11 +5,11 @@ android {
     buildToolsVersion '24.0.3'
 
     defaultConfig {
-        applicationId "com.sourab.videorecorder.demo"
+        applicationId "com.amosyuen.videorecorder.demo"
         minSdkVersion 14
         targetSdkVersion 24
         versionCode 1
-        versionName '1.0'
+        versionName '1.0.0'
     }
 
     buildTypes {
@@ -22,5 +22,5 @@ android {
 
 dependencies {
     compile 'com.android.support:support-v4:24.2.1'
-    compile project(':videorecorder')
+    compile project(':lib')
 }

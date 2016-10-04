@@ -1,4 +1,7 @@
 <resources>
-    <string name="app_name">VideoRecorder</string>
-    <string name="title_activity_main">MainActivity</string>
+    <string name="app_name">FFmpegVideoRecorder Demo</string>
+    <string name="title_activity_demo">DemoActivity</string>
+    <string name="error">Error</string>
+    <string name="ok">OK</string>
+    <string name="success">Success</string>
 </resources>

@@ -2,9 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/TouchToRecord.iml" filepath="$PROJECT_DIR$/TouchToRecord.iml" />
+      <module fileurl="file://$PROJECT_DIR$/FFmpegVideoRecorder.iml" filepath="$PROJECT_DIR$/FFmpegVideoRecorder.iml" />
       <module fileurl="file://$PROJECT_DIR$/demo/demo.iml" filepath="$PROJECT_DIR$/demo/demo.iml" />
-      <module fileurl="file://$PROJECT_DIR$/videorecorder/videorecorder.iml" filepath="$PROJECT_DIR$/videorecorder/videorecorder.iml" />
+      <module fileurl="file://$PROJECT_DIR$/lib/lib.iml" filepath="$PROJECT_DIR$/lib/lib.iml" />
     </modules>
   </component>
 </project>
