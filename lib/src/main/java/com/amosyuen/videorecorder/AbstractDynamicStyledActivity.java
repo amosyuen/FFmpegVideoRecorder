@@ -15,8 +15,6 @@ import android.widget.TextView;
 import com.amosyuen.videorecorder.util.ActivityThemeParams;
 import com.amosyuen.videorecorder.util.Util;
 
-import static com.amosyuen.videorecorder.R.id.toolbar;
-
 /**
  * Activity that sets the colors based on params
  */
@@ -30,12 +28,8 @@ public abstract class AbstractDynamicStyledActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if (getThemeParams() == null) {
-            return;
-        }
-
         layoutView();
-        setupToolbar((Toolbar) findViewById(toolbar));
+        setupToolbar((Toolbar) findViewById(R.id.toolbar));
     }
 
     protected ActivityThemeParams getThemeParams() {

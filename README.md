@@ -1,22 +1,76 @@
-# FFmpegVideoRecorder - Video Recording Library for Android
+# FFmpegVideoRecorder - Customizable Video Recording Library for Android
 
-This library is based off of these sources:
-- https://github.com/sourab-sharma/TouchToRecord
-- https://github.com/bytedeco/sample-projects/tree/master/JavaCV-android-example
+The library provides a way to record audio and video separately and then merge them together using FFmpeg Recorder from JavaCV. It is designed to allow maximum customization of the video encoding and recording.
 
-It uses https://github.com/bytedeco/javacv for combining and encoding videos.
+It has built in activities for easy recording and previewing. But it also exposes basic components that can be used to customize your own UI and logic.
 
-On a high level, the library provides a way to record audio and video separately and then merge them together using FFmpeg Recorder from JavaCV. It allows customization of the video encoding and recording, but also exposes some basic components that can be used to customize your own activity.
+## Features
 
-# Usage
+### Recording primitives
+
+- Able to record multiple clips and combine them into one video
+- Can set the desired width and height dimensions
+- Can set how the camera images are scaled and cropped to the desired width and height
+- Can set attributes such as audio and video bitrate, codec, and quality
+- Camera image is scaled for the desired aspect ratio
+- Generates a thumbnail image for the video
+
+### FFmpegRecorderActivity
+
+Activity that allows the user to record videos in a way similar to instagram and snapchat
+
+- Dynamically customize the color of the actionbar and widgets 
+- Enable / disable flash
+- Switch between front and back cameras
+- Instagram / Snapchat like recording by holding down a button
+- Can set the minimum and maximum recording time
+
+![Record Video Activity Screenshot](./screenshots/record_video_activity.png "Record Video Activity")
+
+### FFmpegPreviewActivity
+
+Activity to preview the recorded video before selecting the video
+
+![Preview Video Activity Screenshot](./screenshots/preview_video_activity.png "Preview Video Activity")
+
+## Installation
+    
+### Gradle
+
+```
+compile 'com.amosyuen.ffmpegvideorecorder:ffmpeg-video-recorder:1.0.0'
+```
+
+### Maven
+
+```
+<dependency>
+  <groupId>com.amosyuen.ffmpegvideorecorder</groupId>
+  <artifactId>ffmpeg-video-recorder</artifactId>
+  <version>1.0.0</version>
+  <type>pom</type>
+</dependency>
+```
+
+### Ivy
+
+```
+<dependency org='com.amosyuen.ffmpegvideorecorder' name='ffmpeg-video-recorder' rev='1.0.0'>
+  <artifact name='$AID' ext='pom'></artifact>
+</dependency>
+```
+
+### Local Checkout
+
+```
+git clone git://github.com/amosyuen/FFmpegVideoRecorder.git
+```
+
+## Usage
 
 *For a working implementation, please have a look at the demo project*
 
-1. Include the library as local library project.
-
-    ``` compile 'com.amosyuen:ffmpegvideorecorder:1.0.0' ```
-    
-2. For Android M and above, make sure you request the following permissions before starting the activity:
+1. For Android M and above, make sure you request the following permissions before starting the activity:
 
     - Manifest.permission.CAMERA
     - Manifest.permission.RECORD_AUDIO
@@ -61,16 +115,12 @@ On a high level, the library provides a way to record audio and video separately
     }
     ```
 
-# Features
+## Credits
 
-- Enable / disable flash
-- Switch between front and back cameras
-- Instagram / Snapchat like recording by holding down a button
-- Able to record multiple clips and combine them into one video
-- Can set the minimum and maximum recording time
-- Can set the desired width and height dimensions
-- Can set how the camera capture images are scaled to the desired width and height
-- Camera image is scaled for the desired aspect ratio
-- Can set attributes such as bitrate, codec, and quality
-- Generates a thumbnail image for the video
-- After recording the video, the user is able to preview the video before using it
+This library is based off of these sources:
+
+- https://github.com/sourab-sharma/TouchToRecord
+- https://github.com/bytedeco/sample-projects/tree/master/JavaCV-android-example
+
+It uses https://github.com/bytedeco/javacv for combining and encoding videos.
+
