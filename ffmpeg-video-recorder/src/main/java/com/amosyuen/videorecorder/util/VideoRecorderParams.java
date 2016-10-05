@@ -5,6 +5,7 @@ import android.hardware.Camera.CameraInfo;
 import android.net.Uri;
 
 import com.amosyuen.videorecorder.audio.AudioRecorderParams;
+import com.amosyuen.videorecorder.util.FFmpegRecorderParams.Builder;
 import com.amosyuen.videorecorder.video.ImageSize.ScaleType;
 import com.amosyuen.videorecorder.video.VideoFrameRecorderParams;
 import com.amosyuen.videorecorder.video.VideoFrameTransformerParams;
@@ -85,6 +86,12 @@ public interface VideoRecorderParams extends
         }
 
         @Override
+        public Builder videoCodec(VideoCodec val) {
+            super.videoCodec(val);
+            return this;
+        }
+
+        @Override
         public Builder videoFrameRate(int val) {
             super.videoFrameRate(val);
             return this;
@@ -122,6 +129,12 @@ public interface VideoRecorderParams extends
 
         @Override
         public Builder audioCodec(int val) {
+            super.audioCodec(val);
+            return this;
+        }
+
+        @Override
+        public Builder audioCodec(AudioCodec val) {
             super.audioCodec(val);
             return this;
         }

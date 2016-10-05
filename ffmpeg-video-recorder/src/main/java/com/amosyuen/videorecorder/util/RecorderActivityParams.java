@@ -2,6 +2,7 @@ package com.amosyuen.videorecorder.util;
 
 
 import android.net.Uri;
+import android.provider.MediaStore.Video;
 import android.support.annotation.ColorInt;
 
 import com.amosyuen.videorecorder.video.ImageSize.ScaleType;
@@ -69,6 +70,12 @@ public interface RecorderActivityParams
             super.videoCodec(val);
             return this;
         }
+
+        @Override
+        public Builder videoCodec(VideoCodec val) {
+            super.videoCodec(val);
+            return this;
+        }
     
         @Override
         public Builder videoFrameRate(int val) {
@@ -108,6 +115,12 @@ public interface RecorderActivityParams
     
         @Override
         public Builder audioCodec(int val) {
+            super.audioCodec(val);
+            return this;
+        }
+
+        @Override
+        public Builder audioCodec(AudioCodec val) {
             super.audioCodec(val);
             return this;
         }
