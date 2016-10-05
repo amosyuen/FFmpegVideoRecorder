@@ -217,21 +217,6 @@ public class VideoFrameRecorderView extends SurfaceView implements
 
     private void updateSurfaceLayout() {
         Log.v(LOG_TAG, "updateSurfaceLayout");
-        ImageSize targetSize = mParams == null
-                ? new ImageSize()
-                : new ImageSize(mParams.getVideoWidth(), mParams.getVideoHeight());
-        // If there is no preview size use a common aspect ratio (4:3) and the current view
-        // dimensions to estimate a preview size
-        ImageSize previewSize = mPreviewSize == null
-                ? new ImageSize(width, width * 3 / 4)
-                : new ImageSize(mPreviewSize.width, mPreviewSize.height);
-        if (targetSize.isAtLeastOneDimensionDefined()) {
-            targetSize.calculateUndefinedDimensions(previewSize);
-            previewSize.scale(targetSize, mParams.getVideoScaleType(), mParams.canUpscaleVideo());
-        } else {
-            targetSize = previewSize.clone();
-        }
-
         ImageSize parentSize;
         if (getParent() instanceof View) {
             View parent = (View) getParent();
@@ -240,23 +225,41 @@ public class VideoFrameRecorderView extends SurfaceView implements
             DisplayMetrics metrics = getResources().getDisplayMetrics();
             parentSize = new ImageSize(metrics.widthPixels, metrics.heightPixels);
         }
+        if (!parentSize.areDimensionsDefined()) {
+            return;
+        }
+
+        ImageSize targetSize = mParams == null
+                ? new ImageSize()
+                : new ImageSize(mParams.getVideoWidth(), mParams.getVideoHeight());
+        // If there is no preview size calculate it from the targetSize or the parentSize
+        ImageSize previewSize = mPreviewSize == null
+                ? new ImageSize(parentSize.width, targetSize.areDimensionsDefined()
+                        ? (int)(parentSize.width / targetSize.getAspectRatio()) : parentSize.height)
+                : new ImageSize(mPreviewSize.width, mPreviewSize.height);
+        if (targetSize.isAtLeastOneDimensionDefined()) {
+            targetSize.calculateUndefinedDimensions(previewSize);
+            previewSize.scale(targetSize, mParams.getVideoScaleType(), mParams.canUpscaleVideo());
+        } else {
+            targetSize = previewSize.clone();
+        }
         Log.v(LOG_TAG, String.format("Parent %s", parentSize));
         Log.v(LOG_TAG, String.format("Target %s", targetSize));
         Log.v(LOG_TAG, String.format("Preview %s", previewSize));
 
         // Scale the target to fit within the parent view
-        float scale = targetSize.scaleToFit(parentSize, true);
-        mScaledTargetSize = targetSize;
-        Log.v(LOG_TAG, String.format("Scaled Target %s", targetSize));
-
-        // Scale the previewSize by the same amount
-        if (scale != 1f) {
-            previewSize.scaleBy(scale);
-        }
+        mScaledTargetSize = targetSize.clone();
+        mScaledTargetSize.scaleToFit(parentSize, true);
+        // Scale the previewSize by the same amount that target size was scaled
         mScaledPreviewSize = previewSize;
-        Log.v(LOG_TAG, String.format("Scaled Preview %s", previewSize));
+        mScaledPreviewSize.width =
+                mScaledPreviewSize.width * mScaledTargetSize.width / targetSize.width;
+        mScaledPreviewSize.height =
+                mScaledPreviewSize.height * mScaledTargetSize.height / targetSize.height;
+        Log.v(LOG_TAG, String.format("Scaled Target %s", mScaledTargetSize));
+        Log.v(LOG_TAG, String.format("Scaled Preview %s", mScaledPreviewSize));
 
-        setMeasuredDimension(previewSize.width, previewSize.height);
+        setMeasuredDimension(mScaledPreviewSize.width, mScaledPreviewSize.height);
         invalidate();
     }
 

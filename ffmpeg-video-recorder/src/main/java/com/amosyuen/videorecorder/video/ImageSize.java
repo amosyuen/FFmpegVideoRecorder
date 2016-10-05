@@ -40,6 +40,10 @@ public class ImageSize {
         return width != SIZE_UNDEFINED || height != SIZE_UNDEFINED;
     }
 
+    public float getAspectRatio() {
+        return (float)width / height;
+    }
+
     /**
      * Calculates the undefined dimensions in this size using the aspect ratio from the source size.
      */
@@ -54,58 +58,53 @@ public class ImageSize {
         return false;
     }
 
-    public void scaleBy(float scale) {
-        if (width != SIZE_UNDEFINED) {
-            width *= scale;
-        }
-        if (height != SIZE_UNDEFINED) {
-            height *= scale;
-        }
-    }
-
     /**
      * @param targetSize must be a defined size.
      */
-    public float scale(ImageSize targetSize, ScaleType scaleType, boolean allowUpscale) {
+    public boolean scale(ImageSize targetSize, ScaleType scaleType, boolean allowUpscale) {
         switch (scaleType) {
             case FILL:
                 return scaleToFill(targetSize, allowUpscale);
             case FIT:
                 return scaleToFit(targetSize, allowUpscale);
         }
-        return 1f;
+        return false;
     }
 
     /**
      * @param targetSize must be a defined size.
      */
-    public float scaleToFill(ImageSize targetSize, boolean allowUpscale) {
-        if (BuildConfig.DEBUG && !targetSize.areDimensionsDefined()) {
-            throw new IllegalArgumentException("targetSize is not defined");
-        }
-        return scaleIfAllowed(
-                Math.max((float) targetSize.width / width, (float) targetSize.height / height),
-                allowUpscale);
+    public boolean scaleToFill(ImageSize targetSize, boolean allowUpscale) {
+        return scale(targetSize, allowUpscale, true);
     }
 
     /**
      * @param targetSize must be a defined size.
      */
-    public float scaleToFit(ImageSize targetSize, boolean allowUpscale) {
+    public boolean scaleToFit(ImageSize targetSize, boolean allowUpscale) {
+        return scale(targetSize, allowUpscale, false);
+    }
+
+    /**
+     * @param targetSize must be a defined size.
+     */
+    protected boolean scale(ImageSize targetSize, boolean allowUpscale, boolean isFill) {
         if (BuildConfig.DEBUG && !targetSize.areDimensionsDefined()) {
             throw new IllegalArgumentException("targetSize is not defined");
         }
-        return scaleIfAllowed(
-                Math.min((float) targetSize.width / width, (float) targetSize.height / height),
-                allowUpscale);
-    }
-
-    protected float scaleIfAllowed(float scale, boolean allowUpscale) {
-        if (scale < 1.0f || (scale > 1.0f && allowUpscale)) {
-            scaleBy(scale);
-            return scale;
+        boolean isAspectRatioGreaterThan = targetSize.getAspectRatio() > getAspectRatio();
+        if (isAspectRatioGreaterThan ^ isFill) {
+            if (targetSize.height < height || (targetSize.height > height && allowUpscale)) {
+                width = width * targetSize.height / height;
+                height = targetSize.height;
+                return true;
+            }
+        } else if (targetSize.width < width || (targetSize.width > width && allowUpscale)) {
+            height = height * targetSize.width / width;
+            width = targetSize.width;
+            return true;
         }
-        return 1f;
+        return false;
     }
     
     public boolean cropTo(ImageSize targetSize) {

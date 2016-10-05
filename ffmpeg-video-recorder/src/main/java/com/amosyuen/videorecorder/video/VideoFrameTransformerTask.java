@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
+import static android.R.attr.x;
 import static org.bytedeco.javacv.Frame.DEPTH_UBYTE;
 
 /**
@@ -177,7 +178,7 @@ public class VideoFrameTransformerTask implements Runnable {
             ImageSize imageSize = new ImageSize(mRecordedWidth, mRecordedHeight);
             targetSize.calculateUndefinedDimensions(imageSize);
             if (imageSize.scale(
-                    targetSize, mParams.getVideoScaleType(), mParams.canUpscaleVideo()) != 1f) {
+                    targetSize, mParams.getVideoScaleType(), mParams.canUpscaleVideo())) {
                 transforms.add("scale=w=" + imageSize.width + ":h=" + imageSize.height);
             }
             if (imageSize.cropTo(targetSize)) {
@@ -186,8 +187,8 @@ public class VideoFrameTransformerTask implements Runnable {
             if (imageSize.padTo(targetSize)) {
                 transforms.add("pad=w=" + imageSize.width + ":h=" + imageSize.height);
             }
-            mFrameRecorder.setImageWidth(targetSize.width);
-            mFrameRecorder.setImageHeight(targetSize.height);
+            mFrameRecorder.setImageWidth(imageSize.width);
+            mFrameRecorder.setImageHeight(imageSize.height);
         } else {
             mFrameRecorder.setImageWidth(mRecordedWidth);
             mFrameRecorder.setImageHeight(mRecordedHeight);

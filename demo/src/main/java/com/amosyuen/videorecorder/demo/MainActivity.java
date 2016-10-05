@@ -152,8 +152,8 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, FFmpegRecorderActivity.class);
         RecorderActivityParams params = new RecorderActivityParams.Builder(mVideoFile)
                 .videoThumbnailOutput(mThumbnailFile)
-                .videoWidth(480)
-                .videoHeight(640)
+                .videoWidth(360)
+                .videoHeight(360)
                 .build();
         intent.putExtra(FFmpegRecorderActivity.RECORDER_ACTIVITY_PARAMS_KEY, params);
         startActivityForResult(intent, RECORD_VIDEO_REQUEST);
