@@ -12,6 +12,7 @@ public interface FFmpegRecorderParams extends Serializable {
     int getVideoBitrate();
     int getVideoCodec();
     int getVideoFrameRate();
+    /** Value from 0 to 10, where 0 is best quality and 10 is worst quality. */
     int getVideoQuality();
     int getVideoWidth();
     int getVideoHeight();
@@ -19,6 +20,7 @@ public interface FFmpegRecorderParams extends Serializable {
     int getAudioBitrate();
     int getAudioChannelCount();
     int getAudioCodec();
+    /** Value from 0 to 10, where 0 is best quality and 10 is worst quality. */
     int getAudioQuality();
     int getAudioSamplingRateHz();
 
@@ -71,6 +73,7 @@ public interface FFmpegRecorderParams extends Serializable {
             return this;
         }
 
+        /** Value from 0 to 10, where 0 is best quality and 10 is worst quality. */
         public Builder videoQuality(int val) {
             videoQuality = val;
             return this;
@@ -101,6 +104,7 @@ public interface FFmpegRecorderParams extends Serializable {
             return this;
         }
 
+        /** Value from 0 to 10, where 0 is best quality and 10 is worst quality. */
         public Builder audioQuality(int val) {
             audioQuality = val;
             return this;
