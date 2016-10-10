@@ -23,37 +23,113 @@ public class VideoUtil {
     public static final int ORIENTATION_HYSTERESIS = 5;
 
     /**
-     *  If both dimensions are defined, pick the size that is equal to or bigger than the desired
-     *  size and has the closest aspect ratio. If no sizes are big enough, just pick the largest
-     *  size.
-     *
-     *  If one dimension is specified, just pick the first size that is equal to or bigger than the
-     *  desired dimension. If no sizes are big enough, just pick the largest size.
-     *
-     *  If zero dimensions are specified, just pick the first size.
+     *  Finds the best supported camera preview size for the target size.
      */
-    public static Camera.Size getBestResolution(Camera camera, ImageSize imageSize) {
-        List<Camera.Size> sizes = camera.getParameters().getSupportedPreviewSizes();
-        Collections.sort(sizes, new ResolutionComparator());
-        float aspectRatio =
-                imageSize.areDimensionsDefined() ? (float) imageSize.width / imageSize.height : 0f;
-        float bestSizeAspectRatioDiff = Float.POSITIVE_INFINITY;
-        Camera.Size bestSize = null;
-        for (Camera.Size size : sizes) {
-            if (size.width >= imageSize.width && size.height >= imageSize.height) {
-                if (aspectRatio > 0f) {
+    public static Camera.Size getBestResolution(Camera camera, ImageSize targetSize) {
+        if (targetSize.areDimensionsDefined()) {
+            // Find the size closest in aspect ratio that is bigger than the target size
+            float aspectRatio = (float) targetSize.width / targetSize.height;
+            float bestSizeAspectRatioDiff = Float.POSITIVE_INFINITY;
+            Camera.Size bestSize = null;
+            List<Camera.Size> sizes = camera.getParameters().getSupportedPreviewSizes();
+            for (Camera.Size size : sizes) {
+                if (size.width >= targetSize.width && size.height >= targetSize.height) {
                     float aspectRatioDiff =
                             Math.abs((float) size.width / size.height - aspectRatio);
                     if (aspectRatioDiff < bestSizeAspectRatioDiff) {
                         bestSizeAspectRatioDiff = aspectRatioDiff;
                         bestSize = size;
                     }
-                } else if (bestSize == null) {
+                }
+            }
+            // If no size was found, find the size with the most pixels that fit in the target
+            // size.
+            if (bestSize == null) {
+                int bestPixelCount = 0;
+                for (Camera.Size size : sizes) {
+                    int pixelCount = Math.min(size.width, targetSize.width)
+                            * Math.min(size.height, targetSize.height);
+                    if (pixelCount >= bestPixelCount) {
+                        bestPixelCount = pixelCount;
+                        bestSize = size;
+                    }
+                }
+            }
+            return bestSize;
+        } else if (targetSize.isAtLeastOneDimensionDefined()) {
+            // Choose the closest camera size whose dimension is greater than the one defined
+            // dimension in the target size, or the closest size if none is greater.
+            int bestSizeDiff = Integer.MIN_VALUE;
+            Camera.Size bestSize = null;
+            List<Camera.Size> sizes = camera.getParameters().getSupportedPreviewSizes();
+            for (Camera.Size size : sizes) {
+                int sizeDiff = targetSize.width == ImageSize.SIZE_UNDEFINED
+                        ? size.height - targetSize.height
+                        : size.width - targetSize.width;
+                if (sizeDiff == 0) {
+                    bestSize = size;
+                    break;
+                } else if (bestSizeDiff < 0) {
+                    if (sizeDiff > bestSizeDiff) {
+                        bestSizeDiff = sizeDiff;
+                        bestSize = size;
+                    }
+                } else if (sizeDiff > 0 && sizeDiff < bestSizeDiff) {
+                    bestSizeDiff = sizeDiff;
                     bestSize = size;
                 }
             }
+            return bestSize;
+        } else {
+            // No sizes are defined, just return the default one
+            return camera.getParameters().getPreviewSize();
         }
-        return bestSize == null ? sizes.get(sizes.size() - 1) : bestSize;
+    }
+
+    /**
+     *  Choose the best fps range for the target fps.
+     */
+    public static int[] getBestFpsRange(Camera camera, float targetFps) {
+        int targetFpsInt = (int)(1000f * targetFps);
+        List<int[]> fpsRanges = camera.getParameters().getSupportedPreviewFpsRange();
+        int bestFpsRangeAvgDist = Integer.MAX_VALUE;
+        int[] bestFpsRange = null;
+        // Choose the closest range whose minimum fps is greater than or equal to the target fps
+        for (int[] fpsRange : fpsRanges) {
+            if (fpsRange[0] >= targetFpsInt) {
+                int avgFpsDist = Math.abs(targetFpsInt - (fpsRange[0] + fpsRange[1]) / 2);
+                if (avgFpsDist < bestFpsRangeAvgDist) {
+                    bestFpsRange = fpsRange;
+                    bestFpsRangeAvgDist = avgFpsDist;
+                }
+            }
+        }
+        // If no range was found above choose the closest range whose maximum fps is greater than or
+        // equal to the target fps
+        if (bestFpsRange == null) {
+            for (int[] fpsRange : fpsRanges) {
+                if (fpsRange[1] >= targetFpsInt) {
+                    int avgFpsDist = Math.abs(targetFpsInt - (fpsRange[0] + fpsRange[1]) / 2);
+                    if (avgFpsDist < bestFpsRangeAvgDist) {
+                        bestFpsRange = fpsRange;
+                        bestFpsRangeAvgDist = avgFpsDist;
+                    }
+                }
+            }
+        }
+        // If no range was found, just choose the closest range with the largest fps
+        if (bestFpsRange == null) {
+            for (int[] fpsRange : fpsRanges) {
+                if (bestFpsRange == null || fpsRange[1] >= bestFpsRange[1]) {
+                    int avgFpsDist = Math.abs(targetFpsInt - (fpsRange[0] + fpsRange[1]) / 2);
+                    if (avgFpsDist < bestFpsRangeAvgDist) {
+                        bestFpsRange = fpsRange;
+                        bestFpsRangeAvgDist = avgFpsDist;
+                    }
+                }
+            }
+        }
+        return bestFpsRange;
     }
 
     public static int determineDisplayOrientation(Context context, int defaultCameraId) {
@@ -102,15 +178,5 @@ public class VideoUtil {
             return ((orientation + 45) / 90 * 90) % 360;
         }
         return lastOrientation;
-    }
-
-    public static class ResolutionComparator implements Comparator<Camera.Size> {
-        @Override
-        public int compare(Camera.Size size1, Camera.Size size2) {
-            if (size1.height != size2.height)
-                return size1.height - size2.height;
-            else
-                return size1.width - size2.width;
-        }
     }
 }

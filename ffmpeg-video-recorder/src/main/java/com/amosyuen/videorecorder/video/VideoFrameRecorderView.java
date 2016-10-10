@@ -370,18 +370,19 @@ public class VideoFrameRecorderView extends SurfaceView implements
         try {
             mCamera.stopPreview();
 
-            // Set preview size and framerate
-            Camera.Size size = VideoUtil.getBestResolution(
+            // Set preview size
+            mPreviewSize = VideoUtil.getBestResolution(
                     mCamera, new ImageSize(mParams.getVideoWidth(), mParams.getVideoHeight()));
-            // If the preview size changed, request a layout, which will resize the view to the
-            // preview aspect ratio {
-            mPreviewSize = size;
             Log.v(LOG_TAG, "Camera preview width="
                     + mPreviewSize.width + " height=" + mPreviewSize.height);
             updateSurfaceLayout();
             Camera.Parameters cameraParameters = mCamera.getParameters();
             cameraParameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
             cameraParameters.setPreviewFrameRate(mParams.getVideoFrameRate());
+
+            // Set preview frame rate
+            int[] fpsRange = VideoUtil.getBestFpsRange(mCamera, mParams.getVideoFrameRate());
+            cameraParameters.setPreviewFpsRange(fpsRange[0], fpsRange[1]);
 
             // Camera focus mode
             List<String> focusModes = cameraParameters.getSupportedFocusModes();
