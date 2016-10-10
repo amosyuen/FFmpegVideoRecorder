@@ -1,6 +1,7 @@
 package com.amosyuen.videorecorder;
 
 
+import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.annotation.CallSuper;
@@ -24,16 +25,29 @@ public abstract class AbstractDynamicStyledActivity extends AppCompatActivity {
     public static final String ACTIVITY_THEME_PARAMS_KEY =
             BuildConfig.APPLICATION_ID + ".ActivityThemeParams";
 
+    protected ActivityThemeParams mThemeParams;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        if (!extractIntentParams()) {
+            return;
+        }
         layoutView();
         setupToolbar((Toolbar) findViewById(R.id.toolbar));
     }
 
+    protected boolean extractIntentParams() {
+        Intent intent = getIntent();
+        mThemeParams = intent.hasExtra(ACTIVITY_THEME_PARAMS_KEY)
+                ? (ActivityThemeParams) intent.getSerializableExtra(ACTIVITY_THEME_PARAMS_KEY)
+                : new ActivityThemeParams.Builder().build();
+        return true;
+    }
+
     protected ActivityThemeParams getThemeParams() {
-        return (ActivityThemeParams) getIntent().getSerializableExtra(ACTIVITY_THEME_PARAMS_KEY);
+        return mThemeParams;
     }
 
     @ColorInt
