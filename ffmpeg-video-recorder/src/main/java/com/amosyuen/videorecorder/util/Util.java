@@ -1,6 +1,8 @@
 package com.amosyuen.videorecorder.util;
 
 
+import android.content.Context;
+import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
@@ -48,5 +50,10 @@ public class Util {
         drawable.mutate();
         drawable.setColorFilter(colorInt, PorterDuff.Mode.SRC_ATOP);
         return drawable;
+    }
+
+    public static boolean isContextLandscape(Context context) {
+        return context.getResources().getConfiguration().orientation
+                == Configuration.ORIENTATION_LANDSCAPE;
     }
 }

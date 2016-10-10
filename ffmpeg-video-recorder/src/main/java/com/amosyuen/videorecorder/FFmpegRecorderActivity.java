@@ -4,6 +4,7 @@ package com.amosyuen.videorecorder;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.graphics.drawable.Drawable;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
@@ -49,6 +50,8 @@ import java.io.File;
 import java.security.InvalidParameterException;
 import java.util.concurrent.TimeUnit;
 
+import static java.security.AccessController.getContext;
+
 /**
  * Activity for recording audio and video
  */
@@ -88,6 +91,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     protected boolean mIsVideoFrameRecorderReady;
     protected boolean mIsFinishedRecording;
     protected long mLatestTimestampNanos;
+    protected int mOriginalRequestedOrientation;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -125,6 +129,8 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
 
         mVideoFrameRecorder = new ListVideoFrameRecorder();
         mAudioRecorder = new ListAudioRecorder();
+
+        mOriginalRequestedOrientation = getRequestedOrientation();
 
         initRecorders();
     }
@@ -212,6 +218,8 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         mAudioRecorderThread = new AudioRecorderThread(getThemeParams(), mAudioRecorder);
         mAudioRecorderThread.setRecorderListener(this);
         mAudioRecorderThread.start();
+
+        setRequestedOrientation(mOriginalRequestedOrientation);
 
         openCamera();
     }
@@ -432,6 +440,10 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     protected void startRecording() {
         mVideoFrameRecorderView.startRecording();
         mAudioRecorderThread.setRecording(true);
+        // Lock the orientation the first time we start recording if there is no request orientation
+        if (mLatestTimestampNanos == 0 && mOriginalRequestedOrientation == -1) {
+            setRequestedOrientation(getResources().getConfiguration().orientation);
+        }
     }
 
     protected void stopRecording() {
@@ -571,6 +583,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
             Camera.Size previewSize = mVideoFrameRecorderView.getPreviewSize();
             mVideoTransformerTask = new VideoFrameTransformerTask(
                     mRecorder, mVideoThumbnailOutputFile, getThemeParams(),
+                    mVideoFrameRecorderView.isRecordingLandscape(),
                     previewSize.width, previewSize.height, mVideoFrameRecorder.getRecordedFrames());
             mVideoTransformerTask.setProgressListener(this);
 
@@ -582,6 +595,11 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
             mAudioTransformerTask =
                     new AudioTransformerTask(mRecorder,  mAudioRecorder.getRecordedSamples());
             mAudioTransformerTask.setProgressListener(this);
+
+            Log.d(LOG_TAG, "AudioRecorder length "
+                    + mAudioRecorderThread.getRecordingLengthNanos());
+            Log.d(LOG_TAG, "VideoRecorder length "
+                    + mVideoFrameRecorderView.getRecordingLengthNanos());
         }
 
         @Override

@@ -22,12 +22,12 @@
         <activity
             android:name="com.amosyuen.videorecorder.FFmpegRecorderActivity"
             android:theme="@style/ActivityTheme"
-            android:screenOrientation="portrait" >
+            android:configChanges="orientation|screenSize" >
         </activity>
         <activity
             android:name="com.amosyuen.videorecorder.FFmpegPreviewActivity"
             android:theme="@style/ActivityTheme"
-            android:screenOrientation="portrait" >
+            android:configChanges="orientation|screenSize" >
         </activity>
     </application>
 

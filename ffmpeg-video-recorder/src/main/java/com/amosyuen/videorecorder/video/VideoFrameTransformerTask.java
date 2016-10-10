@@ -41,6 +41,7 @@ public class VideoFrameTransformerTask implements Runnable {
     protected FFmpegFrameRecorder mFrameRecorder;
     protected File mThumbnailFile;
     protected final VideoFrameTransformerParams mParams;
+    protected final boolean mIsLandscape;
     protected final int mRecordedWidth;
     protected final int mRecordedHeight;
     protected Collection<VideoFrameData> mFrameDatas;
@@ -57,12 +58,14 @@ public class VideoFrameTransformerTask implements Runnable {
             FFmpegFrameRecorder frameRecorder,
             @Nullable File thumbnailFile,
             VideoFrameTransformerParams params,
+            boolean isLandscape,
             int recordedWidth,
             int recordedHeight,
             Collection<VideoFrameData> frameDatas) {
         mFrameRecorder = frameRecorder;
         mThumbnailFile = thumbnailFile;
         mParams = params;
+        mIsLandscape = isLandscape;
         mRecordedWidth = recordedWidth;
         mRecordedHeight = recordedHeight;
         mFrameDatas = frameDatas;
@@ -175,7 +178,10 @@ public class VideoFrameTransformerTask implements Runnable {
         ImageSize targetSize =
                 new ImageSize(mParams.getVideoWidth(), mParams.getVideoHeight());
         if (targetSize.isAtLeastOneDimensionDefined()) {
-            ImageSize imageSize = new ImageSize(mRecordedWidth, mRecordedHeight);
+            //noinspection SuspiciousNameCombination
+            ImageSize imageSize = mIsLandscape
+                    ? new ImageSize(mRecordedWidth, mRecordedHeight)
+                    : new ImageSize(mRecordedHeight, mRecordedWidth);
             targetSize.calculateUndefinedDimensions(imageSize);
             if (imageSize.scale(
                     targetSize, mParams.getVideoScaleType(), mParams.canUpscaleVideo())) {
@@ -190,8 +196,16 @@ public class VideoFrameTransformerTask implements Runnable {
             mFrameRecorder.setImageWidth(imageSize.width);
             mFrameRecorder.setImageHeight(imageSize.height);
         } else {
-            mFrameRecorder.setImageWidth(mRecordedWidth);
-            mFrameRecorder.setImageHeight(mRecordedHeight);
+            // These are flipped because we are recording in portrait
+            if (mIsLandscape) {
+                mFrameRecorder.setImageWidth(mRecordedWidth);
+                mFrameRecorder.setImageHeight(mRecordedHeight);
+            } else {
+                //noinspection SuspiciousNameCombination
+                mFrameRecorder.setImageWidth(mRecordedHeight);
+                //noinspection SuspiciousNameCombination
+                mFrameRecorder.setImageHeight(mRecordedWidth);
+            }
         }
 
         return combineTransforms(transforms.toArray(new String[transforms.size()]));

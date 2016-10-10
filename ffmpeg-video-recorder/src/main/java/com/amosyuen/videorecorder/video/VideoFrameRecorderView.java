@@ -2,6 +2,7 @@ package com.amosyuen.videorecorder.video;
 
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
@@ -21,6 +22,7 @@ import android.view.SurfaceView;
 import android.view.View;
 
 import com.amosyuen.videorecorder.util.RecorderListener;
+import com.amosyuen.videorecorder.util.Util;
 import com.amosyuen.videorecorder.util.VideoUtil;
 
 import java.io.IOException;
@@ -49,6 +51,7 @@ public class VideoFrameRecorderView extends SurfaceView implements
     protected int mCameraId;
     protected Camera mCamera;
     protected Camera.Size mPreviewSize;
+    protected boolean mIsRecordingLandscape;
     protected ImageSize mScaledPreviewSize;
     protected ImageSize mScaledTargetSize;
     @ColorInt
@@ -123,22 +126,29 @@ public class VideoFrameRecorderView extends SurfaceView implements
         return mPreviewSize;
     }
 
+    public boolean isRecordingLandscape() {
+        return mIsRecordingLandscape;
+    }
+
     /**
      * Opens a camera with the specified facing if not already open.
      * @return Whether the camera open task was started or is done.
      */
     public boolean openCamera(
             VideoFrameRecorderParams params, VideoFrameRecorderInterface videoRecorder) {
-        Log.d(LOG_TAG, "Open camera params " + params);
         if (mParams != null && mParams.equals(params) && mCamera != null) {
             return true;
         }
+        return internalOpenCamera(params, videoRecorder);
+    }
+
+    protected boolean internalOpenCamera(
+            VideoFrameRecorderParams params, VideoFrameRecorderInterface videoRecorder) {
         if (mOpenCameraTask == null) {
             closeCamera();
-            Log.d(LOG_TAG, "Open camera");
+            Log.d(LOG_TAG, "Open camera " + params);
             mParams = params;
             mFrameTimeNanos = TimeUnit.SECONDS.toNanos(1L) / mParams.getVideoFrameRate();
-            Log.d(LOG_TAG, "Set params " + mParams);
             mVideoRecorder = videoRecorder;
             mIsRunning = true;
             if (mRecorderListener != null) {
@@ -210,13 +220,19 @@ public class VideoFrameRecorderView extends SurfaceView implements
     }
 
     @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
         updateSurfaceLayout();
     }
 
+    @Override
+    protected void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        updateIsRecordingLandscape();
+    }
+
     private void updateSurfaceLayout() {
-        Log.v(LOG_TAG, "updateSurfaceLayout");
+        Log.v(LOG_TAG, "UpdateSurfaceLayout");
         ImageSize parentSize;
         if (getParent() instanceof View) {
             View parent = (View) getParent();
@@ -232,16 +248,36 @@ public class VideoFrameRecorderView extends SurfaceView implements
         ImageSize targetSize = mParams == null
                 ? new ImageSize()
                 : new ImageSize(mParams.getVideoWidth(), mParams.getVideoHeight());
-        // If there is no preview size calculate it from the targetSize or the parentSize
-        ImageSize previewSize = mPreviewSize == null
-                ? new ImageSize(parentSize.width, targetSize.areDimensionsDefined()
-                        ? (int)(parentSize.width / targetSize.getAspectRatio()) : parentSize.height)
-                : new ImageSize(mPreviewSize.width, mPreviewSize.height);
+
+        ImageSize previewSize;
+        ImageSize scalePreviewSize;
+        if (mPreviewSize == null) {
+            // If there is no preview size calculate it from the targetSize or the parentSize
+            int height = targetSize.areDimensionsDefined()
+                    ? (int) (parentSize.width / targetSize.getAspectRatio())
+                    : parentSize.height;
+            previewSize = new ImageSize(parentSize.width, height);
+            scalePreviewSize = previewSize;
+        } else {
+            boolean isLandscape = Util.isContextLandscape(getContext());
+            // The current preview size used for clipping the camera should be calculated based on
+            // the current orientation
+            //noinspection SuspiciousNameCombination
+            previewSize = isLandscape
+                    ? new ImageSize(mPreviewSize.width, mPreviewSize.height)
+                    : new ImageSize(mPreviewSize.height, mPreviewSize.width);
+            // Make sure we scale the target size by the preview size in the recording orientation
+            // not the current orientation.
+            //noinspection SuspiciousNameCombination
+            scalePreviewSize = isLandscape == mIsRecordingLandscape
+                    ? previewSize
+                    : new ImageSize(previewSize.height, previewSize.width);
+        }
         if (targetSize.isAtLeastOneDimensionDefined()) {
-            targetSize.calculateUndefinedDimensions(previewSize);
+            targetSize.calculateUndefinedDimensions(scalePreviewSize);
             previewSize.scale(targetSize, mParams.getVideoScaleType(), mParams.canUpscaleVideo());
         } else {
-            targetSize = previewSize.clone();
+            targetSize = scalePreviewSize.clone();
         }
         Log.v(LOG_TAG, String.format("Parent %s", parentSize));
         Log.v(LOG_TAG, String.format("Target %s", targetSize));
@@ -259,8 +295,10 @@ public class VideoFrameRecorderView extends SurfaceView implements
         Log.v(LOG_TAG, String.format("Scaled Target %s", mScaledTargetSize));
         Log.v(LOG_TAG, String.format("Scaled Preview %s", mScaledPreviewSize));
 
-        setMeasuredDimension(mScaledPreviewSize.width, mScaledPreviewSize.height);
-        invalidate();
+        if (getMeasuredWidth() != mScaledPreviewSize.width
+                || getMeasuredHeight() != mScaledPreviewSize.height) {
+            setMeasuredDimension(mScaledPreviewSize.width, mScaledPreviewSize.height);
+        }
     }
 
     @Override
@@ -298,6 +336,11 @@ public class VideoFrameRecorderView extends SurfaceView implements
                     targetMarginY,
                     targetMarginX + mScaledTargetSize.width,
                     targetMarginY + mScaledTargetSize.height);
+            Log.v(LOG_TAG, String.format("ClipRect left=%f top=%f right=%f bottom=%f",
+                    targetMarginX,
+                    targetMarginY,
+                    targetMarginX + mScaledTargetSize.width,
+                    targetMarginY + mScaledTargetSize.height));
         }
 
         canvas.drawColor(mBlackColor);
@@ -347,6 +390,7 @@ public class VideoFrameRecorderView extends SurfaceView implements
     @Override
     public void onViewAttachedToWindow(View v) {
         mOrientationListener.enable();
+        updateIsRecordingLandscape();
     }
 
     @Override
@@ -371,14 +415,13 @@ public class VideoFrameRecorderView extends SurfaceView implements
             mCamera.stopPreview();
 
             // Set preview size
-            mPreviewSize = VideoUtil.getBestResolution(
-                    mCamera, new ImageSize(mParams.getVideoWidth(), mParams.getVideoHeight()));
+            mPreviewSize = VideoUtil.getBestResolution(mCamera, mIsRecordingLandscape,
+                    new ImageSize(mParams.getVideoWidth(), mParams.getVideoHeight()));
             Log.v(LOG_TAG, "Camera preview width="
                     + mPreviewSize.width + " height=" + mPreviewSize.height);
             updateSurfaceLayout();
             Camera.Parameters cameraParameters = mCamera.getParameters();
             cameraParameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
-            cameraParameters.setPreviewFrameRate(mParams.getVideoFrameRate());
 
             // Set preview frame rate
             int[] fpsRange = VideoUtil.getBestFpsRange(mCamera, mParams.getVideoFrameRate());
@@ -420,6 +463,18 @@ public class VideoFrameRecorderView extends SurfaceView implements
             if (mRecorderListener != null) {
                 mRecorderListener.onRecorderError(this, e);
             }
+        }
+    }
+
+    protected void updateIsRecordingLandscape() {
+        if (mRecordingLengthNanos > 0) {
+            return;
+        }
+
+        mIsRecordingLandscape = Util.isContextLandscape(getContext());
+        if (mCamera != null && (mParams.getVideoWidth() != ImageSize.SIZE_UNDEFINED
+                || mParams.getVideoHeight() != ImageSize.SIZE_UNDEFINED)) {
+            internalOpenCamera(mParams, mVideoRecorder);
         }
     }
 

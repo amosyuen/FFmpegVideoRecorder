@@ -25,7 +25,12 @@ public class VideoUtil {
     /**
      *  Finds the best supported camera preview size for the target size.
      */
-    public static Camera.Size getBestResolution(Camera camera, ImageSize targetSize) {
+    public static Camera.Size getBestResolution(
+            Camera camera, boolean isRecordingLanscape, ImageSize targetSize) {
+        if (!isRecordingLanscape) {
+            //noinspection SuspiciousNameCombination
+            targetSize = new ImageSize(targetSize.height, targetSize.width);
+        }
         if (targetSize.areDimensionsDefined()) {
             // Find the size closest in aspect ratio that is bigger than the target size
             float aspectRatio = (float) targetSize.width / targetSize.height;
