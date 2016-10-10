@@ -1,6 +1,31 @@
 <resources>
     <string name="app_name">FFmpegVideoRecorder Demo</string>
+    <string name="audio_bitrate_bytes">Audio Bitrate (bytes)</string>
+    <string name="audio_channel_count">Audio Channel Count</string>
+    <string name="audio_codec">Audio Codec</string>
+    <string name="audio_options">Audio Options</string>
+    <string name="audio_quality">Audio Quality (0-10)</string>
+    <string name="audio_sample_rate_hz">Audio Sample Rate (Hz)</string>
+    <string name="can_upscale_video">Can upscale video</string>
     <string name="error">Error</string>
+    <string name="error_value_is_negative">Value is negative</string>
+    <string name="error_value_is_not_a_number">Value is not a number</string>
+    <string name="error_value_is_zero">Value is zero</string>
+    <string name="launch_video_recorder">Launch Video Recorder</string>
+    <string name="max_recording_time_seconds">Max recording seconds</string>
+    <string name="min_recording_time_seconds">Min recording seconds</string>
     <string name="ok">OK</string>
+    <string name="recording">Recording</string>
+    <string name="recording_options">Recording Options</string>
+    <string name="results">Results</string>
     <string name="success">Success</string>
+    <string name="video_bitrate_bytes">Video Bitrate (bytes)</string>
+    <string name="video_camera_facing">Video Camera Facing</string>
+    <string name="video_codec">Video Codec</string>
+    <string name="video_frame_rate_per_second">Video Frame Rate Per Second</string>
+    <string name="video_height">Video Height (px)</string>
+    <string name="video_options">Video Options</string>
+    <string name="video_quality">Video Quality (0-10)</string>
+    <string name="video_scale_type">Video Scale Type</string>
+    <string name="video_width">Video Width (px)</string>
 </resources>

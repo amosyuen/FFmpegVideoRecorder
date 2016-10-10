@@ -10,7 +10,9 @@
         android:allowBackup="true">
 
         <activity
-            android:name="com.amosyuen.videorecorder.demo.MainActivity">
+            android:name="com.amosyuen.videorecorder.demo.MainActivity"
+            android:theme="@style/ActivityTheme"
+            android:windowSoftInputMode="stateHidden">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
