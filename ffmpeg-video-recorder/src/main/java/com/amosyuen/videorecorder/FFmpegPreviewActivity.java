@@ -200,9 +200,11 @@ public class FFmpegPreviewActivity
             }
             RelativeLayout.LayoutParams layoutParams =
                     (RelativeLayout.LayoutParams) mSurfaceView.getLayoutParams();
-            layoutParams.width = width;
-            layoutParams.height = height;
-            mSurfaceView.setLayoutParams(layoutParams);
+            if (layoutParams.width != width || layoutParams.height != height) {
+                layoutParams.width = width;
+                layoutParams.height = height;
+                mSurfaceView.setLayoutParams(layoutParams);
+            }
         }
     }
 
