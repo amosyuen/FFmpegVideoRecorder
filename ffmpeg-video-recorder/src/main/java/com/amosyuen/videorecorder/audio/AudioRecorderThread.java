@@ -11,6 +11,7 @@ import com.amosyuen.videorecorder.util.RecorderListener;
 import java.nio.ShortBuffer;
 import java.security.InvalidParameterException;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Thread that records audio.
@@ -123,7 +124,8 @@ public class AudioRecorderThread extends Thread {
                 if (mIsRecording && readShorts > 0) {
                     // Update the timestamp based on samples recorded and sample rate
                     samplesRecorded += readShorts / mParams.getAudioChannelCount();
-                    mRecordingLengthNanos = 1000000L * samplesRecorded / mParams.getAudioSamplingRateHz();
+                    mRecordingLengthNanos = TimeUnit.SECONDS.toNanos(1)
+                            * samplesRecorded / mParams.getAudioSamplingRateHz();
                     mLastUpdateTimeNanos = System.nanoTime();
 
                     buffer.position(0).limit(readShorts);
