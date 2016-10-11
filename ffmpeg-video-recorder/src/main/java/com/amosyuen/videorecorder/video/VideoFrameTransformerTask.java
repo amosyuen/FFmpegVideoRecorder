@@ -90,7 +90,6 @@ public class VideoFrameTransformerTask implements Runnable {
         try {
             int i = 0;
             int total = mFrameDatas.size();
-            int dropppedFrames = 0;
             Frame yuvFrame =
                     new Frame(mRecordedWidth, mRecordedHeight, IMAGE_DEPTH, IMAGE_CHANNELS);
             Log.v(LOG_TAG, String.format("Start recording %d frames", total));
@@ -99,12 +98,8 @@ public class VideoFrameTransformerTask implements Runnable {
                 byte[] byteData = frameData.getFrameBytesData();
                 ((ByteBuffer) yuvFrame.image[0].position(0)).put(byteData);
 
-                int lastFrameNumber = mFrameRecorder.getFrameNumber();
-                mFrameRecorder.setTimestamp(
-                        TimeUnit.NANOSECONDS.toMicros(frameData.getFrameTimeNanos()));
-                if (i > 0 && mFrameRecorder.getFrameNumber() <= lastFrameNumber) {
-                    dropppedFrames++;
-                } else if (frameData.isPortrait()) {
+                mFrameRecorder.setFrameNumber(frameData.getFrameNumber());
+                if (frameData.isPortrait()) {
                     if (frameData.isFrontCamera()) {
                         filterImage(filterRotateAndCropFrontCam, yuvFrame);
                     } else {
@@ -122,8 +117,7 @@ public class VideoFrameTransformerTask implements Runnable {
                 }
                 i++;
             }
-            Log.v(LOG_TAG, String.format(
-                    "Finished recording. Dropped %d of %d frames", dropppedFrames, total));
+            Log.v(LOG_TAG, "Finished recording.");
         } finally {
             release();
         }
@@ -154,7 +148,7 @@ public class VideoFrameTransformerTask implements Runnable {
                 combineTransforms("hflip", baseTransform), mRecordedWidth, mRecordedHeight);
         filterCropFrontCam.setPixelFormat(avutil.AV_PIX_FMT_NV21);
 
-        // Flip horizontally for front camera and rotate 90 degrees clockwise for landscape
+        // Flip horizontally for front camera and rotate 90 degrees counter clockwise for landscape
         filterRotateAndCropFrontCam = new FFmpegFrameFilter(
                 "transpose=" + combineTransforms("cclock,hflip", baseTransform),
                 mRecordedWidth, mRecordedHeight);

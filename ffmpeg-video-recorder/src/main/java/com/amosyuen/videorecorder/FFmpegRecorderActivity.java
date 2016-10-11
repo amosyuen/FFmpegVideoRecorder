@@ -92,6 +92,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     protected boolean mIsFinishedRecording;
     protected long mLatestTimestampNanos;
     protected int mOriginalRequestedOrientation;
+    protected boolean mShouldInvalidateMenu;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -274,6 +275,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
                     default:
                         discardRecording();
                         initRecorders();
+                        supportInvalidateOptionsMenu();
                         break;
                 }
                 break;
@@ -342,13 +344,18 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
                 long minRecordingNanos = getThemeParams().getMinRecordingTimeNanos();
                 if (timestampNanos > minRecordingNanos) {
                     mIsNextEnabled = true;
-                    supportInvalidateOptionsMenu();
+                    mShouldInvalidateMenu = true;
                 }
             }
             long maxRecordingNanos = getThemeParams().getMaxRecordingTimeNanos();
             if (maxRecordingNanos > 0 && timestampNanos > maxRecordingNanos) {
                 Log.d(LOG_TAG, "Max recording time reached");
-                saveRecording();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        saveRecording();
+                    }
+                });
             }
         }
     }
@@ -449,6 +456,10 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     protected void stopRecording() {
         if (mThemeParams == null) {
             return;
+        }
+        if (mShouldInvalidateMenu) {
+            supportInvalidateOptionsMenu();
+            mShouldInvalidateMenu = false;
         }
         mVideoFrameRecorderView.stopRecording();
         mAudioRecorderThread.setRecording(false);

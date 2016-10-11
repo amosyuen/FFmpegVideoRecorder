@@ -9,21 +9,21 @@ import android.os.Parcelable;
 public class VideoFrameData implements Parcelable {
 
     private final byte[] mFrameBytesData;
-    private final long mFrameTimeNanos;
+    private final int mFrameNumber;
     private final boolean mIsPortrait;
     private final boolean mIsFrontCamera;
 
-    public VideoFrameData(byte[] frameBytesData, long frameTimeNanos,
+    public VideoFrameData(byte[] frameBytesData, int frameNumber,
             boolean isLandscape, boolean isFrontCamera) {
         mFrameBytesData = frameBytesData;
-        mFrameTimeNanos = frameTimeNanos;
+        mFrameNumber = frameNumber;
         mIsPortrait = isLandscape;
         mIsFrontCamera = isFrontCamera;
     }
 
     protected VideoFrameData(Parcel in) {
         mFrameBytesData = in.createByteArray();
-        mFrameTimeNanos = in.readLong();
+        mFrameNumber = in.readInt();
         boolean bools[] = new boolean[2];
         in.readBooleanArray(bools);
         mIsPortrait = bools[0];
@@ -34,8 +34,8 @@ public class VideoFrameData implements Parcelable {
         return mFrameBytesData;
     }
 
-    public long getFrameTimeNanos() {
-        return mFrameTimeNanos;
+    public int getFrameNumber() {
+        return mFrameNumber;
     }
 
     public boolean isPortrait() {
@@ -54,8 +54,8 @@ public class VideoFrameData implements Parcelable {
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeByteArray(mFrameBytesData);
-        dest.writeLong(mFrameTimeNanos);
-        dest.writeBooleanArray(new boolean[] {mIsPortrait, mIsFrontCamera });
+        dest.writeInt(mFrameNumber);
+        dest.writeBooleanArray(new boolean[] { mIsPortrait, mIsFrontCamera });
     }
 
     public static final Creator<VideoFrameData> CREATOR = new Creator<VideoFrameData>() {

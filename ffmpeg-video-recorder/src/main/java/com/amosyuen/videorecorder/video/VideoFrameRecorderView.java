@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static android.R.attr.width;
+import static android.os.Build.VERSION_CODES.M;
 
 /**
  * View that records only video frames (no audio).
@@ -65,8 +65,12 @@ public class VideoFrameRecorderView extends SurfaceView implements
     protected volatile int mDeviceOrientation = OrientationEventListener.ORIENTATION_UNKNOWN;
     /** Recording length in nanoseconds */
     protected volatile long mRecordingLengthNanos;
+    protected volatile int mLastFrameNumber = -1;
     /** System time in nanoseconds when the recording was last updated */
     protected volatile long mLastUpdateTimeNanos;
+
+    protected int mDropppedFrames;
+    protected int mTotalFrames;
 
     public VideoFrameRecorderView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -201,6 +205,9 @@ public class VideoFrameRecorderView extends SurfaceView implements
     public void clearData() {
         mRecordingLengthNanos = 0;
         mLastUpdateTimeNanos = 0;
+        mLastFrameNumber = -1;
+        mDropppedFrames = 0;
+        mTotalFrames = 0;
         if (mVideoRecorder != null) {
             mVideoRecorder.clear();
         }
@@ -292,6 +299,7 @@ public class VideoFrameRecorderView extends SurfaceView implements
 
         if (getMeasuredWidth() != mScaledPreviewSize.width
                 || getMeasuredHeight() != mScaledPreviewSize.height) {
+            Log.d(LOG_TAG, "Resize");
             setMeasuredDimension(mScaledPreviewSize.width, mScaledPreviewSize.height);
         }
     }
@@ -349,14 +357,22 @@ public class VideoFrameRecorderView extends SurfaceView implements
     public void onPreviewFrame(byte[] data, Camera camera) {
         try {
             if (mIsRecording) {
-                updateTimestampNanos();
-
-                VideoFrameData frameData = new VideoFrameData(
-                        data, mRecordingLengthNanos, mIsPortrait,
-                        mParams.getVideoCameraFacing() == Camera.CameraInfo.CAMERA_FACING_FRONT);
-                mVideoRecorder.recordFrame(frameData);
-                if (mRecorderListener != null) {
-                    mRecorderListener.onRecorderFrameRecorded(this, mRecordingLengthNanos);
+                int frameNumber = getFrameNumber();
+                mTotalFrames++;
+                if (frameNumber <= mLastFrameNumber) {
+                    mDropppedFrames++;
+                    Log.d(LOG_TAG, String.format(
+                            "Dropped %d of %d frames", mDropppedFrames, mTotalFrames));
+                } else {
+                    VideoFrameData frameData = new VideoFrameData(
+                            data, frameNumber, mIsPortrait,
+                            mParams.getVideoCameraFacing() ==
+                                    Camera.CameraInfo.CAMERA_FACING_FRONT);
+                    mLastFrameNumber = frameNumber;
+                    mVideoRecorder.recordFrame(frameData);
+                    if (mRecorderListener != null) {
+                        mRecorderListener.onRecorderFrameRecorded(this, mRecordingLengthNanos);
+                    }
                 }
             }
             if (mCamera != null) {
@@ -370,7 +386,7 @@ public class VideoFrameRecorderView extends SurfaceView implements
         }
     }
 
-    protected void updateTimestampNanos() {
+    protected int getFrameNumber() {
         long currNanos = System.nanoTime();
         if (mLastUpdateTimeNanos == 0) {
             if (mRecordingLengthNanos > 0) {
@@ -380,6 +396,9 @@ public class VideoFrameRecorderView extends SurfaceView implements
             mRecordingLengthNanos += currNanos - mLastUpdateTimeNanos;
         }
         mLastUpdateTimeNanos = currNanos;
+
+        return (int) ((mRecordingLengthNanos + mFrameTimeNanos)
+                * mParams.getVideoFrameRate() / TimeUnit.SECONDS.toNanos(1));
     }
 
     @Override
