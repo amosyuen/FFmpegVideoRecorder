@@ -176,18 +176,29 @@ public interface FFmpegRecorderParams extends Serializable {
         }
     }
 
+    /** Video quality must be set to negative one to use the bitrate. */
     int getVideoBitrate();
     int getVideoCodec();
     int getVideoFrameRate();
-    /** Value from 0 to 10, where 0 is best quality and 10 is worst quality. */
+    /**
+     * Value depends on the video codec. Will override the video bitrate parameter.
+     * For <a href='https://trac.ffmpeg.org/wiki/Encode/H.264'>H.264</a> choose a value from 0-51
+     * where 0 is lossless, 23 is default, and 51 is worst possible. Consider 18 to be nearly
+     * visually lossless.
+     */
     int getVideoQuality();
     int getVideoWidth();
     int getVideoHeight();
 
+    /** Audio quality must be set to negative one to use the bitrate. */
     int getAudioBitrate();
     int getAudioChannelCount();
     int getAudioCodec();
-    /** Value from 0 to 10, where 0 is best quality and 10 is worst quality. */
+    /**
+     * Value depends on the audio codec. Will override the audio bitrate parameter.
+     * For <a href='https://trac.ffmpeg.org/wiki/Encode/AAC'>AAC</a> choose a value between 1 and 5,
+     * where 1 is the lowest quality and 5 is the highest quality.
+     */
     int getAudioQuality();
     int getAudioSamplingRateHz();
 
@@ -196,14 +207,14 @@ public interface FFmpegRecorderParams extends Serializable {
     class Builder {
         private int videoBitrate = 1000000;
         private int videoCodec = VideoCodec.H264.ffmpegCodecValue;
-        private int videoFrameRate = 24;
-        private int videoQuality = 5;
+        private int videoFrameRate = 20;
+        private int videoQuality = -1;
         private int videoWidth;
         private int videoHeight;
         private int audioBitrate = 128000;
         private int audioChannelCount = 1;
         private int audioCodec = AudioCodec.AAC.ffmpegCodecValue;
-        private int audioQuality = 5;
+        private int audioQuality = -1;
         private int audioSamplingRateHz = 44100;
         private String videoOutputFormat = "mp4";
 
@@ -227,6 +238,7 @@ public interface FFmpegRecorderParams extends Serializable {
 
         public Builder videoBitrate(int val) {
             videoBitrate = val;
+            videoQuality = -1;
             return this;
         }
 
@@ -263,6 +275,7 @@ public interface FFmpegRecorderParams extends Serializable {
 
         public Builder audioBitrate(int val) {
             audioBitrate = val;
+            audioQuality = -1;
             return this;
         }
 
