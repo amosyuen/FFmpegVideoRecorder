@@ -139,11 +139,6 @@ public class VideoFrameRecorderView extends SurfaceView implements
         if (mParams != null && mParams.equals(params) && mCamera != null) {
             return true;
         }
-        return internalOpenCamera(params, videoRecorder);
-    }
-
-    protected boolean internalOpenCamera(
-            VideoFrameRecorderParams params, VideoFrameRecorderInterface videoRecorder) {
         if (mOpenCameraTask == null) {
             closeCamera();
             Log.d(LOG_TAG, "Open camera " + params);
@@ -472,10 +467,6 @@ public class VideoFrameRecorderView extends SurfaceView implements
         }
 
         mIsRecordingLandscape = Util.isContextLandscape(getContext());
-        if (mCamera != null && (mParams.getVideoWidth() != ImageSize.SIZE_UNDEFINED
-                || mParams.getVideoHeight() != ImageSize.SIZE_UNDEFINED)) {
-            internalOpenCamera(mParams, mVideoRecorder);
-        }
     }
 
     protected class DeviceOrientationEventListener
