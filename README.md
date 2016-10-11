@@ -33,12 +33,20 @@ Activity to preview the recorded video before selecting the video
 
 ![Preview Video Activity Screenshot](./screenshots/preview_video_activity.png "Preview Video Activity")
 
+## Demo
+
+There is a demo activity that allows you to try different settings for recording videos.
+
+![Preview Video Activity Screenshot](./screenshots/demo_recording_options.png "Demo Recording Options Activity")
+
+![Preview Video Activity Screenshot](./screenshots/demo_results.png "Demo Recorded Videos")
+
 ## Installation
     
 ### Gradle
 
 ```
-compile 'com.amosyuen.ffmpegvideorecorder:ffmpeg-video-recorder:1.0.0'
+compile 'com.amosyuen.ffmpegvideorecorder:ffmpeg-video-recorder:1.0.1'
 ```
 
 ### Maven
@@ -47,7 +55,7 @@ compile 'com.amosyuen.ffmpegvideorecorder:ffmpeg-video-recorder:1.0.0'
 <dependency>
   <groupId>com.amosyuen.ffmpegvideorecorder</groupId>
   <artifactId>ffmpeg-video-recorder</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
   <type>pom</type>
 </dependency>
 ```
@@ -55,7 +63,7 @@ compile 'com.amosyuen.ffmpegvideorecorder:ffmpeg-video-recorder:1.0.0'
 ### Ivy
 
 ```
-<dependency org='com.amosyuen.ffmpegvideorecorder' name='ffmpeg-video-recorder' rev='1.0.0'>
+<dependency org='com.amosyuen.ffmpegvideorecorder' name='ffmpeg-video-recorder' rev='1.0.1'>
   <artifact name='$AID' ext='pom'></artifact>
 </dependency>
 ```
