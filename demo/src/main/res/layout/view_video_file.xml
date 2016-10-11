@@ -1,161 +1,192 @@
-<GridLayout
+<RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingBottom="@dimen/activity_vertical_margin"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
-    android:orientation="vertical"
     android:background="?android:attr/selectableItemBackground">
 
-    <TextView
+    <GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="@dimen/activity_vertical_margin"
+        android:paddingLeft="@dimen/activity_horizontal_margin"
+        android:paddingRight="@dimen/activity_horizontal_margin"
+        android:paddingTop="@dimen/activity_vertical_margin">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="0"
+            android:layout_column="0"
+            android:text="Thumbnail"/>
+
+        <View
+            android:layout_row="0"
+            android:layout_column="1"
+            android:layout_width="@dimen/activity_horizontal_margin"
+            android:layout_height="0dp"/>
+
+        <ImageView
+            android:id="@+id/thumbnail"
+            android:layout_row="0"
+            android:layout_column="2"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:cropToPadding="false"
+            android:adjustViewBounds="true"
+            android:scaleType="fitCenter"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="1"
+            android:layout_column="0"
+            android:text="Thumbnail File Size"/>
+
+        <TextView
+            android:id="@+id/thumbnail_file_size"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="1"
+            android:layout_column="2"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="2"
+            android:layout_column="0"
+            android:text="Video Date"/>
+
+        <TextView
+            android:id="@+id/video_file_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="2"
+            android:layout_column="2"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="3"
+            android:layout_column="0"
+            android:text="Video File Size"/>
+
+        <TextView
+            android:id="@+id/video_file_size"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="3"
+            android:layout_column="2"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="4"
+            android:layout_column="0"
+            android:text="Video Width"/>
+
+        <TextView
+            android:id="@+id/video_width"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="4"
+            android:layout_column="2"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="5"
+            android:layout_column="0"
+            android:text="Video Height"/>
+
+        <TextView
+            android:id="@+id/video_height"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="5"
+            android:layout_column="2"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="6"
+            android:layout_column="0"
+            android:text="Length"/>
+
+        <TextView
+            android:id="@+id/video_length"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="6"
+            android:layout_column="2"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="7"
+            android:layout_column="0"
+            android:text="Video Frame Rate"/>
+
+        <TextView
+            android:id="@+id/video_frame_rate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="7"
+            android:layout_column="2"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="8"
+            android:layout_column="0"
+            android:text="Video Bitrate"/>
+
+        <TextView
+            android:id="@+id/video_bitrate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="8"
+            android:layout_column="2"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="9"
+            android:layout_column="0"
+            android:text="Audio Sample Rate"/>
+
+        <TextView
+            android:id="@+id/audio_sample_rate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="9"
+            android:layout_column="2"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="10"
+            android:layout_column="0"
+            android:text="Audio Channels"/>
+
+        <TextView
+            android:id="@+id/audio_channels"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="10"
+            android:layout_column="2"/>
+
+    </GridLayout>
+
+    <ImageButton
+        android:id="@+id/delete_button"
+        android:layout_alignParentRight="true"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_row="0"
-        android:layout_column="0"
-        android:text="Thumbnail"/>
+        android:padding="10dp"
+        android:background="?android:attr/selectableItemBackground"
+        android:src="@drawable/ic_close_white_24dp"
+        android:tint="@android:color/black"/>
 
-    <View
-        android:layout_row="0"
-        android:layout_column="1"
-        android:layout_width="@dimen/activity_horizontal_margin"/>
-
-    <ImageView
-        android:id="@+id/thumbnail"
-        android:layout_row="0"
-        android:layout_column="2"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:cropToPadding="false"
-        android:adjustViewBounds="true"
-        android:scaleType="fitCenter"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_row="1"
-        android:layout_column="0"
-        android:text="Thumbnail File Size"/>
-
-    <TextView
-        android:id="@+id/thumbnail_file_size"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_row="1"
-        android:layout_column="2"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_row="3"
-        android:layout_column="0"
-        android:text="Video File Size"/>
-
-    <TextView
-        android:id="@+id/video_file_size"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_row="3"
-        android:layout_column="2"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_row="4"
-        android:layout_column="0"
-        android:text="Video Width"/>
-
-    <TextView
-        android:id="@+id/video_width"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_row="4"
-        android:layout_column="2"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_row="5"
-        android:layout_column="0"
-        android:text="Video Height"/>
-
-    <TextView
-        android:id="@+id/video_height"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_row="5"
-        android:layout_column="2"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_row="6"
-        android:layout_column="0"
-        android:text="Length"/>
-
-    <TextView
-        android:id="@+id/video_length"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_row="6"
-        android:layout_column="2"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_row="7"
-        android:layout_column="0"
-        android:text="Video Frame Rate"/>
-
-    <TextView
-        android:id="@+id/video_frame_rate"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_row="7"
-        android:layout_column="2"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_row="8"
-        android:layout_column="0"
-        android:text="Video Bitrate"/>
-
-    <TextView
-        android:id="@+id/video_bitrate"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_row="8"
-        android:layout_column="2"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_row="9"
-        android:layout_column="0"
-        android:text="Audio Sample Rate"/>
-
-    <TextView
-        android:id="@+id/audio_sample_rate"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_row="9"
-        android:layout_column="2"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_row="10"
-        android:layout_column="0"
-        android:text="Audio Channels"/>
-
-    <TextView
-        android:id="@+id/audio_channels"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_row="10"
-        android:layout_column="2"/>
-
-</GridLayout>
+</RelativeLayout>

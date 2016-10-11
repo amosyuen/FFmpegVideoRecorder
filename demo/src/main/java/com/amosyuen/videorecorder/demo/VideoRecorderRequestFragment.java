@@ -34,13 +34,19 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import static android.app.Activity.RESULT_OK;
+import static java.io.File.createTempFile;
 
 
 /**
  * Fragment for starting a video recorder activity with specific parameters.
  */
 public class VideoRecorderRequestFragment extends Fragment {
-    
+
+    static final String VIDEO_FILE_EXTENSION = ".mp4";
+    static final String VIDEO_FILE_POSTFIX = ".video" + VIDEO_FILE_EXTENSION;
+    static final String THUMBNAIL_FILE_EXTENSION = ".jpg";
+    static final String THUMBNAIL_FILE_POSTFIX = ".thumbnail" + THUMBNAIL_FILE_EXTENSION;
+
     private static final String[] VIDEO_PERMISSIONS = new String[]{
             Manifest.permission.CAMERA,
             Manifest.permission.RECORD_AUDIO,
@@ -75,6 +81,7 @@ public class VideoRecorderRequestFragment extends Fragment {
     private OnVideoRecorderListener mListener;
     private File mVideoFile;
     private File mThumbnailFile;
+    private View mErrorView;
 
     @Override
     public void onAttach(Context context) {
@@ -88,10 +95,10 @@ public class VideoRecorderRequestFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_video_recorder_request, container, false);
 
         mVideoWidthEditText = (EditText) view.findViewById(R.id.video_width);
-        mVideoWidthEditText.setText("0");
+        mVideoWidthEditText.setText("360");
 
         mVideoHeightEditText = (EditText) view.findViewById(R.id.video_height);
-        mVideoHeightEditText.setText("0");
+        mVideoHeightEditText.setText("360");
 
         ArrayAdapter<VideoCodec> videoCodecAdapter = new ArrayAdapter<>(
                 getContext(), android.R.layout.simple_spinner_item, VideoCodec.values());
@@ -100,10 +107,10 @@ public class VideoRecorderRequestFragment extends Fragment {
         mVideoCodecSpinner.setSelection(videoCodecAdapter.getPosition(VideoCodec.H264));
 
         mVideoBitrateEditText = (EditText) view.findViewById(R.id.video_bitrate);
-        mVideoBitrateEditText.setText("100000");
+        mVideoBitrateEditText.setText("800000");
 
         mVideoQualityEditText = (EditText) view.findViewById(R.id.video_quality);
-        mVideoQualityEditText.setText("5");
+        mVideoQualityEditText.setText("");
 
         mVideoFrameRateEditText = (EditText) view.findViewById(R.id.video_frame_rate);
         mVideoFrameRateEditText.setText("30");
@@ -129,20 +136,20 @@ public class VideoRecorderRequestFragment extends Fragment {
         mAudioSampleRateEditText.setText("44100");
 
         mAudioBitrateEditText = (EditText) view.findViewById(R.id.audio_bitrate);
-        mAudioBitrateEditText.setText("128000");
+        mAudioBitrateEditText.setText("64000");
 
         mAudioQualityEditText = (EditText) view.findViewById(R.id.audio_quality);
-        mAudioQualityEditText.setText("5");
+        mAudioQualityEditText.setText("");
 
         mAudioChannelCount = (Spinner) view.findViewById(R.id.audio_channel_count);
         mAudioChannelCount.setAdapter(new ArrayAdapter<Integer>(
                 getContext(), android.R.layout.simple_spinner_item, new Integer[] { 1, 2 }));
 
         mMinRecordingTimeEditText = (EditText) view.findViewById(R.id.min_recording_time);
-        mMinRecordingTimeEditText.setText("0");
+        mMinRecordingTimeEditText.setText("1");
 
         mMaxRecordingTimeEditText = (EditText) view.findViewById(R.id.max_recording_time);
-        mMaxRecordingTimeEditText.setText("0");
+        mMaxRecordingTimeEditText.setText("10");
 
         Button recordButton = (Button) view.findViewById(R.id.record_button);
         recordButton.setOnClickListener(new View.OnClickListener() {
@@ -266,87 +273,108 @@ public class VideoRecorderRequestFragment extends Fragment {
         startActivityForResult(intent, REQUEST_VIDEO_PERMISSIONS_REQUEST);
     }
 
-    private boolean validateParams() {
-        View focusView = validateIntegerEditText(mVideoWidthEditText, null, true);
-        focusView = validateIntegerEditText(mVideoHeightEditText, focusView, true);
-        focusView = validateIntegerEditText(mVideoQualityEditText, focusView, true);
-        focusView = validateIntegerEditText(mVideoBitrateEditText, focusView, false);
-        focusView = validateIntegerEditText(mVideoFrameRateEditText, focusView, false);
-
-        focusView = validateIntegerEditText(mAudioSampleRateEditText, focusView, false);
-        focusView = validateIntegerEditText(mAudioQualityEditText, focusView, true);
-        focusView = validateIntegerEditText(mAudioBitrateEditText, focusView, false);
-
-        focusView = validateIntegerEditText(mMinRecordingTimeEditText, focusView, true);
-        focusView = validateIntegerEditText(mMaxRecordingTimeEditText, focusView, true);
-
-        if (focusView == null) {
-            return true;
-        } else {
-            focusView.requestFocus();
-            return false;
-        }
+    private int validatePositiveIntegerEditText(EditText editText) {
+        return validateIntegerEditText(editText, false, false);
     }
 
-    private View validateIntegerEditText(EditText editText, View focusView, boolean allowZero) {
+    private int validateEmptyPositiveIntegerEditText(EditText editText) {
+        return validateIntegerEditText(editText, true, false);
+    }
+
+    private int validateEmptyNonNegativeIntegerEditText(EditText editText) {
+        return validateIntegerEditText(editText, true, true);
+    }
+
+    private int validateIntegerEditText(
+            EditText editText, boolean allowEmpty, boolean allowZero) {
         editText.setError(null);
-        try {
-            int value = Integer.parseInt(editText.getText().toString());
-            if (value < 0) {
-                editText.setError(getString(R.string.error_value_is_negative));
-                focusView = editText;
+        if (editText.getText().length() > 0 || !allowEmpty) {
+            try {
+                int value = Integer.parseInt(editText.getText().toString());
+                if (value < 0) {
+                    editText.setError(getString(R.string.error_value_is_negative));
+                    if (mErrorView == null) {
+                        mErrorView = editText;
+                    }
+                } else if (value == 0 && !allowZero) {
+                    editText.setError(getString(R.string.error_value_is_zero));
+                    if (mErrorView == null) {
+                        mErrorView = editText;
+                    }
+                } else {
+                    return value;
+                }
+            } catch (NumberFormatException e) {
+                editText.setError(getString(R.string.error_value_is_not_a_number));
+                if (mErrorView == null) {
+                    mErrorView = editText;
+                }
             }
-            if (value == 0 && !allowZero) {
-                editText.setError(getString(R.string.error_value_is_zero));
-                focusView = editText;
-            }
-        } catch (NumberFormatException e) {
-            editText.setError(getString(R.string.error_value_is_not_a_number));
-            focusView = editText;
         }
-        return focusView;
+        return allowZero ? -1 : 0;
+    }
+
+    private void validateOneOfBitrateAndQualityAreSet(
+            EditText bitrateEditText, EditText qualityEditText, int bitrate, int quality) {
+        if (bitrateEditText.getError() == null && qualityEditText.getError() == null) {
+            if ((quality == -1) == (bitrate == 0)) {
+                bitrateEditText.setError(getString(R.string.error_one_defined));
+                qualityEditText.setError(getString(R.string.error_one_defined));
+                if (mErrorView == null) {
+                    mErrorView = qualityEditText;
+                }
+            }
+        }
     }
 
     private void launchVideoRecorder() {
-        if (!validateParams()) {
+        mErrorView = null;
+        int videoWidth = validateEmptyPositiveIntegerEditText(mVideoWidthEditText);
+        int videoHeight = validateEmptyPositiveIntegerEditText(mVideoHeightEditText);
+        int videoQuality = validateEmptyNonNegativeIntegerEditText(mVideoQualityEditText);
+        int videoBitrate = validateEmptyPositiveIntegerEditText(mVideoBitrateEditText);
+        validateOneOfBitrateAndQualityAreSet(
+                mVideoBitrateEditText, mVideoQualityEditText, videoBitrate, videoQuality);
+        int videoFrameRate = validatePositiveIntegerEditText(mVideoFrameRateEditText);
+
+        int audioSampleRate = validatePositiveIntegerEditText(mAudioSampleRateEditText);
+        int audioQuality = validateEmptyNonNegativeIntegerEditText(mAudioQualityEditText);
+        int audioBitrate = validateEmptyPositiveIntegerEditText(mAudioBitrateEditText);
+        validateOneOfBitrateAndQualityAreSet(
+                mAudioBitrateEditText, mAudioQualityEditText, audioBitrate, audioQuality);
+
+        int minRecordingTime = validateEmptyNonNegativeIntegerEditText(mMinRecordingTimeEditText);
+        int maxRecordingTime = validateEmptyNonNegativeIntegerEditText(mMaxRecordingTimeEditText);
+
+        if (mErrorView != null) {
+            mErrorView.requestFocus();
             return;
         }
 
-        try {
-            if (mVideoFile == null) {
-                mVideoFile = createTempFile("video", ".mp4");
-            }
-            if (mThumbnailFile == null) {
-                mThumbnailFile = createTempFile("thumbnail", ".jpg");
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        createTempFiles();
 
         RecorderActivityParams params = new RecorderActivityParams.Builder(mVideoFile)
                 .videoThumbnailOutput(mThumbnailFile)
 
-                .videoWidth(Integer.parseInt(mVideoWidthEditText.getText().toString()))
-                .videoHeight(Integer.parseInt(mVideoHeightEditText.getText().toString()))
+                .videoWidth(videoWidth)
+                .videoHeight(videoHeight)
                 .videoCodec((VideoCodec) mVideoCodecSpinner.getSelectedItem())
-                .videoQuality(Integer.parseInt(mVideoQualityEditText.getText().toString()))
-                .videoBitrate(Integer.parseInt(mVideoBitrateEditText.getText().toString()))
-                .videoFrameRate(Integer.parseInt(mVideoFrameRateEditText.getText().toString()))
+                .videoQuality(videoQuality)
+                .videoBitrate(videoBitrate)
+                .videoFrameRate(videoFrameRate)
 
                 .videoCameraFacing(mVideoCameraFacingSpinner.getSelectedItemPosition())
                 .videoScaleType((ScaleType) mVideoScaleTypeSpinner.getSelectedItem())
                 .canUpscaleVideo(mVideoCanUpscaleSwitchCompat.isChecked())
 
                 .audioCodec((AudioCodec) mAudioCodecSpinner.getSelectedItem())
-                .audioSamplingRateHz(Integer.parseInt(mAudioSampleRateEditText.getText().toString()))
-                .audioQuality(Integer.parseInt(mAudioQualityEditText.getText().toString()))
-                .audioBitrate(Integer.parseInt(mAudioBitrateEditText.getText().toString()))
+                .audioSamplingRateHz(audioSampleRate)
+                .audioQuality(audioQuality)
+                .audioBitrate(audioBitrate)
                 .audioChannelCount((Integer) mAudioChannelCount.getSelectedItem())
 
-                .minRecordingTimeNanos(TimeUnit.SECONDS.toNanos(
-                        Integer.parseInt(mMinRecordingTimeEditText.getText().toString())))
-                .maxRecordingTimeNanos(TimeUnit.SECONDS.toNanos(
-                        Integer.parseInt(mMaxRecordingTimeEditText.getText().toString())))
+                .minRecordingTimeNanos(TimeUnit.SECONDS.toNanos(minRecordingTime))
+                .maxRecordingTimeNanos(TimeUnit.SECONDS.toNanos(maxRecordingTime))
                 .build();
 
         // Start the intent for the activity so that the activity can handle the requestCode
@@ -355,10 +383,29 @@ public class VideoRecorderRequestFragment extends Fragment {
         startActivityForResult(intent, RECORD_VIDEO_REQUEST);
     }
 
-    private File createTempFile(String prefix, String postfix) throws IOException {
-        File file = File.createTempFile(prefix, postfix, getContext().getExternalCacheDir());
-        file.deleteOnExit();
-        return file;
+    private void createTempFiles() {
+        if (mVideoFile != null && mThumbnailFile != null) {
+            return;
+        }
+
+        File dir = getContext().getExternalCacheDir();
+        try {
+            while (true) {
+                int n = (int) (Math.random() * Integer.MAX_VALUE);
+                String videoFileName = Integer.toString(n) + VIDEO_FILE_POSTFIX;
+                mVideoFile = new File(dir, videoFileName);
+                    if (!mVideoFile.exists() && mVideoFile.createNewFile()) {
+                        String thumbnailFileName = Integer.toString(n) + THUMBNAIL_FILE_POSTFIX;
+                        mThumbnailFile = new File(dir, thumbnailFileName);
+                        if (!mThumbnailFile.exists() && mThumbnailFile.createNewFile()) {
+                            return;
+                        }
+                        mVideoFile.delete();
+                    }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public interface OnVideoRecorderListener {

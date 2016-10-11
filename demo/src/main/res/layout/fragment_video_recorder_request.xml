@@ -39,33 +39,45 @@
                     android:orientation="horizontal"
                     android:baselineAligned="false">
 
-                    <android.support.design.widget.TextInputLayout
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1">
+                        android:layout_gravity="center_vertical"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/video_width"/>
 
                         <EditText
                             android:id="@+id/video_width"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="number"
-                            android:hint="@string/video_width"/>
+                            android:inputType="number"/>
 
-                    </android.support.design.widget.TextInputLayout>
+                    </LinearLayout>
 
-                    <android.support.design.widget.TextInputLayout
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1">
+                        android:layout_gravity="center_vertical"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/video_height"/>
 
                         <EditText
                             android:id="@+id/video_height"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="number"
-                            android:hint="@string/video_height"/>
+                            android:inputType="number"/>
 
-                    </android.support.design.widget.TextInputLayout>
+                    </LinearLayout>
 
                 </LinearLayout>
 
@@ -86,33 +98,45 @@
                     android:orientation="horizontal"
                     android:baselineAligned="false">
 
-                    <android.support.design.widget.TextInputLayout
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1">
+                        android:layout_gravity="center_vertical"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/video_quality"/>
 
                         <EditText
                             android:id="@+id/video_quality"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="number"
-                            android:hint="@string/video_quality"/>
+                            android:inputType="number"/>
 
-                    </android.support.design.widget.TextInputLayout>
+                    </LinearLayout>
 
-                    <android.support.design.widget.TextInputLayout
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1">
+                        android:layout_gravity="center_vertical"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/video_bitrate"/>
 
                         <EditText
                             android:id="@+id/video_bitrate"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="number"
-                            android:hint="@string/video_bitrate_bytes"/>
+                            android:inputType="number"/>
 
-                    </android.support.design.widget.TextInputLayout>
+                    </LinearLayout>
 
                 </LinearLayout>
 
@@ -143,20 +167,25 @@
 
                     </LinearLayout>
 
-                    <android.support.design.widget.TextInputLayout
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_vertical"
-                        android:layout_weight="1">
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/video_frame_rate"/>
 
                         <EditText
                             android:id="@+id/video_frame_rate"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="number"
-                            android:hint="@string/video_frame_rate_per_second"/>
+                            android:inputType="number"/>
 
-                    </android.support.design.widget.TextInputLayout>
+                    </LinearLayout>
 
                 </LinearLayout>
 
@@ -231,35 +260,45 @@
                     android:orientation="horizontal"
                     android:baselineAligned="false">
 
-                    <android.support.design.widget.TextInputLayout
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_vertical"
-                        android:layout_weight="1">
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/audio_quality"/>
 
                         <EditText
                             android:id="@+id/audio_quality"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="number"
-                            android:hint="@string/audio_quality"/>
+                            android:inputType="number"/>
 
-                    </android.support.design.widget.TextInputLayout>
+                    </LinearLayout>
 
-                    <android.support.design.widget.TextInputLayout
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_vertical"
-                        android:layout_weight="1">
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/audio_bitrate"/>
 
                         <EditText
                             android:id="@+id/audio_bitrate"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="number"
-                            android:hint="@string/audio_bitrate_bytes"/>
+                            android:inputType="number"/>
 
-                    </android.support.design.widget.TextInputLayout>
+                    </LinearLayout>
 
                 </LinearLayout>
 
@@ -270,20 +309,25 @@
                     android:orientation="horizontal"
                     android:baselineAligned="false">
 
-                    <android.support.design.widget.TextInputLayout
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_vertical"
-                        android:layout_weight="1">
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/audio_sample_rate"/>
 
                         <EditText
                             android:id="@+id/audio_sample_rate"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="number"
-                            android:hint="@string/audio_sample_rate_hz"/>
+                            android:inputType="number"/>
 
-                    </android.support.design.widget.TextInputLayout>
+                    </LinearLayout>
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -328,33 +372,45 @@
                     android:orientation="horizontal"
                     android:baselineAligned="false">
 
-                    <android.support.design.widget.TextInputLayout
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1">
+                        android:layout_gravity="center_vertical"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/min_recording_time"/>
 
                         <EditText
                             android:id="@+id/min_recording_time"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="number"
-                            android:hint="@string/min_recording_time_seconds"/>
+                            android:inputType="number"/>
 
-                    </android.support.design.widget.TextInputLayout>
+                    </LinearLayout>
 
-                    <android.support.design.widget.TextInputLayout
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1">
+                        android:layout_gravity="center_vertical"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/max_recording_time"/>
 
                         <EditText
                             android:id="@+id/max_recording_time"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="number"
-                            android:hint="@string/max_recording_time_seconds"/>
+                            android:inputType="number"/>
 
-                    </android.support.design.widget.TextInputLayout>
+                    </LinearLayout>
 
                 </LinearLayout>
 

@@ -1,6 +1,8 @@
 package com.amosyuen.videorecorder.demo;
 
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
@@ -34,5 +36,9 @@ public final class Util {
         } else {
             return String.format(Locale.US, "%.3fd", seconds / TimeUnit.DAYS.toSeconds(1));
         }
+    }
+
+    public static String getHumanReadableDate(long millis) {
+        return SimpleDateFormat.getDateTimeInstance().format(new Date(millis));
     }
 }
