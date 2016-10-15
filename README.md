@@ -33,6 +33,10 @@ Activity to preview the recorded video before selecting the video
 
 ![Preview Video Activity Screenshot](./screenshots/preview_video_activity.png "Preview Video Activity")
 
+## Limitations
+
+- Video width must be a multiple of 2, so the recorded video might not be in the exact dimensions requested.
+
 ## Demo
 
 There is a demo activity that allows you to try different settings for recording videos.

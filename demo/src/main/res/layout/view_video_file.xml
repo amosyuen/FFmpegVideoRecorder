@@ -35,7 +35,8 @@
             android:layout_height="100dp"
             android:cropToPadding="false"
             android:adjustViewBounds="true"
-            android:scaleType="fitCenter"/>
+            android:scaleType="fitCenter"
+            android:src="?android:attr/selectableItemBackground"/>
 
         <TextView
             android:layout_width="wrap_content"

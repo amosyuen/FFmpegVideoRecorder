@@ -5,11 +5,13 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.AppCompatButton;
@@ -71,11 +73,9 @@ public class VideoRecorderResultsFragment extends Fragment {
 
     private VideoFileAdapter mVideoFileAdapter;
 
-
-
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState) {
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
         if (savedInstanceState == null) {
             mVideoFileAdapter = new VideoFileAdapter();
@@ -83,7 +83,11 @@ public class VideoRecorderResultsFragment extends Fragment {
         } else {
             mVideoFileAdapter = (VideoFileAdapter) savedInstanceState.getSerializable(ADAPTER_KEY);
         }
+    }
 
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+            Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_video_recorder_results, container, false);
 
         mRecyclerView = (RecyclerView) view.findViewById(R.id.recycler_view);
@@ -224,8 +228,7 @@ public class VideoRecorderResultsFragment extends Fragment {
             holder.setVideoFile(mVideoFiles.get(position));
         }
 
-        class VideoFileViewHolder extends RecyclerView.ViewHolder
-                implements OnClickListener {
+        class VideoFileViewHolder extends RecyclerView.ViewHolder {
 
             private View mView;
             private ImageView mThumbnailImageView;
@@ -245,7 +248,6 @@ public class VideoRecorderResultsFragment extends Fragment {
             public VideoFileViewHolder(View view) {
                 super(view);
                 mView = view;
-                mView.setOnClickListener(this);
 
                 mThumbnailImageView = (ImageView) view.findViewById(R.id.thumbnail);
                 mThumbnailFileSizeTextView = (TextView) view.findViewById(R.id.thumbnail_file_size);
@@ -282,9 +284,27 @@ public class VideoRecorderResultsFragment extends Fragment {
             }
 
             public void setVideoFile(VideoFile videoFile) {
+                mView.setOnClickListener(new OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Intent intent = new Intent(mView.getContext(), FFmpegPreviewActivity.class);
+                        intent.setData(Uri.fromFile(mVideoFile.videoFile));
+                        mView.getContext().startActivity(intent);
+                    }
+                });
+
                 mVideoFile = videoFile;
-                mThumbnailImageView.setImageBitmap(
-                        BitmapFactory.decodeFile(videoFile.thumbnailFile.getAbsolutePath()));
+                mThumbnailImageView.setBackground(new BitmapDrawable(
+                        mView.getContext().getResources(),
+                        BitmapFactory.decodeFile(videoFile.thumbnailFile.getAbsolutePath())));
+                mThumbnailImageView.setOnClickListener(new OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Intent intent = new Intent(mView.getContext(), ThumbnailActivity.class);
+                        intent.setData(Uri.fromFile(mVideoFile.thumbnailFile));
+                        mView.getContext().startActivity(intent);
+                    }
+                });
                 mThumbnailFileSizeTextView.setText(
                         Util.getHumanReadableByteCount(videoFile.thumbnailFile.length(), true));
                 mVideoFileDateTextView.setText(Util.getHumanReadableDate(
@@ -359,13 +379,6 @@ public class VideoRecorderResultsFragment extends Fragment {
                     mAudioSampleRateTextView.setText("");
                     mAudioChannelsTextView.setText("");
                 }
-            }
-
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(mView.getContext(), FFmpegPreviewActivity.class);
-                intent.setData(Uri.fromFile(mVideoFile.videoFile));
-                mView.getContext().startActivity(intent);
             }
         }
     }

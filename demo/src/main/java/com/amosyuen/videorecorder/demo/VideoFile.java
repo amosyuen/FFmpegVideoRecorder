@@ -18,6 +18,6 @@ public class VideoFile implements Comparable<VideoFile>, Serializable {
 
     @Override
     public int compareTo(VideoFile file) {
-        return (int)(videoFile.lastModified() - file.videoFile.lastModified());
+        return (int)(file.videoFile.lastModified() - videoFile.lastModified());
     }
 }
