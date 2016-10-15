@@ -49,7 +49,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="@string/video_width"/>
+                            android:text="@string/video_width_px"/>
 
                         <EditText
                             android:id="@+id/video_width"
@@ -69,7 +69,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="@string/video_height"/>
+                            android:text="@string/video_height_px"/>
 
                         <EditText
                             android:id="@+id/video_height"
@@ -128,7 +128,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="@string/video_bitrate"/>
+                            android:text="@string/video_bitrate_bytes"/>
 
                         <EditText
                             android:id="@+id/video_bitrate"
@@ -177,7 +177,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="@string/video_frame_rate"/>
+                            android:text="@string/video_frames_per_second"/>
 
                         <EditText
                             android:id="@+id/video_frame_rate"
@@ -319,7 +319,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="@string/audio_sample_rate"/>
+                            android:text="@string/audio_sample_rate_hz"/>
 
                         <EditText
                             android:id="@+id/audio_sample_rate"

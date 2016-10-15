@@ -5,7 +5,8 @@
     <string name="audio_codec">Audio Codec</string>
     <string name="audio_options">Audio Options</string>
     <string name="audio_quality">Audio Quality (Codec Dependent)</string>
-    <string name="audio_sample_rate">Audio Sample Rate (Hz)</string>
+    <string name="audio_sample_rate">Audio Sample Rate</string>
+    <string name="audio_sample_rate_hz">Audio Sample Rate (Hz)</string>
     <string name="can_upscale_video">Can upscale video</string>
     <string name="delete_all">Delete All</string>
     <string name="delete_all_video_files">Are you sure you want to delete all video files?</string>
@@ -24,13 +25,22 @@
     <string name="results">Results</string>
     <string name="success">Success</string>
     <string name="thumbnail_preview">Thumbnail Preview</string>
-    <string name="video_bitrate">Video Bitrate (bytes)</string>
+    <string name="video_bitrate">Video Bitrate</string>
+    <string name="video_bitrate_bytes">Video Bitrate (bytes)</string>
     <string name="video_camera_facing">Video Camera Facing</string>
     <string name="video_codec">Video Codec</string>
-    <string name="video_frame_rate">Video Frame Rate Per Second</string>
-    <string name="video_height">Video Height (px)</string>
+    <string name="video_date">Video Date</string>
+    <string name="video_file_size">Video File Size</string>
+    <string name="video_frames_per_second">Video Frames Per Second</string>
+    <string name="video_frame_rate">Video Frame Rate</string>
+    <string name="video_height">Video Height</string>
+    <string name="video_height_px">Video Height (px)</string>
+    <string name="video_length">Video Length</string>
     <string name="video_options">Video Options</string>
     <string name="video_quality">Video Quality (Codec Dependent)</string>
     <string name="video_scale_type">Video Scale Type</string>
-    <string name="video_width">Video Width (px)</string>
+    <string name="video_width">Video Width</string>
+    <string name="video_width_px">Video Width (px)</string>
+    <string name="thumbnail">Thumbnail</string>
+    <string name="thumbnail_file_size">Thumbnail File Size</string>
 </resources>

@@ -361,8 +361,8 @@ public class VideoRecorderResultsFragment extends Fragment {
                             case MIMETYPE_AUDIO_QCELP:
                             case MIMETYPE_AUDIO_RAW:
                             case MIMETYPE_AUDIO_VORBIS:
-                                mAudioSampleRateTextView.setText(Util.getHumanReadableBitrate(
-                                        mediaFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE), true));
+                                mAudioSampleRateTextView.setText(String.format(Locale.US, "%d Hz",
+                                        mediaFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)));
                                 mAudioChannelsTextView.setText(String.format(Locale.US, "%d",
                                         mediaFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT)));
                                 break;
