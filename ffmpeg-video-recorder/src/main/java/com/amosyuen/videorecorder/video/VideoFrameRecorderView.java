@@ -29,8 +29,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static android.os.Build.VERSION_CODES.M;
-
 /**
  * View that records only video frames (no audio).
  */
@@ -281,6 +279,7 @@ public class VideoFrameRecorderView extends SurfaceView implements
         } else {
             targetSize = scalePreviewSize.clone();
         }
+        targetSize.roundWidthUpToEvenAndMaintainAspectRatio();
         Log.v(LOG_TAG, String.format("Parent %s", parentSize));
         Log.v(LOG_TAG, String.format("Target %s", targetSize));
         Log.v(LOG_TAG, String.format("Preview %s", previewSize));

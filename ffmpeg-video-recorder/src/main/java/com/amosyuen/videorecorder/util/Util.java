@@ -10,8 +10,6 @@ import android.support.annotation.AttrRes;
 import android.support.annotation.ColorInt;
 import android.util.TypedValue;
 
-import org.bytedeco.javacv.FFmpegFrameRecorder;
-
 import java.io.File;
 
 /**

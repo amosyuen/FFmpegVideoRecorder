@@ -53,11 +53,20 @@ public interface VideoFrameRecorderParams extends VideoFrameTransformerParams, S
             return this;
         }
 
+        /**
+         * Width will be rounded up to the closest multiple of 2. If height is defined, height will
+         * be recalculated to maintain the aspect ratio. Recommended to use a multiple of 16 for
+         * best encoding efficiency.
+         */
         public Builder videoWidth(int val) {
             videoWidth = val;
             return this;
         }
 
+        /**
+         * If only height is specified, the height will be changed to make sure the width is a
+         * multiple of 2 while maintain the camera aspect ratio.
+         */
         public Builder videoHeight(int val) {
             videoHeight = val;
             return this;

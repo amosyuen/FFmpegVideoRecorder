@@ -7,11 +7,11 @@ import android.graphics.YuvImage;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import com.amosyuen.videorecorder.util.FFmpegFrameRecorder;
 import com.amosyuen.videorecorder.util.TaskListener;
 
 import org.bytedeco.javacpp.avutil;
 import org.bytedeco.javacv.FFmpegFrameFilter;
-import org.bytedeco.javacv.FFmpegFrameRecorder;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.FrameFilter;
 import org.bytedeco.javacv.FrameRecorder.Exception;
@@ -22,9 +22,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.concurrent.TimeUnit;
 
-import static android.R.attr.x;
 import static org.bytedeco.javacv.Frame.DEPTH_UBYTE;
 
 /**
@@ -177,15 +175,17 @@ public class VideoFrameTransformerTask implements Runnable {
                     ? new ImageSize(mRecordedWidth, mRecordedHeight)
                     : new ImageSize(mRecordedHeight, mRecordedWidth);
             targetSize.calculateUndefinedDimensions(imageSize);
+            targetSize.roundWidthUpToEvenAndMaintainAspectRatio();
             if (imageSize.scale(
                     targetSize, mParams.getVideoScaleType(), mParams.canUpscaleVideo())) {
-                transforms.add("scale=w=" + imageSize.width + ":h=" + imageSize.height);
+                transforms.add("scale=" + imageSize.width + ":" + imageSize.height);
             }
             if (imageSize.cropTo(targetSize)) {
-                transforms.add("crop=w=" + imageSize.width + ":h=" + imageSize.height);
+                transforms.add("crop=" + imageSize.width + ":" + imageSize.height);
             }
             if (imageSize.padTo(targetSize)) {
-                transforms.add("pad=w=" + imageSize.width + ":h=" + imageSize.height);
+                transforms.add(
+                        "pad=" + imageSize.width + ":" + imageSize.height + ":(ow-iw)/2:(oh-ih)/2");
             }
             mFrameRecorder.setImageWidth(imageSize.width);
             mFrameRecorder.setImageHeight(imageSize.height);

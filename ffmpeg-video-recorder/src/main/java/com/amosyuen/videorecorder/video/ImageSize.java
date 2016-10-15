@@ -44,6 +44,16 @@ public class ImageSize {
         return (float)width / height;
     }
 
+    public void roundWidthUpToEvenAndMaintainAspectRatio() {
+        if (width != SIZE_UNDEFINED && width % 2 != 0) {
+            int roundedWidth = width + 1;
+            if (height != SIZE_UNDEFINED) {
+                height = (roundedWidth * height + width / 2) / width;
+            }
+            width = roundedWidth;
+        }
+    }
+
     /**
      * Calculates the undefined dimensions in this size using the aspect ratio from the source size.
      */

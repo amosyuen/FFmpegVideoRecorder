@@ -1,18 +1,9 @@
 package com.amosyuen.videorecorder.util;
 
+
 import org.bytedeco.javacpp.avcodec;
 
 import java.io.Serializable;
-import java.text.Format;
-
-import static android.R.attr.format;
-import static android.R.attr.name;
-import static android.bluetooth.BluetoothProfile.SAP;
-import static android.media.MediaRecorder.AudioEncoder.AAC;
-import static android.net.rtp.AudioCodec.AMR;
-import static android.os.Build.VERSION_CODES.M;
-import static com.amosyuen.videorecorder.util.FFmpegRecorderParams.AudioCodec.MP3;
-import static org.bytedeco.javacpp.opencv_ml.SVM.P;
 
 /**
  * Parameters for encoding audio and video using FFmpegFrameRecorder.
@@ -180,12 +171,7 @@ public interface FFmpegRecorderParams extends Serializable {
     int getVideoBitrate();
     int getVideoCodec();
     int getVideoFrameRate();
-    /**
-     * Value depends on the video codec. Will override the video bitrate parameter.
-     * For <a href='https://trac.ffmpeg.org/wiki/Encode/H.264'>H.264</a> choose a value from 0-51
-     * where 0 is lossless, 23 is default, and 51 is worst possible. Consider 18 to be nearly
-     * visually lossless.
-     */
+    /** Value depends on the video codec. Will override the video bitrate parameter. */
     int getVideoQuality();
     int getVideoWidth();
     int getVideoHeight();
@@ -194,11 +180,7 @@ public interface FFmpegRecorderParams extends Serializable {
     int getAudioBitrate();
     int getAudioChannelCount();
     int getAudioCodec();
-    /**
-     * Value depends on the audio codec. Will override the audio bitrate parameter.
-     * For <a href='https://trac.ffmpeg.org/wiki/Encode/AAC'>AAC</a> choose a value between 1 and 5,
-     * where 1 is the lowest quality and 5 is the highest quality.
-     */
+    /** Value depends on the audio codec. Will override the audio bitrate parameter. */
     int getAudioQuality();
     int getAudioSamplingRateHz();
 
@@ -236,6 +218,10 @@ public interface FFmpegRecorderParams extends Serializable {
             return this;
         }
 
+        /**
+         * Sets the video bitrate and sets the video quality to negative one. Video quality must be
+         * negative one to use the video bitrate.
+         */
         public Builder videoBitrate(int val) {
             videoBitrate = val;
             videoQuality = -1;
@@ -257,22 +243,40 @@ public interface FFmpegRecorderParams extends Serializable {
             return this;
         }
 
-        /** Value from 0 to 10, where 0 is best quality and 10 is worst quality. */
+        /**
+         * Value depends on the video codec. Will override the video bitrate parameter.
+         * For <a href='https://trac.ffmpeg.org/wiki/Encode/H.264'>H.264</a> choose a value from
+         * 0-51 where 0 is lossless, 23 is default, and 51 is worst possible. Consider 18 to be
+         * nearly visually lossless.
+         */
         public Builder videoQuality(int val) {
             videoQuality = val;
             return this;
         }
 
+        /**
+         * Width will be rounded up to the closest multiple of 2. If height is defined, height will
+         * be recalculated to maintain the aspect ratio. Recommended to use a multiple of 16 for
+         * best encoding efficiency.
+         */
         public Builder videoWidth(int val) {
             videoWidth = val;
             return this;
         }
 
+        /**
+         * If only height is specified, the height will be changed to make sure the width is a
+         * multiple of 2 while maintain the camera aspect ratio.
+         */
         public Builder videoHeight(int val) {
             videoHeight = val;
             return this;
         }
 
+        /**
+         * Sets the audio bitrate and sets the audio quality to negative one. Audio quality must be
+         * negative one to use the audio bitrate.
+         */
         public Builder audioBitrate(int val) {
             audioBitrate = val;
             audioQuality = -1;
@@ -294,7 +298,11 @@ public interface FFmpegRecorderParams extends Serializable {
             return this;
         }
 
-        /** Value from 0 to 10, where 0 is best quality and 10 is worst quality. */
+        /**
+         * Value depends on the audio codec. Will override the audio bitrate parameter.
+         * For <a href='https://trac.ffmpeg.org/wiki/Encode/AAC'>AAC</a> choose a value between 1
+         * and 5, where 1 is the lowest quality and 5 is the highest quality.
+         */
         public Builder audioQuality(int val) {
             audioQuality = val;
             return this;

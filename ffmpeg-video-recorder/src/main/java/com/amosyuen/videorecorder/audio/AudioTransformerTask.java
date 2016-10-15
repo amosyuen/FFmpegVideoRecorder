@@ -2,9 +2,9 @@ package com.amosyuen.videorecorder.audio;
 
 import android.util.Log;
 
+import com.amosyuen.videorecorder.util.FFmpegFrameRecorder;
 import com.amosyuen.videorecorder.util.TaskListener;
 
-import org.bytedeco.javacv.FFmpegFrameRecorder;
 import org.bytedeco.javacv.FrameRecorder;
 
 import java.nio.ShortBuffer;

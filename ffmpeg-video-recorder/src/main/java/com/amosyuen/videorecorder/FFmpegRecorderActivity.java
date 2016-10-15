@@ -4,7 +4,6 @@ package com.amosyuen.videorecorder;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.content.res.Configuration;
 import android.graphics.drawable.Drawable;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
@@ -34,6 +33,7 @@ import com.amosyuen.videorecorder.audio.AudioRecorderThread;
 import com.amosyuen.videorecorder.audio.AudioTransformerTask;
 import com.amosyuen.videorecorder.audio.ListAudioRecorder;
 import com.amosyuen.videorecorder.util.ActivityThemeParams.Builder;
+import com.amosyuen.videorecorder.util.FFmpegFrameRecorder;
 import com.amosyuen.videorecorder.util.ProgressSectionsView;
 import com.amosyuen.videorecorder.util.RecorderActivityParams;
 import com.amosyuen.videorecorder.util.RecorderListener;
@@ -44,13 +44,9 @@ import com.amosyuen.videorecorder.video.VideoFrameRecorderParams;
 import com.amosyuen.videorecorder.video.VideoFrameRecorderView;
 import com.amosyuen.videorecorder.video.VideoFrameTransformerTask;
 
-import org.bytedeco.javacv.FFmpegFrameRecorder;
-
 import java.io.File;
 import java.security.InvalidParameterException;
 import java.util.concurrent.TimeUnit;
-
-import static java.security.AccessController.getContext;
 
 /**
  * Activity for recording audio and video
