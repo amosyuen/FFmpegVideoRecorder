@@ -4,9 +4,13 @@ package com.amosyuen.videorecorder;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Bitmap.CompressFormat;
 import android.graphics.drawable.Drawable;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
+import android.media.MediaMetadataRetriever;
+import android.media.ThumbnailUtils;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -43,6 +47,7 @@ import com.amosyuen.videorecorder.video.VideoFrameTransformerTask;
 import com.github.rahatarmanahmed.cpv.CircularProgressView;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.security.InvalidParameterException;
 import java.util.concurrent.TimeUnit;
 
@@ -582,16 +587,14 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
             mVideoOutputFile = new File(Uri.parse(getThemeParams().getVideoOutputUri()).getPath());
 
             String videoThumbnailOutputUri = getThemeParams().getVideoThumbnailOutputUri();
-            if (videoThumbnailOutputUri == null) {
-                mVideoThumbnailOutputFile = null;
-            } else {
-                mVideoThumbnailOutputFile = new File(Uri.parse(videoThumbnailOutputUri).getPath());
-            }
+            mVideoThumbnailOutputFile = videoThumbnailOutputUri == null
+                    ? null
+                    : new File(Uri.parse(videoThumbnailOutputUri).getPath());
 
             mRecorder = Util.createFrameRecorder(mVideoOutputFile, getThemeParams());
 
             mVideoTransformerTask = new VideoFrameTransformerTask(
-                    mRecorder, mVideoThumbnailOutputFile, getThemeParams(), mIsRecordingLandscape,
+                    mRecorder, getThemeParams(), mIsRecordingLandscape,
                     mPreviewSize.width, mPreviewSize.height,
                     mVideoFrameRecorder.getRecordedFrames());
             mVideoTransformerTask.setProgressListener(this);
@@ -614,6 +617,16 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
                 publishProgress(-1f);
                 mRecorder.stop();
                 mRecorder.release();
+
+                // Create video thumbnail
+                if (mVideoThumbnailOutputFile != null) {
+                    MediaMetadataRetriever metadataRetriever = new MediaMetadataRetriever();
+                    metadataRetriever.setDataSource(mVideoOutputFile.getAbsolutePath());
+                    Bitmap frame = metadataRetriever.getFrameAtTime(
+                            0, MediaMetadataRetriever.OPTION_NEXT_SYNC);
+                    FileOutputStream outputStream = new FileOutputStream(mVideoThumbnailOutputFile);
+                    frame.compress(CompressFormat.JPEG, 100, outputStream);
+                }
                 return null;
             } catch (Exception e) {
                 return e;

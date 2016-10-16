@@ -37,7 +37,6 @@ public class VideoFrameTransformerTask implements Runnable {
     private static final int IMAGE_CHANNELS = 2;
 
     protected FFmpegFrameRecorder mFrameRecorder;
-    protected File mThumbnailFile;
     protected final VideoFrameTransformerParams mParams;
     protected final boolean mIsLandscape;
     protected final int mRecordedWidth;
@@ -54,14 +53,12 @@ public class VideoFrameTransformerTask implements Runnable {
 
     public VideoFrameTransformerTask(
             FFmpegFrameRecorder frameRecorder,
-            @Nullable File thumbnailFile,
             VideoFrameTransformerParams params,
             boolean isLandscape,
             int recordedWidth,
             int recordedHeight,
             Collection<VideoFrameData> frameDatas) {
         mFrameRecorder = frameRecorder;
-        mThumbnailFile = thumbnailFile;
         mParams = params;
         mIsLandscape = isLandscape;
         mRecordedWidth = recordedWidth;
@@ -175,7 +172,6 @@ public class VideoFrameTransformerTask implements Runnable {
                     ? new ImageSize(mRecordedWidth, mRecordedHeight)
                     : new ImageSize(mRecordedHeight, mRecordedWidth);
             targetSize.calculateUndefinedDimensions(imageSize);
-            targetSize.roundWidthUpToEvenAndMaintainAspectRatio();
             if (imageSize.scale(
                     targetSize, mParams.getVideoScaleType(), mParams.canUpscaleVideo())) {
                 transforms.add("scale=" + imageSize.width + ":" + imageSize.height);
@@ -187,20 +183,14 @@ public class VideoFrameTransformerTask implements Runnable {
                 transforms.add(
                         "pad=" + imageSize.width + ":" + imageSize.height + ":(ow-iw)/2:(oh-ih)/2");
             }
-            mFrameRecorder.setImageWidth(imageSize.width);
-            mFrameRecorder.setImageHeight(imageSize.height);
         } else {
-            // These are flipped because we are recording in portrait
-            if (mIsLandscape) {
-                mFrameRecorder.setImageWidth(mRecordedWidth);
-                mFrameRecorder.setImageHeight(mRecordedHeight);
-            } else {
-                //noinspection SuspiciousNameCombination
-                mFrameRecorder.setImageWidth(mRecordedHeight);
-                //noinspection SuspiciousNameCombination
-                mFrameRecorder.setImageHeight(mRecordedWidth);
-            }
+            //noinspection SuspiciousNameCombination
+            targetSize = mIsLandscape
+                    ? new ImageSize(mRecordedWidth, mRecordedHeight)
+                    : new ImageSize(mRecordedHeight, mRecordedWidth);
         }
+        mFrameRecorder.setImageWidth(targetSize.width);
+        mFrameRecorder.setImageHeight(targetSize.height);
 
         return combineTransforms(transforms.toArray(new String[transforms.size()]));
     }
@@ -242,32 +232,6 @@ public class VideoFrameTransformerTask implements Runnable {
             mFrameRecorder.record(yuvFrame);
         } catch (Exception e) {
             Log.e(LOG_TAG, "Error recording frame", e);
-            throw new RuntimeException(e);
-        }
-
-        if (mIsFirstImage) {
-            mIsFirstImage = false;
-            if (mThumbnailFile != null) {
-                saveThumbnail(yuvFrame);
-            }
-        }
-    }
-
-    protected void saveThumbnail(Frame yuvFrame) {
-        YuvImage localYuvImage = new YuvImage(
-                ((ByteBuffer) yuvFrame.image[0]).array(),
-                ImageFormat.NV21,
-                yuvFrame.imageWidth,
-                yuvFrame.imageHeight, null);
-
-        try {
-            // Convert image to JPEG
-            FileOutputStream outStream = new FileOutputStream(mThumbnailFile);
-            localYuvImage.compressToJpeg(
-                    new Rect(0, 0, yuvFrame.imageWidth, yuvFrame.imageHeight), 100, outStream);
-            outStream.close();
-        } catch (IOException e) {
-            Log.e(LOG_TAG, "Error saving thumbnail", e);
             throw new RuntimeException(e);
         }
     }
