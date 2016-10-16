@@ -507,10 +507,6 @@ public class VideoFrameRecorderView extends SurfaceView implements
     }
 
     protected class OpenCameraTask extends AsyncTask<Void, Void, Pair<Integer, Camera>> {
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
 
         @Override
         protected Pair<Integer, Camera> doInBackground(Void[] params) {

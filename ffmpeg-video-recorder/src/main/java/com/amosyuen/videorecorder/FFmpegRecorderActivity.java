@@ -10,22 +10,20 @@ import android.hardware.Camera.CameraInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.annotation.CallSuper;
 import android.support.annotation.ColorInt;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.StringRes;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.widget.AppCompatImageButton;
 import android.util.Log;
 import android.view.Menu;
-import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnTouchListener;
 import android.view.WindowManager;
-import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -68,11 +66,12 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     // Ui variables
     protected ProgressSectionsView mProgressView;
     protected VideoFrameRecorderView mVideoFrameRecorderView;
-    protected ImageButton mRecordButton;
-    protected ImageButton mFlashButton;
-    protected ImageButton mSwitchCameraButton;
+    protected AppCompatImageButton mRecordButton;
+    protected AppCompatImageButton mFlashButton;
+    protected AppCompatImageButton mSwitchCameraButton;
     protected ProgressBar mProgressBar;
     protected TextView mProgressText;
+    protected AppCompatImageButton mNextButton;
 
     // State variables
     protected ListVideoFrameRecorder mVideoFrameRecorder;
@@ -82,13 +81,11 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     protected File mVideoThumbnailOutputFile;
     protected boolean mIsFlashOn;
     protected boolean mIsFrontCamera;
-    protected boolean mIsNextEnabled;
     protected boolean mIsAudioRecorderReady;
     protected boolean mIsVideoFrameRecorderReady;
-    protected boolean mIsFinishedRecording;
     protected long mLatestTimestampNanos;
     protected int mOriginalRequestedOrientation;
-    protected boolean mShouldInvalidateMenu;
+    protected SaveVideoTask mSaveVideoTask;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -109,20 +106,31 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         mVideoFrameRecorderView = (VideoFrameRecorderView) findViewById(R.id.recorder_view);
         mVideoFrameRecorderView.setRecorderListener(this);
 
-        mRecordButton = (ImageButton) findViewById(R.id.record_button);
+        mRecordButton = (AppCompatImageButton) findViewById(R.id.record_button);
         mRecordButton.setOnTouchListener(FFmpegRecorderActivity.this);
 
         @ColorInt int widgetcolor = getWidgetColor();
-        mSwitchCameraButton = (ImageButton) findViewById(R.id.switch_camera_button);
+        mSwitchCameraButton = (AppCompatImageButton) findViewById(R.id.switch_camera_button);
         mSwitchCameraButton.setOnClickListener(FFmpegRecorderActivity.this);
         mSwitchCameraButton.setColorFilter(widgetcolor);
 
-        mFlashButton = (ImageButton) findViewById(R.id.flash_button);
+        mFlashButton = (AppCompatImageButton) findViewById(R.id.flash_button);
         mFlashButton.setOnClickListener(this);
         mFlashButton.setColorFilter(widgetcolor);
 
         mProgressBar = (ProgressBar) findViewById(R.id.progress_bar) ;
         mProgressText = (TextView) findViewById(R.id.progress_text) ;
+    
+        mNextButton = (AppCompatImageButton) findViewById(R.id.next_button);
+        mNextButton.setColorFilter(getToolbarWidgetColor());
+        mNextButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mVideoFrameRecorderView.getRecordingLengthNanos() > 0) {
+                    saveRecording();
+                }
+            }
+        });
 
         mVideoFrameRecorder = new ListVideoFrameRecorder();
         mAudioRecorder = new ListAudioRecorder();
@@ -189,24 +197,15 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     }
 
     @Override
-    public boolean onCreateOptionsMenu(final Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_next, menu);
-        super.onCreateOptionsMenu(menu);
-        return true;
-    }
-
-    @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        menu.findItem(R.id.menu_finish).setVisible(mIsNextEnabled);
         return super.onPrepareOptionsMenu(menu);
     }
 
     protected void initRecorders() {
-        mIsNextEnabled = false;
-        mIsFinishedRecording = false;
         mLatestTimestampNanos = 0;
         mProgressView.setVisibility(View.GONE);
         mProgressView.clearProgress();
+        mNextButton.setVisibility(View.INVISIBLE);
 
         mVideoFrameRecorder.clear();
         mVideoFrameRecorderView.clearData();
@@ -235,22 +234,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         }
         showProgress(R.string.initializing);
         mVideoFrameRecorderView.openCamera(params, mVideoFrameRecorder);
-    }
-
-    @Override
-    @CallSuper
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.menu_finish) {
-            if (mVideoFrameRecorderView.getRecordingLengthNanos() > 0) {
-                saveRecording();
-            }
-            return true;
-        } else if (item.getItemId() == android.R.id.home) {
-            onBackPressed();
-            return true;
-        } else {
-            return super.onOptionsItemSelected(item);
-        }
     }
 
     @Override
@@ -301,12 +284,13 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
 
     @Override
     public void onRecorderReady(Object recorder) {
+        boolean wasReady = mIsVideoFrameRecorderReady && mIsAudioRecorderReady;
         if (recorder == mVideoFrameRecorderView) {
             mIsVideoFrameRecorderReady = true;
         } else if (recorder == mAudioRecorderThread) {
             mIsAudioRecorderReady = true;
         }
-        if (mIsVideoFrameRecorderReady && mIsAudioRecorderReady) {
+        if (!wasReady && mIsVideoFrameRecorderReady && mIsAudioRecorderReady) {
             Log.d(LOG_TAG, "Both recorders ready!");
             runOnUiThread(new Runnable() {
                 @Override
@@ -336,11 +320,15 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
             mLatestTimestampNanos = timestampNanos;
             mProgressView.setCurrentProgress(convertNanosToProgress(timestampNanos)
                     - mProgressView.getTotalSectionProgress());
-            if (!mIsNextEnabled) {
+            if (mNextButton.getVisibility() == View.INVISIBLE) {
                 long minRecordingNanos = getThemeParams().getMinRecordingTimeNanos();
                 if (timestampNanos > minRecordingNanos) {
-                    mIsNextEnabled = true;
-                    mShouldInvalidateMenu = true;
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mNextButton.setVisibility(View.VISIBLE);
+                        }
+                    });
                 }
             }
             long maxRecordingNanos = getThemeParams().getMaxRecordingTimeNanos();
@@ -395,9 +383,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
 
     @Override
     public void onBackPressed() {
-        if (mIsFinishedRecording) {
-            return;
-        }
         if (mVideoFrameRecorderView.getRecordingLengthNanos() > 0) {
             new AlertDialog.Builder(this)
                     .setCancelable(false)
@@ -420,7 +405,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
 
     @Override
     public boolean onTouch(View v, MotionEvent event) {
-        if (!mIsFinishedRecording) {
+        if (mSaveVideoTask == null) {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
                     startRecording();
@@ -452,10 +437,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     protected void stopRecording() {
         if (mThemeParams == null) {
             return;
-        }
-        if (mShouldInvalidateMenu) {
-            supportInvalidateOptionsMenu();
-            mShouldInvalidateMenu = false;
         }
         mVideoFrameRecorderView.stopRecording();
         mAudioRecorderThread.setRecording(false);
@@ -510,6 +491,10 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         if (mThemeParams == null) {
             return;
         }
+        if (mSaveVideoTask != null) {
+            mSaveVideoTask.cancel(true);
+            mSaveVideoTask = null;
+        }
         mProgressView.setVisibility(View.GONE);
         hideControls();
         releaseResources();
@@ -525,13 +510,13 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
 
     protected void saveRecording() {
         stopRecording();
-        if (!mIsFinishedRecording) {
+        if (mSaveVideoTask == null) {
             Log.d(LOG_TAG, "Saving recording");
-            mIsFinishedRecording = true;
             showProgress(R.string.processing);
-            releaseResources();
 
-            new SaveVideoTask().execute();
+            // Start the task slightly delayed so that the UI can update first
+            mSaveVideoTask = new SaveVideoTask();
+            mSaveVideoTask.execute();
         }
     }
 
@@ -568,6 +553,9 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         private static final double VIDEO_PROGRESS_PORTION = 0.75;
         private static final double AUDIO_PROGRESS_PORTION = 1.0 - VIDEO_PROGRESS_PORTION;
 
+        private Camera.Size mPreviewSize;
+        private boolean mIsRecordingLandscape;
+
         private FFmpegFrameRecorder mRecorder;
         private VideoFrameTransformerTask mVideoTransformerTask;
         private AudioTransformerTask mAudioTransformerTask;
@@ -576,6 +564,16 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         protected void onPreExecute() {
             super.onPreExecute();
 
+            releaseResources();
+
+            mPreviewSize = mVideoFrameRecorderView.getPreviewSize();
+            mIsRecordingLandscape = mVideoFrameRecorderView.isRecordingLandscape();
+            Log.d(LOG_TAG,
+                    "VideoRecorder length " + mVideoFrameRecorderView.getRecordingLengthNanos());
+        }
+
+        @Override
+        protected Exception doInBackground(Object[] params) {
             mVideoOutputFile = new File(Uri.parse(getThemeParams().getVideoOutputUri()).getPath());
 
             String videoThumbnailOutputUri = getThemeParams().getVideoThumbnailOutputUri();
@@ -587,11 +585,10 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
 
             mRecorder = Util.createFrameRecorder(mVideoOutputFile, getThemeParams());
 
-            Camera.Size previewSize = mVideoFrameRecorderView.getPreviewSize();
             mVideoTransformerTask = new VideoFrameTransformerTask(
-                    mRecorder, mVideoThumbnailOutputFile, getThemeParams(),
-                    mVideoFrameRecorderView.isRecordingLandscape(),
-                    previewSize.width, previewSize.height, mVideoFrameRecorder.getRecordedFrames());
+                    mRecorder, mVideoThumbnailOutputFile, getThemeParams(), mIsRecordingLandscape,
+                    mPreviewSize.width, mPreviewSize.height,
+                    mVideoFrameRecorder.getRecordedFrames());
             mVideoTransformerTask.setProgressListener(this);
 
             try {
@@ -605,15 +602,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
 
             Log.d(LOG_TAG, "AudioRecorder length "
                     + mAudioRecorderThread.getRecordingLengthNanos());
-            Log.d(LOG_TAG, "VideoRecorder length "
-                    + mVideoFrameRecorderView.getRecordingLengthNanos());
-        }
-
-        @Override
-        protected Exception doInBackground(Object[] params) {
-            if (mVideoOutputFile == null) {
-                return null;
-            }
             try {
                 mRecorder.start();
                 mVideoTransformerTask.run();

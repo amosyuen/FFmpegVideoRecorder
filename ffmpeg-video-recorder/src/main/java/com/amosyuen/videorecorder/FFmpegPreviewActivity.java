@@ -4,6 +4,7 @@ package com.amosyuen.videorecorder;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
+import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
@@ -83,9 +84,17 @@ public class FFmpegPreviewActivity
     }
 
     @Override
+    @CallSuper
     public boolean onCreateOptionsMenu(final Menu menu) {
         getMenuInflater().inflate(R.menu.menu_done, menu);
-        super.onCreateOptionsMenu(menu);
+        MenuItem menuItemFinish = menu.findItem(R.id.menu_finish);
+        if (menuItemFinish != null) {
+            Drawable menuItemFinishIcon = menuItemFinish.getIcon();
+            if (menuItemFinishIcon != null) {
+                menuItemFinish.setIcon(
+                        Util.tintDrawable(menuItemFinishIcon, getToolbarWidgetColor()));
+            }
+        }
         return true;
     }
 
@@ -94,9 +103,6 @@ public class FFmpegPreviewActivity
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.menu_finish) {
             finishWithResult(RESULT_OK);
-            return true;
-        } else if (item.getItemId() == android.R.id.home) {
-            onBackPressed();
             return true;
         } else {
             return super.onOptionsItemSelected(item);

@@ -1,16 +1,18 @@
 package com.amosyuen.videorecorder;
 
 
+import android.annotation.TargetApi;
 import android.content.Intent;
-import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.CallSuper;
 import android.support.annotation.ColorInt;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.view.Menu;
 import android.view.MenuItem;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.TextView;
 
 import com.amosyuen.videorecorder.util.ActivityThemeParams;
@@ -81,6 +83,8 @@ public abstract class AbstractDynamicStyledActivity extends AppCompatActivity {
 
     @CallSuper
     protected void setupToolbar(Toolbar toolbar) {
+        setStatusBarColor(getStatusBarColor());
+
         TextView toolbarTitle = (TextView) toolbar.findViewById(R.id.toolbar_title);
 
         toolbar.setBackgroundColor(getToolbarColor());
@@ -91,16 +95,21 @@ public abstract class AbstractDynamicStyledActivity extends AppCompatActivity {
     }
 
     @Override
-    @CallSuper
-    public boolean onCreateOptionsMenu(final Menu menu) {
-        MenuItem menuItemFinish = menu.findItem(R.id.menu_finish);
-        if (menuItemFinish != null) {
-            Drawable menuItemFinishIcon = menuItemFinish.getIcon();
-            if (menuItemFinishIcon != null) {
-                menuItemFinish.setIcon(
-                        Util.tintDrawable(menuItemFinishIcon, getToolbarWidgetColor()));
-            }
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            onBackPressed();
+            return true;
+        } else {
+            return super.onOptionsItemSelected(item);
         }
-        return true;
+    }
+
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    protected void setStatusBarColor(@ColorInt int color) {
+        final Window window = getWindow();
+        if (window != null) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.setStatusBarColor(color);
+        }
     }
 }
