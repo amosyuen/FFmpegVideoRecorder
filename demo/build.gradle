@@ -24,5 +24,6 @@ dependencies {
     compile project(':ffmpeg-video-recorder')
     compile 'com.android.support:design:24.2.1'
     compile 'com.android.support:support-v4:24.2.1'
+    compile 'com.github.rahatarmanahmed:circularprogressview:2.5.0'
     compile 'com.yqritc:recyclerview-flexibledivider:1.4.0'
 }

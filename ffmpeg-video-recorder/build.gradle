@@ -59,6 +59,7 @@ dependencies {
     compile group: 'org.bytedeco', name: 'javacv', version: '1.2'
     compile group: 'org.bytedeco.javacpp-presets', name: 'opencv', version: '3.1.0-1.2', classifier: 'android-arm'
     compile group: 'org.bytedeco.javacpp-presets', name: 'ffmpeg', version: '3.0.2-1.2', classifier: 'android-arm'
+    compile 'com.github.rahatarmanahmed:circularprogressview:2.5.0'
 }
 
 apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/installv1.gradle'

@@ -24,7 +24,6 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnTouchListener;
 import android.view.WindowManager;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.amosyuen.videorecorder.audio.AudioRecorderThread;
@@ -41,6 +40,7 @@ import com.amosyuen.videorecorder.video.ListVideoFrameRecorder;
 import com.amosyuen.videorecorder.video.VideoFrameRecorderParams;
 import com.amosyuen.videorecorder.video.VideoFrameRecorderView;
 import com.amosyuen.videorecorder.video.VideoFrameTransformerTask;
+import com.github.rahatarmanahmed.cpv.CircularProgressView;
 
 import java.io.File;
 import java.security.InvalidParameterException;
@@ -69,7 +69,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     protected AppCompatImageButton mRecordButton;
     protected AppCompatImageButton mFlashButton;
     protected AppCompatImageButton mSwitchCameraButton;
-    protected ProgressBar mProgressBar;
+    protected CircularProgressView mProgressBar;
     protected TextView mProgressText;
     protected AppCompatImageButton mNextButton;
 
@@ -96,10 +96,11 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
+        int progressColor = getProgressColor();
         mProgressView = (ProgressSectionsView) findViewById(R.id.recorder_progress);
         mProgressView.setMinProgress(convertNanosToProgress(getThemeParams().getMinRecordingTimeNanos()));
         mProgressView.setMaxProgress(convertNanosToProgress(getThemeParams().getMaxRecordingTimeNanos()));
-        mProgressView.setProgressColor(getProgressColor());
+        mProgressView.setProgressColor(progressColor);
         mProgressView.setCursorColor(getProgressCursorColor());
         mProgressView.setMinProgressColor(getProgressMinProgressColor());
 
@@ -118,7 +119,8 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         mFlashButton.setOnClickListener(this);
         mFlashButton.setColorFilter(widgetcolor);
 
-        mProgressBar = (ProgressBar) findViewById(R.id.progress_bar) ;
+        mProgressBar = (CircularProgressView) findViewById(R.id.progress_bar) ;
+        mProgressBar.setColor(progressColor);
         mProgressText = (TextView) findViewById(R.id.progress_text) ;
     
         mNextButton = (AppCompatImageButton) findViewById(R.id.next_button);
@@ -359,6 +361,9 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     }
 
     protected void showProgress(@StringRes int progressTextRes) {
+        if (!mProgressBar.isIndeterminate()) {
+            mProgressBar.setIndeterminate(true);
+        }
         mProgressBar.setVisibility(View.VISIBLE);
         mProgressText.setVisibility(View.VISIBLE);
         mProgressText.setText(progressTextRes);
@@ -512,7 +517,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         stopRecording();
         if (mSaveVideoTask == null) {
             Log.d(LOG_TAG, "Saving recording");
-            showProgress(R.string.processing);
+            showProgress(R.string.preparing);
 
             // Start the task slightly delayed so that the UI can update first
             mSaveVideoTask = new SaveVideoTask();
@@ -550,8 +555,8 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     private class SaveVideoTask extends AsyncTask<Object, Object, Exception>
             implements TaskListener {
 
-        private static final double VIDEO_PROGRESS_PORTION = 0.75;
-        private static final double AUDIO_PROGRESS_PORTION = 1.0 - VIDEO_PROGRESS_PORTION;
+        private static final float VIDEO_PROGRESS_PORTION = 0.95f;
+        private static final float AUDIO_PROGRESS_PORTION = 1.0f - VIDEO_PROGRESS_PORTION;
 
         private Camera.Size mPreviewSize;
         private boolean mIsRecordingLandscape;
@@ -606,6 +611,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
                 mRecorder.start();
                 mVideoTransformerTask.run();
                 mAudioTransformerTask.run();
+                publishProgress(-1f);
                 mRecorder.stop();
                 mRecorder.release();
                 return null;
@@ -617,7 +623,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         @Override
         public void onStart(Object task) {
             if (task == mVideoTransformerTask) {
-                publishProgress(0.0);
+                publishProgress(0f);
             }
         }
 
@@ -633,7 +639,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         @Override
         public void onDone(Object task) {
             if (task == mAudioTransformerTask) {
-                publishProgress(100.0);
+                publishProgress(100f);
             }
         }
 
@@ -641,7 +647,21 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         protected void onProgressUpdate(Object[] values) {
             super.onProgressUpdate(values);
 
-            // TODO: update progress bar
+            float progress = (float) values[0];
+            if (progress < 0) {
+                if (!mProgressBar.isIndeterminate()) {
+                    mProgressBar.setIndeterminate(true);
+                    mProgressBar.startAnimation();
+                    mProgressText.setText(R.string.saving_video);
+                }
+            } else {
+                if (mProgressBar.isIndeterminate()) {
+                    mProgressBar.setIndeterminate(false);
+                }
+                mProgressBar.setProgress(progress * mProgressBar.getMaxProgress());
+                mProgressText.setText(
+                        String.format(getString(R.string.encoding_percent), (int)(100 * progress)));
+            }
         }
 
         @Override

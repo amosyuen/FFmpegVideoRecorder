@@ -8,7 +8,9 @@
     <string name="initializing">Initializing...</string>
     <string name="next">Next</string>
     <string name="preview_video">Preview Video</string>
-    <string name="processing">Processing...</string>
+    <string name="preparing">Preparing...</string>
+    <string name="encoding_percent">Encoding %d%%</string>
+    <string name="saving_video">Saving Video</string>
     <string name="record_video">Record Video</string>
     <string name="video_saved_path">Your video is saved at</string>
 
