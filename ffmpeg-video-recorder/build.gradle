@@ -13,7 +13,8 @@ ext {
     siteUrl = 'https://github.com/amosyuen/FFmpegVideoRecorder'
     gitUrl = 'https://github.com/amosyuen/FFmpegVideoRecorder.git'
 
-    libraryVersion = '1.0.1'
+    libraryVersion = '1.0.2'
+    versionCode = 3
 
     developerId = 'amosyuen'
     developerName = 'Amos Yuen'
@@ -33,7 +34,7 @@ android {
     defaultConfig {
         minSdkVersion 14
         targetSdkVersion 24
-        versionCode 2
+        versionCode versionCode
         versionName libraryVersion
     }
 
