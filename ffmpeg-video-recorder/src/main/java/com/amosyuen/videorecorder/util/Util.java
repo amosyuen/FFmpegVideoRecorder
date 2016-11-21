@@ -8,12 +8,7 @@ import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.support.annotation.AttrRes;
 import android.support.annotation.ColorInt;
-import android.util.Log;
 import android.util.TypedValue;
-
-import com.getkeepsafe.relinker.ReLinker;
-
-import org.bytedeco.javacpp.Loader;
 
 import java.io.File;
 
@@ -21,33 +16,6 @@ import java.io.File;
  * General utilities
  */
 public class Util {
-
-    private static boolean sIsLoaded = false;
-
-    // Because of a bug where native libraries are not loaded properly, we need to relink them
-    // before use.
-    // https://github.com/bytedeco/javacpp-presets/wiki/The-UnsatisfiedLinkError-X-File-(a-real-experience)
-    public static void loadFFmpegLibraries(Context context) {
-        if (!sIsLoaded) {
-            try {
-                ReLinker.loadLibrary(context, "avcodec");
-                ReLinker.loadLibrary(context, "avformat");
-                ReLinker.loadLibrary(context, "avutil");
-                ReLinker.loadLibrary(context, "postproc");
-                ReLinker.loadLibrary(context, "swresample");
-                ReLinker.loadLibrary(context, "swscale");
-                ReLinker.loadLibrary(context, "jniavcodec");
-                ReLinker.loadLibrary(context, "jniavformat");
-                ReLinker.loadLibrary(context, "jniavutil");
-                ReLinker.loadLibrary(context, "jnipostproc");
-                ReLinker.loadLibrary(context, "jniswresample");
-                ReLinker.loadLibrary(context, "jniswscale");
-                sIsLoaded = true;
-            } catch (Exception e) {
-                Log.e("FFmpegLibraries", "Error loading libraries", e);
-            }
-        }
-    }
 
     public static FFmpegFrameRecorder createFrameRecorder(
             File outputFile, FFmpegRecorderParams params) {

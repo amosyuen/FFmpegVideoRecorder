@@ -10,7 +10,6 @@ import android.util.Log;
 
 import com.amosyuen.videorecorder.util.FFmpegFrameRecorder;
 import com.amosyuen.videorecorder.util.TaskListener;
-import com.getkeepsafe.relinker.ReLinker;
 
 import org.bytedeco.javacpp.avutil;
 import org.bytedeco.javacv.FFmpegFrameFilter;

@@ -34,6 +34,8 @@ ext {
 
 version = libraryVersion
 
+
+// TODO: Take a look at http://ph0b.com/android-studio-gradle-and-ndk-integration/
 android {
     compileSdkVersion 25
     buildToolsVersion '24.0.3'
@@ -70,12 +72,11 @@ dependencies {
     compile 'com.android.support:support-v4:25.0.0'
     //noinspection GradleDynamicVersion
     compile 'com.android.support:support-annotations:+'
-    compile 'com.getkeepsafe.relinker:relinker:1.2.2'
     compile 'com.github.rahatarmanahmed:circularprogressview:2.5.0'
 
     compile files('libs/ffmpeg-3.1.2-1.2.jar')
     // javacpp v1.2 has a crashing bug https://github.com/bytedeco/javacv/issues/412#issuecomment-220718619
-    compile files('libs/javacpp-1.2.4.jar')
+    compile files('libs/javacpp-1.2.5.jar')
     compile files('libs/javacv-1.2.jar')
 }
 
