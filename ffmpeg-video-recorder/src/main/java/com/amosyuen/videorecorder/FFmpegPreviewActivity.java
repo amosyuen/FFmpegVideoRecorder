@@ -4,6 +4,8 @@ package com.amosyuen.videorecorder;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
@@ -12,6 +14,7 @@ import android.media.MediaPlayer.OnVideoSizeChangedListener;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.CallSuper;
+import android.support.v7.app.AlertDialog;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SurfaceHolder;
@@ -25,16 +28,22 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 
+import com.amosyuen.videorecorder.util.ActivityThemeParams;
 import com.amosyuen.videorecorder.util.Util;
+
+import static android.provider.Contacts.SettingsColumns.KEY;
 
 public class FFmpegPreviewActivity
         extends AbstractDynamicStyledActivity
         implements OnClickListener, OnCompletionListener, Callback, OnVideoSizeChangedListener,
                 OnLayoutChangeListener {
 
+    public static final String CAN_CANCEL_KEY = "can-cancel";
+
     protected static final int PROGRESS_UPDATE_INTERVAL_MILLIS = 50;
 
     protected Uri mVideoFileUri;
+    protected boolean mCanCancel;
     protected MediaPlayer mMediaPlayer;
     protected RelativeLayout mPreviewVideoParent;
     protected SurfaceView mSurfaceView;
@@ -56,8 +65,6 @@ public class FFmpegPreviewActivity
         mSurfaceView.getHolder().addCallback(this);
         mSurfaceView.setOnClickListener(this);
 
-        mVideoFileUri = getIntent().getData();
-
         mPlayButton = (ImageView) findViewById(R.id.play_button);
         mPlayButton.setOnClickListener(this);
 
@@ -74,6 +81,15 @@ public class FFmpegPreviewActivity
     }
 
     @Override
+    protected boolean extractIntentParams() {
+        super.extractIntentParams();
+        Intent intent = getIntent();
+        mVideoFileUri = intent.getData();
+        mCanCancel = intent.getBooleanExtra(CAN_CANCEL_KEY, false);
+        return true;
+    }
+
+    @Override
     protected void setupToolbar(android.support.v7.widget.Toolbar toolbar) {
         super.setupToolbar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -86,13 +102,15 @@ public class FFmpegPreviewActivity
     @Override
     @CallSuper
     public boolean onCreateOptionsMenu(final Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_done, menu);
-        MenuItem menuItemFinish = menu.findItem(R.id.menu_finish);
-        if (menuItemFinish != null) {
-            Drawable menuItemFinishIcon = menuItemFinish.getIcon();
-            if (menuItemFinishIcon != null) {
-                menuItemFinish.setIcon(
-                        Util.tintDrawable(menuItemFinishIcon, getToolbarWidgetColor()));
+        if (mCanCancel) {
+            getMenuInflater().inflate(R.menu.menu_done, menu);
+            MenuItem menuItemFinish = menu.findItem(R.id.menu_finish);
+            if (menuItemFinish != null) {
+                Drawable menuItemFinishIcon = menuItemFinish.getIcon();
+                if (menuItemFinishIcon != null) {
+                    menuItemFinish.setIcon(
+                            Util.tintDrawable(menuItemFinishIcon, getToolbarWidgetColor()));
+                }
             }
         }
         return true;
@@ -135,7 +153,22 @@ public class FFmpegPreviewActivity
 
     @Override
     public void onBackPressed() {
-        finishWithResult(RESULT_CANCELED);
+        if (mCanCancel) {
+            new AlertDialog.Builder(this)
+                    .setCancelable(false)
+                    .setTitle(R.string.are_you_sure)
+                    .setMessage(R.string.discard_video_msg)
+                    .setPositiveButton(R.string.confirm, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            finishWithResult(RESULT_CANCELED);
+                        }
+                    })
+                    .setNegativeButton(R.string.cancel, null)
+                    .show();
+        } else {
+            finishWithResult(RESULT_CANCELED);
+        }
     }
 
     @Override

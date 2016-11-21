@@ -51,6 +51,8 @@ import java.io.FileOutputStream;
 import java.security.InvalidParameterException;
 import java.util.concurrent.TimeUnit;
 
+import static com.amosyuen.videorecorder.FFmpegPreviewActivity.CAN_CANCEL_KEY;
+
 /**
  * Activity for recording audio and video
  */
@@ -438,6 +440,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     protected void startRecording() {
         mVideoFrameRecorderView.startRecording();
         mAudioRecorderThread.setRecording(true);
+        mSwitchCameraButton.setVisibility(View.GONE);
         // Lock the orientation the first time we start recording if there is no request orientation
         if (mLatestTimestampNanos == 0 && mOriginalRequestedOrientation == -1) {
             setRequestedOrientation(getResources().getConfiguration().orientation);
@@ -450,6 +453,9 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         }
         mVideoFrameRecorderView.stopRecording();
         mAudioRecorderThread.setRecording(false);
+        if (mSaveVideoTask == null) {
+            mSwitchCameraButton.setVisibility(View.VISIBLE);
+        }
     }
 
     @Override
@@ -519,7 +525,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     }
 
     protected void saveRecording() {
-        stopRecording();
         if (mSaveVideoTask == null) {
             Log.d(LOG_TAG, "Saving recording");
             showProgress(R.string.preparing);
@@ -528,6 +533,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
             mSaveVideoTask = new SaveVideoTask();
             mSaveVideoTask.execute();
         }
+        stopRecording();
     }
 
     protected void startPreview() {
@@ -535,6 +541,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         Intent previewIntent = new Intent(this, FFmpegPreviewActivity.class);
         previewIntent.setData(Uri.fromFile(mVideoOutputFile));
         previewIntent.putExtra(ACTIVITY_THEME_PARAMS_KEY,  new Builder().merge(mThemeParams).build());
+        previewIntent.putExtra(CAN_CANCEL_KEY, true);
         startActivityForResult(previewIntent, PREVIEW_ACTIVITY_RESULT);
     }
 
