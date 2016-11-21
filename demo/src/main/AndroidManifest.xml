@@ -1,22 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.amosyuen.videorecorder.demo" >
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          package="com.amosyuen.videorecorder.demo">
 
     <application
-        android:label="@string/app_name"
+        android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
-        android:theme="@style/Theme.AppCompat.Light.DarkActionBar"
-        android:allowBackup="true">
+        android:label="@string/app_name"
+        android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
 
         <activity
-            android:name="com.amosyuen.videorecorder.demo.MainActivity">
-
+            android:name=".MainActivity"
+            android:label="@string/app_name"
+            android:theme="@style/ActivityTheme"
+            android:windowSoftInputMode="stateHidden">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
 
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ThumbnailActivity"
+            android:label="@string/thumbnail_preview"
+            android:theme="@style/ActivityTheme"
+            android:configChanges="orientation|keyboardHidden|screenSize">
         </activity>
 
     </application>
