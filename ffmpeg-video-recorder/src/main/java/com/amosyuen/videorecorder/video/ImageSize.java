@@ -149,6 +149,15 @@ public class ImageSize {
                 + ", height=" + (height == SIZE_UNDEFINED ? "undefined" : height) + ")";
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof ImageSize)) {
+            return false;
+        }
+        ImageSize other = (ImageSize) obj;
+        return width == other.width && height == other.height;
+    }
+
     /**
      * Image scale type.
      */

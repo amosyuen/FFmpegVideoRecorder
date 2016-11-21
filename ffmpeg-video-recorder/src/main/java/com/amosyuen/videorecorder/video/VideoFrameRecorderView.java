@@ -55,6 +55,7 @@ public class VideoFrameRecorderView extends SurfaceView implements
     @ColorInt
     protected int mBlackColor;
     protected volatile OpenCameraTask mOpenCameraTask;
+    protected boolean mNeedsInvalidation;
 
     // Recording state
     protected volatile boolean mIsRunning;
@@ -298,9 +299,10 @@ public class VideoFrameRecorderView extends SurfaceView implements
 
         if (getMeasuredWidth() != mScaledPreviewSize.width
                 || getMeasuredHeight() != mScaledPreviewSize.height) {
-            Log.d(LOG_TAG, "Resize");
+            Log.d(LOG_TAG, "ScaledPreviewSize Changed");
             setMeasuredDimension(mScaledPreviewSize.width, mScaledPreviewSize.height);
         }
+        mNeedsInvalidation = true;
     }
 
     @Override
@@ -376,6 +378,10 @@ public class VideoFrameRecorderView extends SurfaceView implements
             }
             if (mCamera != null) {
                 mCamera.addCallbackBuffer(mVideoRecorder.getFrameBuffer());
+                if (mNeedsInvalidation) {
+                    mNeedsInvalidation = false;
+                    invalidate();
+                }
             }
         } catch (Exception e) {
             Log.e(LOG_TAG, "Error recording frame", e);
