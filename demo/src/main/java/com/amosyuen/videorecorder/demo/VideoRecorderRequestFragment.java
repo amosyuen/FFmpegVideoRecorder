@@ -217,17 +217,15 @@ public class VideoRecorderRequestFragment extends Fragment {
             launchVideoRecorder();
             return;
         }
-        
-        ActivityCompat.requestPermissions(getActivity(), VIDEO_PERMISSIONS,
-                REQUEST_VIDEO_PERMISSIONS_REQUEST);
+
+        requestPermissions(VIDEO_PERMISSIONS, REQUEST_VIDEO_PERMISSIONS_REQUEST);
     }
     
     private void handleRequestPermissionsResult() {
         if (hasAllPermissions()) {
             launchVideoRecorder();
         } else if (shouldShowRequestPermissionRationale()) {
-            ActivityCompat.requestPermissions(getActivity(), VIDEO_PERMISSIONS,
-                    REQUEST_VIDEO_PERMISSIONS_REQUEST);
+            requestPermissions(VIDEO_PERMISSIONS, REQUEST_VIDEO_PERMISSIONS_REQUEST);
         } else {
             new AlertDialog.Builder(getContext())
                     .setTitle("Need permissions")
@@ -257,7 +255,7 @@ public class VideoRecorderRequestFragment extends Fragment {
     
     public boolean shouldShowRequestPermissionRationale() {
         for (String permission : VIDEO_PERMISSIONS) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), permission)) {
+            if (shouldShowRequestPermissionRationale(permission)) {
                 return true;
             }
         }

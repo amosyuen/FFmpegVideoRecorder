@@ -46,7 +46,9 @@ There is a demo activity that allows you to try different settings for recording
 ![Preview Video Activity Screenshot](./screenshots/demo_results.png "Demo Recorded Videos")
 
 ## Installation
-    
+
+[![jCenter](https://api.bintray.com/packages/amosyuen/maven/FFmpegVideoRecorder/images/download.svg) ](https://bintray.com/amosyuen/maven/FFmpegVideoRecorder/_latestVersion)
+
 ### Gradle
 
 ```
