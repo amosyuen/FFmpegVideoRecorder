@@ -1,8 +1,8 @@
 /**
  * Instructions for uploading to bintray:
  * 1) Increment libraryVerison and versionCode
- * 2) run gradlew install
- * 3) run gradlew bintrayUpload
+ * 2) gradlew install
+ * 3) gradlew bintrayUpload
  */
 
 apply plugin: 'com.android.library'
@@ -53,8 +53,6 @@ android {
         ndk { abiFilters "armeabi", "armeabi-v7a", "x86" }
     }
 
-    resourcePrefix 'ffmpegvideorecorder_'
-
     buildTypes {
         release {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
@@ -62,7 +60,7 @@ android {
     }
 }
 
-// https://github.com/bytedeco/javacv/issues/395
+// https://github.com/bytedeco/javacpp-presets/wiki/Issues-with-Build-Tools
 configurations {
     all*.exclude group: 'org.bytedeco', module: 'javacpp-presets'
 }
@@ -74,10 +72,9 @@ dependencies {
     compile 'com.android.support:support-annotations:+'
     compile 'com.github.rahatarmanahmed:circularprogressview:2.5.0'
 
-    compile files('libs/ffmpeg-3.1.2-1.2.jar')
-    // javacpp v1.2 has a crashing bug https://github.com/bytedeco/javacv/issues/412#issuecomment-220718619
-    compile files('libs/javacpp-1.2.5.jar')
-    compile files('libs/javacv-1.2.jar')
+    compile group: 'org.bytedeco', name: 'javacpp', version: '1.2.5'
+    compile group: 'org.bytedeco', name: 'javacv', version: '1.2'
+    compile group: 'org.bytedeco.javacpp-presets', name: 'ffmpeg', version: '3.0.2-1.2'
 }
 
 apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/installv1.gradle'
