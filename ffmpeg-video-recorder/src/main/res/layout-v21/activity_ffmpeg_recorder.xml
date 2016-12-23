@@ -42,6 +42,7 @@
             android:layout_height="30dp"
             android:layout_gravity="right|center_vertical"
             android:layout_marginRight="12dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_arrow_forward_white_24dp"/>
 
     </android.support.v7.widget.Toolbar>
