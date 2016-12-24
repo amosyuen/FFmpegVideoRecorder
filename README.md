@@ -129,6 +129,28 @@ git clone git://github.com/amosyuen/FFmpegVideoRecorder.git
     }
     ```
 
+## Known Issues
+
+### UnsatisfiedLinkError
+
+This error means that the native libraries weren't installed properly. One common problem is that
+Android doesn't support loading both 64-bit and 32-bit native libraries at the same time.
+Unfortunately the FFmpeg library used in this library only has 32-bit binaries. So if your app
+includes another dependency that has 64-bit libraries, this will make the app unable to load the
+video recorder. The only workaround is to exclude 64-bit native libraries. This can be done by
+adding these lines in your app gradle build file:
+
+```
+android {
+    //...
+    packagingOptions {
+        exclude "lib/arm64-v8a/**"
+        exclude "lib/x86_64/**"
+    }
+    //...
+}
+```
+
 ## Credits
 
 This library is based off of these sources:
