@@ -27,8 +27,7 @@ proguard/
 *.iml
 *.ipr
 *.iws
-/.idea/workspace.xml
-/.idea/libraries
+.idea/
 .settings/
 .gradle/
 
