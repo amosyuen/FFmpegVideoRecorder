@@ -10,7 +10,6 @@ import android.graphics.drawable.Drawable;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
 import android.media.MediaMetadataRetriever;
-import android.media.ThumbnailUtils;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -378,9 +377,9 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     }
 
     protected void hideControls() {
-        mRecordButton.setVisibility(View.GONE);
-        mSwitchCameraButton.setVisibility(View.GONE);
-        mFlashButton.setVisibility(View.GONE);
+        mRecordButton.setVisibility(View.INVISIBLE);
+        mSwitchCameraButton.setVisibility(View.INVISIBLE);
+        mFlashButton.setVisibility(View.INVISIBLE);
     }
 
     protected void hideProgress() {
@@ -440,7 +439,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     protected void startRecording() {
         mVideoFrameRecorderView.startRecording();
         mAudioRecorderThread.setRecording(true);
-        mSwitchCameraButton.setVisibility(View.GONE);
+        mSwitchCameraButton.setVisibility(View.INVISIBLE);
         // Lock the orientation the first time we start recording if there is no request orientation
         if (mLatestTimestampNanos == 0 && mOriginalRequestedOrientation == -1) {
             setRequestedOrientation(getResources().getConfiguration().orientation);
@@ -484,7 +483,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
                     ? Camera.Parameters.FLASH_MODE_TORCH : Camera.Parameters.FLASH_MODE_OFF);
             camera.setParameters(params);
         } else {
-            mFlashButton.setVisibility(View.GONE);
+            mFlashButton.setVisibility(View.INVISIBLE);
         }
     }
 
@@ -571,7 +570,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         private static final float AUDIO_PROGRESS_PORTION = 1.0f - VIDEO_PROGRESS_PORTION;
 
         private Camera.Size mPreviewSize;
-        private boolean mIsRecordingLandscape;
+        private boolean mIsLandscape;
 
         private FFmpegFrameRecorder mRecorder;
         private VideoFrameTransformerTask mVideoTransformerTask;
@@ -584,7 +583,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
             releaseResources();
 
             mPreviewSize = mVideoFrameRecorderView.getPreviewSize();
-            mIsRecordingLandscape = mVideoFrameRecorderView.isRecordingLandscape();
+            mIsLandscape = mVideoFrameRecorderView.isViewLandscape();
             Log.d(LOG_TAG,
                     "VideoRecorder length " + mVideoFrameRecorderView.getRecordingLengthNanos());
         }
@@ -601,7 +600,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
             mRecorder = Util.createFrameRecorder(mVideoOutputFile, getThemeParams());
 
             mVideoTransformerTask = new VideoFrameTransformerTask(
-                    mRecorder, getThemeParams(), mIsRecordingLandscape,
+                    mRecorder, getThemeParams(), mIsLandscape,
                     mPreviewSize.width, mPreviewSize.height,
                     mVideoFrameRecorder.getRecordedFrames());
             mVideoTransformerTask.setProgressListener(this);
