@@ -194,11 +194,11 @@ public class FFmpegFrameRecorder extends FrameRecorder {
             throw loadingException;
         } else {
             try {
-                Loader.load(org.bytedeco.javacpp.avutil.class);
-                Loader.load(org.bytedeco.javacpp.swresample.class);
-                Loader.load(org.bytedeco.javacpp.avcodec.class);
-                Loader.load(org.bytedeco.javacpp.avformat.class);
-                Loader.load(org.bytedeco.javacpp.swscale.class);
+                System.loadLibrary("avutil");
+                System.loadLibrary("swresample");
+                System.loadLibrary("avcodec");
+                System.loadLibrary("avformat");
+                System.loadLibrary("swscale");
 
                 /* initialize libavcodec, and register all codecs and formats */
                 av_register_all();
