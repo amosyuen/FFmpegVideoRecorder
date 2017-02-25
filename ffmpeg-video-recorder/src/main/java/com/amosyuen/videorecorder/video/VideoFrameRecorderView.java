@@ -44,7 +44,6 @@ public class VideoFrameRecorderView extends SurfaceView implements
     protected RecorderListener mRecorderListener;
 
     // Params
-    protected DeviceOrientationEventListener mOrientationListener;
     /** The estimated time in nanoseconds between frames */
     protected long mFrameTimeNanos;
     protected int mCameraId;
@@ -61,8 +60,6 @@ public class VideoFrameRecorderView extends SurfaceView implements
     // Recording state
     protected volatile boolean mIsRunning;
     protected volatile boolean mIsRecording;
-    protected volatile boolean mIsPortrait;
-    protected volatile int mDeviceOrientation = OrientationEventListener.ORIENTATION_UNKNOWN;
     /** Recording length in nanoseconds */
     protected volatile long mRecordingLengthNanos;
     protected volatile int mLastFrameNumber = -1;
@@ -90,8 +87,6 @@ public class VideoFrameRecorderView extends SurfaceView implements
     }
 
     protected void init() {
-        mOrientationListener = new DeviceOrientationEventListener(getContext());
-
         SurfaceHolder holder = getHolder();
         holder.addCallback(this);
         holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
@@ -182,9 +177,8 @@ public class VideoFrameRecorderView extends SurfaceView implements
 
     public void startRecording() {
         if (!mIsRecording) {
-            Log.d(LOG_TAG, "Start recording with orientation " + mDeviceOrientation);
+            Log.d(LOG_TAG, "Start recording");
             mIsRecording = true;
-            mIsPortrait = mDeviceOrientation == 0 || mDeviceOrientation == 180;
             mLastUpdateTimeNanos = 0;
             if (mRecorderListener != null) {
                 mRecorderListener.onRecorderStart(this);
@@ -364,7 +358,7 @@ public class VideoFrameRecorderView extends SurfaceView implements
                             "Dropped %d of %d frames", mDropppedFrames, mTotalFrames));
                 } else {
                     VideoFrameData frameData = new VideoFrameData(
-                            data, frameNumber, mIsPortrait,
+                            data, frameNumber, !mIsViewLandscape,
                             mParams.getVideoCameraFacing() ==
                                     Camera.CameraInfo.CAMERA_FACING_FRONT);
                     mLastFrameNumber = frameNumber;
@@ -406,13 +400,11 @@ public class VideoFrameRecorderView extends SurfaceView implements
 
     @Override
     public void onViewAttachedToWindow(View v) {
-        mOrientationListener.enable();
         updateIsViewLandscape();
     }
 
     @Override
     public void onViewDetachedFromWindow(View v) {
-        mOrientationListener.disable();
         closeCamera();
     }
 
@@ -496,25 +488,6 @@ public class VideoFrameRecorderView extends SurfaceView implements
         }
 
         mIsViewLandscape = Util.isContextLandscape(getContext());
-    }
-
-    protected class DeviceOrientationEventListener
-            extends OrientationEventListener {
-
-        public DeviceOrientationEventListener(Context context) {
-            super(context);
-        }
-
-        @Override
-        public void onOrientationChanged(int orientation) {
-            // We keep the last known orientation. So if the user first orient
-            // the camera then point the camera to floor or sky, we still have
-            // the correct orientation.
-            if (orientation == ORIENTATION_UNKNOWN) {
-                return;
-            }
-            mDeviceOrientation = VideoUtil.roundOrientation(orientation, mDeviceOrientation);
-        }
     }
 
     protected class OpenCameraTask extends AsyncTask<Void, Void, Pair<Integer, Camera>> {

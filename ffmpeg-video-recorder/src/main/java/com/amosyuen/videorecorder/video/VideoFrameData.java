@@ -14,10 +14,10 @@ public class VideoFrameData implements Parcelable {
     private final boolean mIsFrontCamera;
 
     public VideoFrameData(byte[] frameBytesData, int frameNumber,
-            boolean isLandscape, boolean isFrontCamera) {
+            boolean isPortrait, boolean isFrontCamera) {
         mFrameBytesData = frameBytesData;
         mFrameNumber = frameNumber;
-        mIsPortrait = isLandscape;
+        mIsPortrait = isPortrait;
         mIsFrontCamera = isFrontCamera;
     }
 
