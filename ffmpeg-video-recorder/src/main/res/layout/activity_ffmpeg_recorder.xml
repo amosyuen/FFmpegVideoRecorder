@@ -19,6 +19,15 @@
             android:layout_height="match_parent"
             android:layout_centerInParent="true"/>
 
+        <com.amosyuen.videorecorder.ui.DrawRectangleView
+            android:id="@+id/focus_rectangle_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_alignBottom="@id/recorder_view"
+            android:layout_alignTop="@id/recorder_view"
+            android:layout_alignLeft="@id/recorder_view"
+            android:layout_alignRight="@id/recorder_view"/>
+
     </RelativeLayout>
 
     <android.support.v7.widget.Toolbar

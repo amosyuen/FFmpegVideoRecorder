@@ -20,6 +20,12 @@ public interface RecorderActivityParams
     @ColorInt int getProgressMinProgressColor();
     @ColorInt int getWidgetColor();
 
+    /**
+     * How long in milliseconds that the focus for a tap should be held before reverting back to
+     * automatic focus.
+     */
+    long getTapToFocusHoldTimeMillis();
+
     final class Builder extends VideoRecorderParams.Builder {
         @ColorInt private int statusBarColor;
         @ColorInt private int toolbarColor;
@@ -28,6 +34,7 @@ public interface RecorderActivityParams
         @ColorInt private int progressCursorColor;
         @ColorInt private int progressMinProgressColor;
         @ColorInt private int widgetColor;
+        private long tapToFocusHoldTimeMillis = 5000;
 
         public Builder(File videoOutputFile) {
             super(videoOutputFile);
@@ -50,6 +57,7 @@ public interface RecorderActivityParams
             progressCursorColor = copy.getProgressCursorColor();
             progressMinProgressColor = copy.getProgressMinProgressColor();
             widgetColor = copy.getWidgetColor();
+            tapToFocusHoldTimeMillis = copy.getTapToFocusHoldTimeMillis();
             return this;
         }
     
@@ -220,6 +228,11 @@ public interface RecorderActivityParams
             return this;
         }
 
+        public Builder tapToFocusHoldTimeMillis(long val) {
+            tapToFocusHoldTimeMillis = val;
+            return this;
+        }
+
         @Override
         public RecorderActivityParams build() { return new RecorderActivityParamsImpl(this); }
 
@@ -232,6 +245,7 @@ public interface RecorderActivityParams
             @ColorInt private final int progressCursorColor;
             @ColorInt private final int progressMinProgressColor;
             @ColorInt private final int widgetColor;
+            private final long tapToFocusHoldTimeMillis ;
 
             protected RecorderActivityParamsImpl(RecorderActivityParams.Builder builder) {
                 super(builder);
@@ -242,6 +256,7 @@ public interface RecorderActivityParams
                 progressCursorColor = builder.progressCursorColor;
                 progressMinProgressColor = builder.progressMinProgressColor;
                 widgetColor = builder.widgetColor;
+                tapToFocusHoldTimeMillis = builder.tapToFocusHoldTimeMillis;
             }
 
             @Override
@@ -284,6 +299,11 @@ public interface RecorderActivityParams
             @ColorInt
             public int getWidgetColor() {
                 return widgetColor;
+            }
+
+            @Override
+            public long getTapToFocusHoldTimeMillis() {
+                return tapToFocusHoldTimeMillis;
             }
         }
     }

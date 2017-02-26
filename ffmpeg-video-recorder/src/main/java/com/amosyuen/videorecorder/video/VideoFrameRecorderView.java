@@ -4,7 +4,14 @@ package com.amosyuen.videorecorder.video;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.ImageFormat;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.Point;
+import android.graphics.PointF;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.hardware.Camera;
 import android.os.AsyncTask;
 import android.os.Build.VERSION_CODES;
@@ -16,19 +23,28 @@ import android.support.v4.util.Pair;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.OrientationEventListener;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Toast;
 
+import com.amosyuen.videorecorder.R;
 import com.amosyuen.videorecorder.util.RecorderListener;
 import com.amosyuen.videorecorder.util.Util;
 import com.amosyuen.videorecorder.util.VideoUtil;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import static android.R.attr.left;
+import static android.R.attr.orientation;
+import static android.R.attr.width;
+import static android.content.ContentValues.TAG;
+import static org.bytedeco.javacpp.opencv_ml.SVM.P;
 
 /**
  * View that records only video frames (no audio).
@@ -38,10 +54,15 @@ public class VideoFrameRecorderView extends SurfaceView implements
 
     protected static final String LOG_TAG = "VideoFrameRecorderView";
 
+    private static final int CAMERA_FOCUS_MIN = -1000;
+    private static final int CAMERA_FOCUS_MAX = 1000;
+    private static final int FOCUS_WEIGHT = 1000;
+
     // User specified params
     protected VideoFrameRecorderParams mParams;
     protected VideoFrameRecorderInterface mVideoRecorder;
     protected RecorderListener mRecorderListener;
+    protected FocusListener mFocusListener;
 
     // Params
     /** The estimated time in nanoseconds between frames */
@@ -55,7 +76,6 @@ public class VideoFrameRecorderView extends SurfaceView implements
     @ColorInt
     protected int mBlackColor;
     protected volatile OpenCameraTask mOpenCameraTask;
-    protected boolean mNeedsInvalidation;
 
     // Recording state
     protected volatile boolean mIsRunning;
@@ -65,6 +85,10 @@ public class VideoFrameRecorderView extends SurfaceView implements
     protected volatile int mLastFrameNumber = -1;
     /** System time in nanoseconds when the recording was last updated */
     protected volatile long mLastUpdateTimeNanos;
+
+    // Focus State
+    protected float mFocusSize;
+    protected Matrix mFocusMatrix;
 
     protected int mDropppedFrames;
     protected int mTotalFrames;
@@ -93,6 +117,8 @@ public class VideoFrameRecorderView extends SurfaceView implements
 
         mBlackColor = ContextCompat.getColor(getContext(), android.R.color.black);
 
+        mFocusSize = getContext().getResources().getDimensionPixelSize(R.dimen.focus_size);
+
         addOnAttachStateChangeListener(this);
         setWillNotDraw(false);
     }
@@ -103,6 +129,14 @@ public class VideoFrameRecorderView extends SurfaceView implements
 
     public void setRecorderListener(RecorderListener recorderListener) {
         this.mRecorderListener = recorderListener;
+    }
+
+    public FocusListener getFocusListener() {
+        return mFocusListener;
+    }
+
+    public void setFocusListener(FocusListener focusListener) {
+        this.mFocusListener = focusListener;
     }
 
     @Nullable
@@ -228,6 +262,82 @@ public class VideoFrameRecorderView extends SurfaceView implements
         updateIsViewLandscape();
     }
 
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (event.getAction() == MotionEvent.ACTION_DOWN
+                && mCamera != null && mScaledPreviewSize != null) {
+            Camera.Parameters parameters = mCamera.getParameters();
+            if (parameters.getMaxNumFocusAreas() > 0) {
+                final RectF uiFocusRect = calculateTapArea(event.getX(), event.getY());
+                RectF transformedFocusRect = new RectF();
+                mFocusMatrix.mapRect(transformedFocusRect, uiFocusRect);
+                Rect cameraFocusRect = new Rect(
+                        Math.round(transformedFocusRect.left), Math.round(transformedFocusRect.top),
+                        Math.round(transformedFocusRect.right), Math.round(transformedFocusRect.bottom));
+                Log.w(LOG_TAG, String.format("Focus on %s", cameraFocusRect));
+
+                parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+                List<Camera.Area> focusAreas = new ArrayList<Camera.Area>();
+                focusAreas.add(new Camera.Area(cameraFocusRect, FOCUS_WEIGHT));
+                parameters.setFocusAreas(focusAreas);
+                if (parameters.getMaxNumMeteringAreas() > 0) {
+                    parameters.setMeteringAreas(focusAreas);
+                }
+
+                try {
+                    mCamera.cancelAutoFocus();
+                    mCamera.setParameters(parameters);
+                    mCamera.autoFocus(new Camera.AutoFocusCallback() {
+                        @Override
+                        public void onAutoFocus(boolean success, Camera camera) {
+                            mCamera.cancelAutoFocus();
+                            Log.w(LOG_TAG, "Finished focusing");
+                        }
+                    });
+                    if (mFocusListener != null) {
+                        mFocusListener.onTouchToFocus(uiFocusRect);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Log.w(LOG_TAG, "Unable to autofocus");
+                }
+            }
+        }
+        return super.onTouchEvent(event);
+    }
+
+    /**
+     * Convert touch position x:y to {@link Camera.Area} position -1000:-1000 to 1000:1000.
+     */
+    private RectF calculateTapArea(float x, float y) {
+        // Convert UI coordinates to the top and left bound
+        ImageSize size = new ImageSize(getWidth(), getHeight());
+        float left = x - 0.5f * mFocusSize;
+        float top = y - 0.5f * mFocusSize;
+
+        // Convert UI coordinates into scaled target size coordinates
+        left += 0.5f * (mScaledTargetSize.width - size.width);
+        top += 0.5f * (mScaledTargetSize.height - size.height);
+
+        // Clamp coordinates by scaled target size
+        left = Math.max(0, Math.min(mScaledTargetSize.width - mFocusSize, left));
+        top = Math.max(0, Math.min(mScaledTargetSize.height - mFocusSize, top));
+
+        // Translate the scaled target size coordinates into the scaled preview size coordinates
+        left += 0.5f * (mScaledPreviewSize.width - mScaledTargetSize.width);
+        top += 0.5f * (mScaledPreviewSize.height - mScaledTargetSize.height);
+
+        return new RectF(left, top, left + mFocusSize, top + mFocusSize);
+    }
+
+    public void autoFocus() {
+        if (mCamera != null) {
+            Camera.Parameters parameters = mCamera.getParameters();
+            setAutoFocusParams(parameters);
+            mCamera.autoFocus(null);
+        }
+    }
+
     private boolean updateSurfaceLayout() {
         Log.v(LOG_TAG, "UpdateSurfaceLayout");
         ImageSize parentSize;
@@ -294,6 +404,17 @@ public class VideoFrameRecorderView extends SurfaceView implements
         Log.v(LOG_TAG, String.format("Scaled Preview %s", mScaledPreviewSize));
 
         setMeasuredDimension(mScaledPreviewSize.width, mScaledPreviewSize.height);
+
+        // Calculate matrix for transforming preview x:y coordinates into the camera -1000:1000
+        // coordinate space, taking into account camera rotation and flipping
+        // Note: Use float so that division is float division
+        float focusSize = CAMERA_FOCUS_MAX - CAMERA_FOCUS_MIN;
+        int orientationDegrees =
+                VideoUtil.determineDisplayOrientation(getContext(), mCameraId);
+        mFocusMatrix = new Matrix();
+        mFocusMatrix.postScale(focusSize / mScaledPreviewSize.width, focusSize / mScaledPreviewSize.height);
+        mFocusMatrix.postTranslate(-0.5f*focusSize, -0.5f*focusSize);
+        mFocusMatrix.postRotate(-orientationDegrees);
         return true;
     }
 
@@ -370,10 +491,6 @@ public class VideoFrameRecorderView extends SurfaceView implements
             }
             if (mCamera != null) {
                 mCamera.addCallbackBuffer(mVideoRecorder.getFrameBuffer());
-                if (mNeedsInvalidation) {
-                    mNeedsInvalidation = false;
-                    invalidate();
-                }
             }
         } catch (Exception e) {
             Log.e(LOG_TAG, "Error recording frame", e);
@@ -436,26 +553,19 @@ public class VideoFrameRecorderView extends SurfaceView implements
                     requestLayout();
                 }
             });
-            Camera.Parameters cameraParameters = mCamera.getParameters();
-            cameraParameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
+            Camera.Parameters parameters = mCamera.getParameters();
+            parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
 
             // Set preview frame rate
             int[] fpsRange = VideoUtil.getBestFpsRange(mCamera, mParams.getVideoFrameRate());
-            cameraParameters.setPreviewFpsRange(fpsRange[0], fpsRange[1]);
+            parameters.setPreviewFpsRange(fpsRange[0], fpsRange[1]);
 
             // Camera focus mode
-            List<String> focusModes = cameraParameters.getSupportedFocusModes();
-            if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
-                cameraParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
-            } else if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
-                cameraParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
-            } else if (focusModes.contains(Camera.Parameters.FOCUS_MODE_FIXED)) {
-                cameraParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_FIXED);
-            }
+            setAutoFocusParams(parameters);
 
             // Initialize buffer
             int frameSizeBytes = mPreviewSize.width * mPreviewSize.height
-                    * ImageFormat.getBitsPerPixel(cameraParameters.getPreviewFormat()) / 8;
+                    * ImageFormat.getBitsPerPixel(parameters.getPreviewFormat()) / 8;
             mVideoRecorder.initializeFrameBuffer(frameSizeBytes);
             mCamera.setPreviewCallbackWithBuffer(this);
             mCamera.addCallbackBuffer(mVideoRecorder.getFrameBuffer());
@@ -466,7 +576,7 @@ public class VideoFrameRecorderView extends SurfaceView implements
             Log.v(LOG_TAG, "Camera set orientation to " + orientationDegrees);
             mCamera.setDisplayOrientation(orientationDegrees);
 
-            mCamera.setParameters(cameraParameters);
+            mCamera.setParameters(parameters);
             mCamera.startPreview();
             mCamera.autoFocus(null); // Must call after starting preview
 
@@ -479,6 +589,18 @@ public class VideoFrameRecorderView extends SurfaceView implements
             if (mRecorderListener != null) {
                 mRecorderListener.onRecorderError(this, e);
             }
+        }
+    }
+
+    protected void setAutoFocusParams(Camera.Parameters cameraParameters) {
+        // Camera focus mode
+        List<String> focusModes = cameraParameters.getSupportedFocusModes();
+        if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
+            cameraParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
+        } else if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
+            cameraParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+        } else if (focusModes.contains(Camera.Parameters.FOCUS_MODE_FIXED)) {
+            cameraParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_FIXED);
         }
     }
 
@@ -534,5 +656,9 @@ public class VideoFrameRecorderView extends SurfaceView implements
             }
             mOpenCameraTask = null;
         }
+    }
+
+    public interface FocusListener {
+        void onTouchToFocus(RectF focusRect);
     }
 }

@@ -6,6 +6,9 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
@@ -32,6 +35,7 @@ import android.widget.TextView;
 import com.amosyuen.videorecorder.audio.AudioRecorderThread;
 import com.amosyuen.videorecorder.audio.AudioTransformerTask;
 import com.amosyuen.videorecorder.audio.ListAudioRecorder;
+import com.amosyuen.videorecorder.ui.DrawRectangleView;
 import com.amosyuen.videorecorder.util.ActivityThemeParams.Builder;
 import com.amosyuen.videorecorder.util.FFmpegFrameRecorder;
 import com.amosyuen.videorecorder.util.ProgressSectionsView;
@@ -56,7 +60,7 @@ import static com.amosyuen.videorecorder.FFmpegPreviewActivity.CAN_CANCEL_KEY;
  * Activity for recording audio and video
  */
 public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
-        implements OnClickListener, OnTouchListener, RecorderListener {
+        implements VideoFrameRecorderView.FocusListener, OnClickListener, OnTouchListener, RecorderListener {
 
     public static final int RESULT_ERROR = RESULT_FIRST_USER;
     public static final String ERROR_PATH_KEY = "error";
@@ -72,6 +76,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     // Ui variables
     protected ProgressSectionsView mProgressView;
     protected VideoFrameRecorderView mVideoFrameRecorderView;
+    protected DrawRectangleView mFocusRectView;
     protected AppCompatImageButton mRecordButton;
     protected AppCompatImageButton mFlashButton;
     protected AppCompatImageButton mSwitchCameraButton;
@@ -91,6 +96,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
     protected boolean mIsVideoFrameRecorderReady;
     protected long mLatestTimestampNanos;
     protected int mOriginalRequestedOrientation;
+    protected long mResumeAutoFocusTaskStartMillis;
     protected SaveVideoTask mSaveVideoTask;
 
     @Override
@@ -111,7 +117,16 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         mProgressView.setMinProgressColor(getProgressMinProgressColor());
 
         mVideoFrameRecorderView = (VideoFrameRecorderView) findViewById(R.id.recorder_view);
+        mVideoFrameRecorderView.setFocusListener(this);
         mVideoFrameRecorderView.setRecorderListener(this);
+
+        mFocusRectView = (DrawRectangleView) findViewById(R.id.focus_rectangle_view);
+        Paint focusPaint = new Paint();
+        focusPaint.setColor(Color.WHITE);
+        focusPaint.setStyle(Paint.Style.STROKE);
+        focusPaint.setStrokeWidth(2);
+        focusPaint.setShadowLayer(1f, 1f, 1f, Color.BLACK);
+        mFocusRectView.setPaint(focusPaint);
 
         mRecordButton = (AppCompatImageButton) findViewById(R.id.record_button);
         mRecordButton.setOnTouchListener(FFmpegRecorderActivity.this);
@@ -436,6 +451,30 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         return false;
     }
 
+    @Override
+    public void onTouchToFocus(RectF focusRect) {
+        mFocusRectView.setRect(focusRect);
+        runTaskToAutoFocusAfterInactivity();
+    }
+
+    protected void runTaskToAutoFocusAfterInactivity() {
+        final long tapToFocusHoldTimeMillis = getThemeParams().getTapToFocusHoldTimeMillis();
+        if (tapToFocusHoldTimeMillis <= 0) {
+            return;
+        }
+        mResumeAutoFocusTaskStartMillis = System.currentTimeMillis();
+        mFocusRectView.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (System.currentTimeMillis() >= mResumeAutoFocusTaskStartMillis + tapToFocusHoldTimeMillis
+                        && !mVideoFrameRecorderView.isRecording()) {
+                    mFocusRectView.clearRect();
+                    mVideoFrameRecorderView.autoFocus();
+                }
+            }
+        }, tapToFocusHoldTimeMillis);
+    }
+
     protected void startRecording() {
         mVideoFrameRecorderView.startRecording();
         mAudioRecorderThread.setRecording(true);
@@ -455,6 +494,8 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
         if (mSaveVideoTask == null) {
             mSwitchCameraButton.setVisibility(View.VISIBLE);
         }
+
+        runTaskToAutoFocusAfterInactivity();
     }
 
     @Override
