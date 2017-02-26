@@ -52,7 +52,7 @@ There is a demo activity that allows you to try different settings for recording
 ### Gradle
 
 ```
-compile 'com.amosyuen.ffmpegvideorecorder:ffmpeg-video-recorder:1.0.6'
+compile 'com.amosyuen.ffmpegvideorecorder:ffmpeg-video-recorder:1.1.0'
 ```
 
 ### Maven
@@ -61,7 +61,7 @@ compile 'com.amosyuen.ffmpegvideorecorder:ffmpeg-video-recorder:1.0.6'
 <dependency>
   <groupId>com.amosyuen.ffmpegvideorecorder</groupId>
   <artifactId>ffmpeg-video-recorder</artifactId>
-  <version>1.0.6</version>
+  <version>1.1.0</version>
   <type>pom</type>
 </dependency>
 ```
@@ -69,7 +69,7 @@ compile 'com.amosyuen.ffmpegvideorecorder:ffmpeg-video-recorder:1.0.6'
 ### Ivy
 
 ```
-<dependency org='com.amosyuen.ffmpegvideorecorder' name='ffmpeg-video-recorder' rev='1.0.6'>
+<dependency org='com.amosyuen.ffmpegvideorecorder' name='ffmpeg-video-recorder' rev='1.1.0'>
   <artifact name='$AID' ext='pom'></artifact>
 </dependency>
 ```
