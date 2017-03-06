@@ -675,8 +675,8 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity
                     frame.compress(CompressFormat.JPEG, 100, outputStream);
                 }
                 return null;
-            } catch (Exception e) {
-                return e;
+            } catch (Throwable e) {
+                return (e instanceof Exception) ? (Exception) e : new RuntimeException(e);
             }
         }
 
