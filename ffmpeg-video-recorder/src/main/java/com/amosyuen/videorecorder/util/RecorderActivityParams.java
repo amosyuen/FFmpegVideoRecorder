@@ -306,5 +306,19 @@ public interface RecorderActivityParams
                 return tapToFocusHoldTimeMillis;
             }
         }
+
+        @Override
+        public String toString() {
+            return "Builder{" +
+                    "statusBarColor=" + statusBarColor +
+                    ", toolbarColor=" + toolbarColor +
+                    ", toolbarWidgetColor=" + toolbarWidgetColor +
+                    ", progressColor=" + progressColor +
+                    ", progressCursorColor=" + progressCursorColor +
+                    ", progressMinProgressColor=" + progressMinProgressColor +
+                    ", widgetColor=" + widgetColor +
+                    ", tapToFocusHoldTimeMillis=" + tapToFocusHoldTimeMillis +
+                    '}';
+        }
     }
 }

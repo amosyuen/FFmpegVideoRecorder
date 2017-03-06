@@ -105,6 +105,16 @@ public interface VideoFrameTransformerParams {
             public int getVideoHeight() {
                 return videoHeight;
             }
+
+            @Override
+            public String toString() {
+                return "VideoFrameTransformerParamsImpl{" +
+                        "videoScaleType=" + videoScaleType +
+                        ", canUpscaleVideo=" + canUpscaleVideo +
+                        ", videoWidth=" + videoWidth +
+                        ", videoHeight=" + videoHeight +
+                        '}';
+            }
         }
     }
 }

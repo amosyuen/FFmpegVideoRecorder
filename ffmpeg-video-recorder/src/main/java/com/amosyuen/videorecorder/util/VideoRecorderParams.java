@@ -250,6 +250,19 @@ public interface VideoRecorderParams extends
             public String getVideoOutputUri() {
                 return videoOutputUri;
             }
+
+            @Override
+            public String toString() {
+                return "VideoRecorderParamsImpl{" +
+                        "videoCameraFacing=" + videoCameraFacing +
+                        ", minRecordingTimeNanos=" + minRecordingTimeNanos +
+                        ", maxRecordingTimeNanos=" + maxRecordingTimeNanos +
+                        ", videoScaleType=" + videoScaleType +
+                        ", canUpscaleVideo=" + canUpscaleVideo +
+                        ", videoOutputUri='" + videoOutputUri + '\'' +
+                        ", videoThumbnailOutputUri='" + videoThumbnailOutputUri + '\'' +
+                        '}';
+            }
         }
     }
 }

@@ -119,6 +119,18 @@ public interface VideoFrameRecorderParams extends VideoFrameTransformerParams, S
             public int getVideoHeight() {
                 return videoHeight;
             }
+
+            @Override
+            public String toString() {
+                return "VideoFrameRecorderParamsImpl{" +
+                        "videoScaleType=" + videoScaleType +
+                        ", canUpscaleVideo=" + canUpscaleVideo +
+                        ", videoCameraFacing=" + videoCameraFacing +
+                        ", videoFrameRate=" + videoFrameRate +
+                        ", videoWidth=" + videoWidth +
+                        ", videoHeight=" + videoHeight +
+                        '}';
+            }
         }
     }
 }

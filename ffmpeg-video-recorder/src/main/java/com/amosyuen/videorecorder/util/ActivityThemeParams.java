@@ -88,6 +88,16 @@ public interface ActivityThemeParams extends Serializable {
             public int getProgressColor() {
                 return progressColor;
             }
+
+            @Override
+            public String toString() {
+                return "ActivityThemeParamsImpl{" +
+                        "statusBarColor=" + statusBarColor +
+                        ", toolbarColor=" + toolbarColor +
+                        ", toolbarWidgetColor=" + toolbarWidgetColor +
+                        ", progressColor=" + progressColor +
+                        '}';
+            }
         }
     }
 }

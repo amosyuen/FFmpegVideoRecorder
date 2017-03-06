@@ -143,7 +143,6 @@ public class VideoUtil {
         Camera.getCameraInfo(defaultCameraId, cameraInfo);
 
         int degrees = getRotationAngle(context);
-        Log.v("Util", "Orientation " + degrees + " camera " + cameraInfo.orientation);
 
         if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
             displayOrientation = (cameraInfo.orientation + degrees) % 360;

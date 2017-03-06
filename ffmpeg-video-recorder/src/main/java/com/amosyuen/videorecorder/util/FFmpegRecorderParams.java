@@ -408,6 +408,24 @@ public interface FFmpegRecorderParams extends Serializable {
             public int getAudioSamplingRateHz() {
                 return audioSamplingRateHz;
             }
+
+            @Override
+            public String toString() {
+                return "FFmpegRecorderParamsImpl{" +
+                        "videoBitrate=" + videoBitrate +
+                        ", videoCodec=" + videoCodec +
+                        ", videoFrameRate=" + videoFrameRate +
+                        ", videoQuality=" + videoQuality +
+                        ", videoWidth=" + videoWidth +
+                        ", videoHeight=" + videoHeight +
+                        ", audioBitrate=" + audioBitrate +
+                        ", audioChannelCount=" + audioChannelCount +
+                        ", audioCodec=" + audioCodec +
+                        ", audioQuality=" + audioQuality +
+                        ", audioSamplingRateHz=" + audioSamplingRateHz +
+                        ", videoOutputFormat='" + videoOutputFormat + '\'' +
+                        '}';
+            }
         }
     }
 }

@@ -52,6 +52,14 @@ public interface AudioRecorderParams extends Serializable {
             public int getAudioSamplingRateHz() {
                 return audioSamplingRateHz;
             }
+
+            @Override
+            public String toString() {
+                return "AudioRecorderParamsImpl{" +
+                        "audioChannelCount=" + audioChannelCount +
+                        ", audioSamplingRateHz=" + audioSamplingRateHz +
+                        '}';
+            }
         }
     }
 }
