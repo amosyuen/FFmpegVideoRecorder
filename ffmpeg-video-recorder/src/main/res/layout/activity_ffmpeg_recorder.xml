@@ -13,13 +13,13 @@
         android:layout_below="@+id/recorder_progress"
         android:layout_alignParentBottom="true">
 
-        <com.amosyuen.videorecorder.video.VideoFrameRecorderView
+        <com.amosyuen.videorecorder.ui.CameraPreviewView
             android:id="@+id/recorder_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_centerInParent="true"/>
 
-        <com.amosyuen.videorecorder.ui.DrawRectangleView
+        <com.amosyuen.videorecorder.ui.TapToFocusView
             android:id="@+id/focus_rectangle_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -55,7 +55,7 @@
 
     </android.support.v7.widget.Toolbar>
 
-    <com.amosyuen.videorecorder.util.ProgressSectionsView
+    <com.amosyuen.videorecorder.ui.ProgressSectionsView
         android:id="@+id/recorder_progress"
         android:layout_width="match_parent"
         android:layout_height="6dp"

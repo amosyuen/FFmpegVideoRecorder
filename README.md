@@ -1,21 +1,55 @@
 # FFmpegVideoRecorder - Customizable Video Recording Library for Android
 
-The library provides a way to record audio and video separately and then merge them together using FFmpeg Recorder from JavaCV. It is designed to allow maximum customization of the video encoding and recording.
+The library provides a way to record multiple videos and merge them together using FFmpeg Recorder
+from JavaCV. It is designed to allow maximum customization of the video encoding and recoridng.
 
-It has built in activities for easy recording and previewing. But it also exposes basic components that can be used to customize your own UI and logic.
+It has built in activities for easy recording and previewing. But it also exposes basic components
+that can be used to customize your own UI and logic.
 
 ## Features
 
-### Recording primitives
+### General
 
 - Able to record multiple clips and combine them into one video
-- Can set the desired width and height dimensions
-- Can set how the camera images are scaled and cropped to the desired width and height
-- Can set attributes such as audio and video bitrate, codec, and quality
-- Camera image is scaled for the desired aspect ratio
-- Generates a thumbnail image for the video
+- Camera preview image is scaled, cropped, and padded to exactly how it will be recorded
+- Can generate a thumbnail image for the video
+- Can set attributes such as:
+    - video width
+    - video height
+    - video scaling
+    - video padding
+    - video bitrate
+    - video codec
+    - video frame rate
+    - audio codec
+    - audio bitrate
+    - audio channel count
+    - audio sampling rate
+    - min and max recording time
+    - max file size
 
-### FFmpegRecorderActivity
+### Components
+
+All components are designed to be extensible and usable without all the other components.
+
+##### CameraController
+
+Wrapper for camera library that abstracts away some of the complications about checking support
+for various features.
+
+##### CameraPreviewView
+
+SurfaceView that scales and crops the view so that it matches the desired resolution.
+
+##### MediaClipsRecorder
+
+Recorder that simplifies logic for recording multiple video clips.
+
+##### VideoTransformerTask
+
+Task that combines multiple video files and transforms the video frames into the desired resolution.
+
+##### FFmpegRecorderActivity
 
 Activity that allows the user to record videos in a way similar to instagram and snapchat
 
@@ -23,11 +57,10 @@ Activity that allows the user to record videos in a way similar to instagram and
 - Enable / disable flash
 - Switch between front and back cameras
 - Instagram / Snapchat like recording by holding down a button
-- Can set the minimum and maximum recording time
 
 ![Record Video Activity Screenshot](./screenshots/record_video_activity.png "Record Video Activity")
 
-### FFmpegPreviewActivity
+##### FFmpegPreviewActivity
 
 Activity to preview the recorded video before selecting the video
 

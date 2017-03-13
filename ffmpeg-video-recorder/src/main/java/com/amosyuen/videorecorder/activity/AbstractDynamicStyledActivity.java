@@ -1,7 +1,6 @@
-package com.amosyuen.videorecorder;
+package com.amosyuen.videorecorder.activity;
 
 
-import android.annotation.TargetApi;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
@@ -15,7 +14,8 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.TextView;
 
-import com.amosyuen.videorecorder.util.ActivityThemeParams;
+import com.amosyuen.videorecorder.BuildConfig;
+import com.amosyuen.videorecorder.R;
 import com.amosyuen.videorecorder.util.Util;
 
 /**

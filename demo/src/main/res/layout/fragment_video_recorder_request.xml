@@ -108,10 +108,10 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="@string/video_quality"/>
+                            android:text="@string/video_bitrate_bytes"/>
 
                         <EditText
-                            android:id="@+id/video_quality"
+                            android:id="@+id/video_bitrate"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:inputType="number"/>
@@ -128,10 +128,10 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="@string/video_bitrate_bytes"/>
+                            android:text="@string/video_frames_per_second"/>
 
                         <EditText
-                            android:id="@+id/video_bitrate"
+                            android:id="@+id/video_frame_rate"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:inputType="number"/>
@@ -177,13 +177,12 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="@string/video_frames_per_second"/>
+                            android:text="@string/video_scale_type"/>
 
-                        <EditText
-                            android:id="@+id/video_frame_rate"
+                        <Spinner
+                            android:id="@+id/video_scale_type"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="number"/>
+                            android:layout_height="wrap_content"/>
 
                     </LinearLayout>
 
@@ -196,25 +195,6 @@
                     android:orientation="horizontal"
                     android:baselineAligned="false">
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center_vertical"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/video_scale_type"/>
-
-                        <Spinner
-                            android:id="@+id/video_scale_type"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"/>
-
-                    </LinearLayout>
-
                     <android.support.v7.widget.SwitchCompat
                         android:id="@+id/video_can_upscale"
                         android:layout_width="match_parent"
@@ -222,6 +202,15 @@
                         android:layout_gravity="center_vertical"
                         android:layout_weight="1"
                         android:text="@string/can_upscale_video"/>
+
+                    <android.support.v7.widget.SwitchCompat
+                        android:id="@+id/video_can_pad"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:layout_weight="1"
+                        android:text="@string/can_pad_video"/>
+
 
                 </LinearLayout>
 
@@ -270,26 +259,6 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="@string/audio_quality"/>
-
-                        <EditText
-                            android:id="@+id/audio_quality"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="number"/>
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center_vertical"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
                             android:text="@string/audio_bitrate"/>
 
                         <EditText
@@ -299,15 +268,6 @@
                             android:inputType="number"/>
 
                     </LinearLayout>
-
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:paddingBottom="@dimen/form_item_padding_bottom"
-                    android:orientation="horizontal"
-                    android:baselineAligned="false">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -328,6 +288,15 @@
                             android:inputType="number"/>
 
                     </LinearLayout>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingBottom="@dimen/form_item_padding_bottom"
+                    android:orientation="horizontal"
+                    android:baselineAligned="false">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -411,6 +380,26 @@
                             android:inputType="number"/>
 
                     </LinearLayout>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/max_file_size"/>
+
+                    <EditText
+                        android:id="@+id/max_file_size"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="number"/>
 
                 </LinearLayout>
 

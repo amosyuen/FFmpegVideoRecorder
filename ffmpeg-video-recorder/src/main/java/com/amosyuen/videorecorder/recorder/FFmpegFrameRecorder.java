@@ -1,4 +1,4 @@
-package com.amosyuen.videorecorder.util;
+package com.amosyuen.videorecorder.recorder;
 
 /*
  * Copyright (C) 2009-2015 Samuel Audet

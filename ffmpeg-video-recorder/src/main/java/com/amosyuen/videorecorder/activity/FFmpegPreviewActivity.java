@@ -1,4 +1,4 @@
-package com.amosyuen.videorecorder;
+package com.amosyuen.videorecorder.activity;
 
 
 import android.animation.Animator;
@@ -28,10 +28,8 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 
-import com.amosyuen.videorecorder.util.ActivityThemeParams;
+import com.amosyuen.videorecorder.R;
 import com.amosyuen.videorecorder.util.Util;
-
-import static android.provider.Contacts.SettingsColumns.KEY;
 
 public class FFmpegPreviewActivity
         extends AbstractDynamicStyledActivity

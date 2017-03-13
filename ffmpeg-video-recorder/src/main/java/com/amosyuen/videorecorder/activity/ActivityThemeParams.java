@@ -1,11 +1,11 @@
-package com.amosyuen.videorecorder.util;
+package com.amosyuen.videorecorder.activity;
 
 import android.support.annotation.ColorInt;
 
 import java.io.Serializable;
 
 /**
- * Parameters for customizing the activity theme on the fly.
+ * Parameters for customizing the activity theme dynamically.
  */
 public interface ActivityThemeParams extends Serializable {
 
@@ -14,11 +14,24 @@ public interface ActivityThemeParams extends Serializable {
     @ColorInt int getToolbarWidgetColor();
     @ColorInt int getProgressColor();
 
-    class Builder {
-        @ColorInt private int statusBarColor;
-        @ColorInt private int toolbarColor;
-        @ColorInt private int toolbarWidgetColor;
-        @ColorInt private int progressColor;
+    interface BuilderI<T extends BuilderI<T>> {
+
+        BuilderI statusBarColor(@ColorInt int val);
+
+        BuilderI toolbarColor(@ColorInt int val);
+
+        BuilderI toolbarWidgetColor(@ColorInt int val);
+
+        BuilderI progressColor(@ColorInt int val);
+
+        ActivityThemeParams build();
+    }
+
+    class Builder implements BuilderI<Builder> {
+        @ColorInt protected int statusBarColor;
+        @ColorInt protected int toolbarColor;
+        @ColorInt protected int toolbarWidgetColor;
+        @ColorInt protected int progressColor;
 
         public Builder() {}
 
@@ -87,6 +100,29 @@ public interface ActivityThemeParams extends Serializable {
             @ColorInt
             public int getProgressColor() {
                 return progressColor;
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+
+                ActivityThemeParamsImpl that = (ActivityThemeParamsImpl) o;
+
+                if (statusBarColor != that.statusBarColor) return false;
+                if (toolbarColor != that.toolbarColor) return false;
+                if (toolbarWidgetColor != that.toolbarWidgetColor) return false;
+                return progressColor == that.progressColor;
+
+            }
+
+            @Override
+            public int hashCode() {
+                int result = statusBarColor;
+                result = 31 * result + toolbarColor;
+                result = 31 * result + toolbarWidgetColor;
+                result = 31 * result + progressColor;
+                return result;
             }
 
             @Override

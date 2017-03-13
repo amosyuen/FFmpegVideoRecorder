@@ -1,4 +1,4 @@
-package com.amosyuen.videorecorder.util;
+package com.amosyuen.videorecorder.recorder.params;
 
 
 import org.bytedeco.javacpp.avcodec;
@@ -6,9 +6,10 @@ import org.bytedeco.javacpp.avcodec;
 import java.io.Serializable;
 
 /**
- * Parameters for encoding audio and video using FFmpegFrameRecorder.
+ * Parameters for encoding audio and video.
  */
-public interface FFmpegRecorderParams extends Serializable {
+public interface EncoderParams extends
+        VideoFrameRateParams, VideoSizeParams, VideoTransformerParams, Serializable {
 
     /** Valid audio codecs for encoding from https://ffmpeg.org/general.html#Audio-Codecs */
     enum AudioCodec {
@@ -167,265 +168,70 @@ public interface FFmpegRecorderParams extends Serializable {
         }
     }
 
-    /** Video quality must be set to negative one to use the bitrate. */
+    /**
+     * Get video bitrate in bits per second.
+     */
     int getVideoBitrate();
-    int getVideoCodec();
-    int getVideoFrameRate();
-    /** Value depends on the video codec. Will override the video bitrate parameter. */
-    int getVideoQuality();
-    int getVideoWidth();
-    int getVideoHeight();
 
-    /** Audio quality must be set to negative one to use the bitrate. */
+    /**
+     * Get video codec.
+     */
+    int getVideoCodec();
+
+    /**
+     * Get audio bitrate in bits per second.
+     */
     int getAudioBitrate();
+
+    /**
+     * Get number of channels of audio to record.
+     */
     int getAudioChannelCount();
+
+    /**
+     * Get audio codec.
+     */
     int getAudioCodec();
-    /** Value depends on the audio codec. Will override the audio bitrate parameter. */
-    int getAudioQuality();
+
+    /**
+     * Get audio sampling rate in hertz.
+     */
     int getAudioSamplingRateHz();
 
+    /**
+     * Get video output format.
+     */
     String getVideoOutputFormat();
 
-    class Builder {
-        private int videoBitrate = 1000000;
-        private int videoCodec = VideoCodec.H264.ffmpegCodecValue;
-        private int videoFrameRate = 20;
-        private int videoQuality = -1;
-        private int videoWidth;
-        private int videoHeight;
-        private int audioBitrate = 128000;
-        private int audioChannelCount = 1;
-        private int audioCodec = AudioCodec.AAC.ffmpegCodecValue;
-        private int audioQuality = -1;
-        private int audioSamplingRateHz = 44100;
-        private String videoOutputFormat = "mp4";
-
-        public Builder() {}
-
-        public Builder merge(FFmpegRecorderParams copy) {
-            videoBitrate = copy.getVideoBitrate();
-            videoCodec = copy.getVideoCodec();
-            videoFrameRate = copy.getVideoFrameRate();
-            videoQuality = copy.getVideoQuality();
-            videoWidth = copy.getVideoWidth();
-            videoHeight = copy.getVideoHeight();
-            audioBitrate = copy.getAudioBitrate();
-            audioChannelCount = copy.getAudioChannelCount();
-            audioCodec = copy.getAudioCodec();
-            audioQuality = copy.getAudioQuality();
-            audioSamplingRateHz = copy.getAudioSamplingRateHz();
-            videoOutputFormat = copy.getVideoOutputFormat();
-            return this;
-        }
+    interface BuilderI<T extends BuilderI<T>> extends
+            VideoFrameRateParams.BuilderI<T>,
+            VideoSizeParams.BuilderI<T>,
+            VideoTransformerParams.BuilderI<T> {
 
         /**
          * Sets the video bitrate and sets the video quality to negative one. Video quality must be
          * negative one to use the video bitrate.
          */
-        public Builder videoBitrate(int val) {
-            videoBitrate = val;
-            videoQuality = -1;
-            return this;
-        }
+        T videoBitrate(int val);
 
-        public Builder videoCodec(int val) {
-            videoCodec = val;
-            return this;
-        }
-
-        public Builder videoCodec(VideoCodec val) {
-            videoCodec = val.ffmpegCodecValue;
-            return this;
-        }
-
-        public Builder videoFrameRate(int val) {
-            videoFrameRate = val;
-            return this;
-        }
-
-        /**
-         * Value depends on the video codec. Will override the video bitrate parameter.
-         * For <a href='https://trac.ffmpeg.org/wiki/Encode/H.264'>H.264</a> choose a value from
-         * 0-51 where 0 is lossless, 23 is default, and 51 is worst possible. Consider 18 to be
-         * nearly visually lossless.
-         */
-        public Builder videoQuality(int val) {
-            videoQuality = val;
-            return this;
-        }
-
-        /**
-         * Width will be rounded up to the closest multiple of 2. If height is defined, height will
-         * be recalculated to maintain the aspect ratio. Recommended to use a multiple of 16 for
-         * best encoding efficiency.
-         */
-        public Builder videoWidth(int val) {
-            videoWidth = val;
-            return this;
-        }
-
-        /**
-         * If only height is specified, the height will be changed to make sure the width is a
-         * multiple of 2 while maintain the camera aspect ratio.
-         */
-        public Builder videoHeight(int val) {
-            videoHeight = val;
-            return this;
-        }
+        T videoCodec(int val);
+        T videoCodec(VideoCodec val);
 
         /**
          * Sets the audio bitrate and sets the audio quality to negative one. Audio quality must be
          * negative one to use the audio bitrate.
          */
-        public Builder audioBitrate(int val) {
-            audioBitrate = val;
-            audioQuality = -1;
-            return this;
-        }
+        T audioBitrate(int val);
 
-        public Builder audioChannelCount(int val) {
-            audioChannelCount = val;
-            return this;
-        }
+        T audioChannelCount(int val);
 
-        public Builder audioCodec(int val) {
-            audioCodec = val;
-            return this;
-        }
+        T audioCodec(int val);
+        T audioCodec(AudioCodec val);
 
-        public Builder audioCodec(AudioCodec val) {
-            audioCodec = val.ffmpegCodecValue;
-            return this;
-        }
+        T audioSamplingRateHz(int val);
 
-        /**
-         * Value depends on the audio codec. Will override the audio bitrate parameter.
-         * For <a href='https://trac.ffmpeg.org/wiki/Encode/AAC'>AAC</a> choose a value between 1
-         * and 5, where 1 is the lowest quality and 5 is the highest quality.
-         */
-        public Builder audioQuality(int val) {
-            audioQuality = val;
-            return this;
-        }
+        T videoOutputFormat(String val);
 
-        public Builder audioSamplingRateHz(int val) {
-            audioSamplingRateHz = val;
-            return this;
-        }
-
-        public Builder videoOutputFormat(String val) {
-            videoOutputFormat = val;
-            return this;
-        }
-
-        public FFmpegRecorderParams build() { return new FFmpegRecorderParamsImpl(this); }
-
-        static class FFmpegRecorderParamsImpl implements FFmpegRecorderParams {
-            private final int videoBitrate;
-            private final int videoCodec;
-            private final int videoFrameRate;
-            private final int videoQuality;
-            private final int videoWidth;
-            private final int videoHeight;
-            private final int audioBitrate;
-            private final int audioChannelCount;
-            private final int audioCodec;
-            private final int audioQuality;
-            private final int audioSamplingRateHz;
-            private final String videoOutputFormat;
-
-            protected FFmpegRecorderParamsImpl(Builder builder) {
-                videoBitrate = builder.videoBitrate;
-                videoCodec = builder.videoCodec;
-                videoFrameRate = builder.videoFrameRate;
-                videoQuality = builder.videoQuality;
-                videoWidth = builder.videoWidth;
-                videoHeight = builder.videoHeight;
-                audioBitrate = builder.audioBitrate;
-                audioChannelCount = builder.audioChannelCount;
-                audioCodec = builder.audioCodec;
-                audioQuality = builder.audioQuality;
-                audioSamplingRateHz = builder.audioSamplingRateHz;
-                videoOutputFormat = builder.videoOutputFormat;
-            }
-
-            @Override
-            public String getVideoOutputFormat() {
-                return videoOutputFormat;
-            }
-
-            @Override
-            public int getVideoBitrate() {
-                return videoBitrate;
-            }
-
-            @Override
-            public int getVideoCodec() {
-                return videoCodec;
-            }
-
-            @Override
-            public int getVideoFrameRate() {
-                return videoFrameRate;
-            }
-
-            @Override
-            public int getVideoQuality() {
-                return videoQuality;
-            }
-
-            @Override
-            public int getVideoWidth() {
-                return videoWidth;
-            }
-
-            @Override
-            public int getVideoHeight() {
-                return videoHeight;
-            }
-
-            @Override
-            public int getAudioBitrate() {
-                return audioBitrate;
-            }
-
-            @Override
-            public int getAudioChannelCount() {
-                return audioChannelCount;
-            }
-
-            @Override
-            public int getAudioCodec() {
-                return audioCodec;
-            }
-
-            @Override
-            public int getAudioQuality() {
-                return audioQuality;
-            }
-
-            @Override
-            public int getAudioSamplingRateHz() {
-                return audioSamplingRateHz;
-            }
-
-            @Override
-            public String toString() {
-                return "FFmpegRecorderParamsImpl{" +
-                        "videoBitrate=" + videoBitrate +
-                        ", videoCodec=" + videoCodec +
-                        ", videoFrameRate=" + videoFrameRate +
-                        ", videoQuality=" + videoQuality +
-                        ", videoWidth=" + videoWidth +
-                        ", videoHeight=" + videoHeight +
-                        ", audioBitrate=" + audioBitrate +
-                        ", audioChannelCount=" + audioChannelCount +
-                        ", audioCodec=" + audioCodec +
-                        ", audioQuality=" + audioQuality +
-                        ", audioSamplingRateHz=" + audioSamplingRateHz +
-                        ", videoOutputFormat='" + videoOutputFormat + '\'' +
-                        '}';
-            }
-        }
+        EncoderParams build();
     }
 }

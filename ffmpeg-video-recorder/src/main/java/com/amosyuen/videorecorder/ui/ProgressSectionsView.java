@@ -1,4 +1,4 @@
-package com.amosyuen.videorecorder.util;
+package com.amosyuen.videorecorder.ui;
 
 import android.content.Context;
 import android.content.res.Resources;
@@ -12,8 +12,9 @@ import android.util.DisplayMetrics;
 import android.view.View;
 
 import com.amosyuen.videorecorder.R;
+import com.amosyuen.videorecorder.util.Util;
 
-import java.util.ArrayList;
+import java.util.List;
 
 /**
  * View that shows different sections of progress and how they add up to the total progress.
@@ -30,9 +31,7 @@ public class ProgressSectionsView extends View
 	private Paint mSeparatorPaint;
 	private Paint mProgressPaint;
 
-	private int mCurrentProgress = 0;
-	private int mTotalSectionProgress = 0;
-	private ArrayList<Integer> mSections = new ArrayList<>();
+	private ProgressSectionsProvider mProvider;
 	private boolean mIsCursorVisible = true;
 	private long mCursorLastChangeMillis = 0;
 
@@ -71,6 +70,14 @@ public class ProgressSectionsView extends View
 		mSeparatorPaint = new Paint();
 		mSeparatorPaint.setStyle(Paint.Style.FILL);
 		mSeparatorPaint.setColor(ContextCompat.getColor(getContext(), R.color.dark_gray));
+	}
+
+	public ProgressSectionsProvider getProvider() {
+		return mProvider;
+	}
+
+	public void setProvider(ProgressSectionsProvider provider) {
+		mProvider = provider;
 	}
 
 	public int getMinProgress() {
@@ -159,38 +166,16 @@ public class ProgressSectionsView extends View
 		mProgressPaint.setColor(color);
 	}
 
-	public int getCurrentProgress() {
-		return mCurrentProgress;
-	}
-
-	public void setCurrentProgress(int currentProgress) {
-		this.mCurrentProgress = currentProgress;
-	}
-
-	public int getTotalSectionProgress() {
-		return mTotalSectionProgress;
-	}
-
-	public void startNewProgressSection() {
-		if (mCurrentProgress > 0) {
-			mSections.add(mCurrentProgress);
-			mTotalSectionProgress += mCurrentProgress;
-			mCurrentProgress = 0;
-			mIsCursorVisible = true;
-			mCursorLastChangeMillis = System.currentTimeMillis();
-		}
-	}
-
-	public void clearProgress() {
-		mSections.clear();
-		mTotalSectionProgress = 0;
-		mCurrentProgress = 0;
-		mIsCursorVisible = true;
-	}
-
 	@Override
 	protected void onDraw(Canvas canvas) {
 		super.onDraw(canvas);
+
+		boolean hasCurrentProgress = mProvider.hasCurrentProgress();
+		List<Integer> sections = mProvider.getProgressSections();
+		int totalProgress = 0;
+		for (Integer progress : sections) {
+			totalProgress += progress;
+		}
 
 		int height = getMeasuredHeight();
 		int width = getMeasuredWidth();
@@ -198,14 +183,14 @@ public class ProgressSectionsView extends View
 		if (mMaxProgress > 0) {
 			maxProgress = mMaxProgress;
 		} else {
-			maxProgress = ((mTotalSectionProgress + mCurrentProgress) / 4000 + 1) * 4000 + 1000;
+			maxProgress = (totalProgress / 4000 + 1) * 4000 + 1000;
 		}
 		float pixelsPerProgress =
-				(float) (width - mSections.size() * mSeparatorWidthPixels) / maxProgress;
+				(float) (width - sections.size() * mSeparatorWidthPixels) / maxProgress;
 
 		// Draw the current sections
 		float drawnWidth = 0;
-		for (int progress : mSections) {
+		for (int progress : sections) {
 			float sectionWidth = progress * pixelsPerProgress;
 			canvas.drawRect(drawnWidth, 0, drawnWidth + sectionWidth, height, mProgressPaint);
             drawnWidth += sectionWidth;
@@ -215,17 +200,13 @@ public class ProgressSectionsView extends View
 		}
 
 		// Draw the minimum time indicator
-		if (mTotalSectionProgress <= mMinProgress) {
+		if (totalProgress <= mMinProgress) {
 			float minProgressX = pixelsPerProgress * mMinProgress;
 			canvas.drawRect(minProgressX, 0,
 					minProgressX + mSeparatorWidthPixels, height, mMinProgressPaint);
 		}
 
-		if (mCurrentProgress > 0) {
-            float currentProgressWidth = pixelsPerProgress * mCurrentProgress;
-			float endX = Math.min(drawnWidth + currentProgressWidth, width);
-			canvas.drawRect(drawnWidth, 0, endX, height, mProgressPaint);
-		} else {
+		if (!hasCurrentProgress) {
 			// Show and hide the cursor every mCursorFlashIntervalMillis
 			long currMillis = System.currentTimeMillis();
 			if (currMillis - mCursorLastChangeMillis >= mCursorFlashIntervalMillis) {
@@ -238,5 +219,10 @@ public class ProgressSectionsView extends View
 			}
 		}
 		invalidate();
+	}
+
+	public interface ProgressSectionsProvider {
+		boolean hasCurrentProgress();
+		List<Integer> getProgressSections();
 	}
 }

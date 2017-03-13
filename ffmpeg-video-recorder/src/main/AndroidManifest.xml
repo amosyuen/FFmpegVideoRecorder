@@ -20,12 +20,12 @@
     <application
         android:largeHeap="true">
         <activity
-            android:name="com.amosyuen.videorecorder.FFmpegRecorderActivity"
+            android:name="com.amosyuen.videorecorder.activity.FFmpegRecorderActivity"
             android:theme="@style/ActivityTheme"
             android:configChanges="orientation|screenSize" >
         </activity>
         <activity
-            android:name="com.amosyuen.videorecorder.FFmpegPreviewActivity"
+            android:name="com.amosyuen.videorecorder.activity.FFmpegPreviewActivity"
             android:theme="@style/ActivityTheme"
             android:configChanges="orientation|screenSize" >
         </activity>

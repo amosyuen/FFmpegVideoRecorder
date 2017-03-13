@@ -11,7 +11,6 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.SwitchCompat;
@@ -23,18 +22,18 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
 
-import com.amosyuen.videorecorder.FFmpegRecorderActivity;
-import com.amosyuen.videorecorder.util.FFmpegRecorderParams.AudioCodec;
-import com.amosyuen.videorecorder.util.FFmpegRecorderParams.VideoCodec;
-import com.amosyuen.videorecorder.util.RecorderActivityParams;
-import com.amosyuen.videorecorder.video.ImageSize.ScaleType;
+import com.amosyuen.videorecorder.activity.FFmpegRecorderActivity;
+import com.amosyuen.videorecorder.activity.RecorderActivityParams;
+import com.amosyuen.videorecorder.camera.CameraControllerI;
+import com.amosyuen.videorecorder.recorder.common.ScaleType;
+import com.amosyuen.videorecorder.recorder.params.EncoderParams.AudioCodec;
+import com.amosyuen.videorecorder.recorder.params.EncoderParams.VideoCodec;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import static android.app.Activity.RESULT_OK;
-import static java.io.File.createTempFile;
 
 
 /**
@@ -53,7 +52,7 @@ public class VideoRecorderRequestFragment extends Fragment {
             Manifest.permission.WAKE_LOCK,
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
     };
-    
+
     private static final int REQUEST_VIDEO_PERMISSIONS_REQUEST = 1000;
     private static final int RECORD_VIDEO_REQUEST = 2000;
 
@@ -61,21 +60,21 @@ public class VideoRecorderRequestFragment extends Fragment {
     private EditText mVideoWidthEditText;
     private EditText mVideoHeightEditText;
     private Spinner mVideoCodecSpinner;
-    private EditText mVideoQualityEditText;
     private EditText mVideoBitrateEditText;
     private EditText mVideoFrameRateEditText;
     private Spinner mVideoCameraFacingSpinner;
     private Spinner mVideoScaleTypeSpinner;
     private SwitchCompat mVideoCanUpscaleSwitchCompat;
+    private SwitchCompat mVideoCanPadSwitchCompat;
 
     private Spinner mAudioCodecSpinner;
-    private EditText mAudioQualityEditText;
     private EditText mAudioSampleRateEditText;
     private EditText mAudioBitrateEditText;
     private Spinner mAudioChannelCount;
 
-    private EditText mMinRecordingTimeEditText;
-    private EditText mMaxRecordingTimeEditText;
+    private EditText mMinRecordingEditText;
+    private EditText mMaxRecordingEditText;
+    private EditText mMaxFileSizeEditText;
 
     // State vars
     private OnVideoRecorderListener mListener;
@@ -109,22 +108,26 @@ public class VideoRecorderRequestFragment extends Fragment {
         mVideoBitrateEditText = (EditText) view.findViewById(R.id.video_bitrate);
         mVideoBitrateEditText.setText("800000");
 
-        mVideoQualityEditText = (EditText) view.findViewById(R.id.video_quality);
-        mVideoQualityEditText.setText("");
-
         mVideoFrameRateEditText = (EditText) view.findViewById(R.id.video_frame_rate);
         mVideoFrameRateEditText.setText("30");
 
+        ArrayAdapter<CameraControllerI.Facing> facingAdapter = new ArrayAdapter<>(
+                getContext(), android.R.layout.simple_spinner_item, CameraControllerI.Facing.values());
         mVideoCameraFacingSpinner = (Spinner) view.findViewById(R.id.video_camera_facing);
-        mVideoCameraFacingSpinner.setAdapter(new ArrayAdapter<String>(
-                getContext(), android.R.layout.simple_spinner_item,
-                new String[] { "Back", "Front" }));
+        mVideoCameraFacingSpinner.setAdapter(facingAdapter);
+        mVideoCameraFacingSpinner.setSelection(
+                facingAdapter.getPosition(CameraControllerI.Facing.BACK));
 
+        ArrayAdapter<ScaleType> scaleTypeAdapter = new ArrayAdapter<>(
+                getContext(), android.R.layout.simple_spinner_item, ScaleType.values());
         mVideoScaleTypeSpinner = (Spinner) view.findViewById(R.id.video_scale_type);
-        mVideoScaleTypeSpinner.setAdapter(new ArrayAdapter<ScaleType>(
-                        getContext(), android.R.layout.simple_spinner_item, ScaleType.values()));
+        mVideoScaleTypeSpinner.setAdapter(scaleTypeAdapter);
+        mVideoScaleTypeSpinner.setSelection(scaleTypeAdapter.getPosition(ScaleType.FILL));
 
         mVideoCanUpscaleSwitchCompat = (SwitchCompat) view.findViewById(R.id.video_can_upscale);
+
+        mVideoCanPadSwitchCompat = (SwitchCompat) view.findViewById(R.id.video_can_pad);
+        mVideoCanPadSwitchCompat.setChecked(true);
 
         ArrayAdapter<AudioCodec> audioCodecAdapter = new ArrayAdapter<>(
                 getContext(), android.R.layout.simple_spinner_item, AudioCodec.values());
@@ -138,18 +141,18 @@ public class VideoRecorderRequestFragment extends Fragment {
         mAudioBitrateEditText = (EditText) view.findViewById(R.id.audio_bitrate);
         mAudioBitrateEditText.setText("64000");
 
-        mAudioQualityEditText = (EditText) view.findViewById(R.id.audio_quality);
-        mAudioQualityEditText.setText("");
-
         mAudioChannelCount = (Spinner) view.findViewById(R.id.audio_channel_count);
         mAudioChannelCount.setAdapter(new ArrayAdapter<Integer>(
                 getContext(), android.R.layout.simple_spinner_item, new Integer[] { 1, 2 }));
 
-        mMinRecordingTimeEditText = (EditText) view.findViewById(R.id.min_recording_time);
-        mMinRecordingTimeEditText.setText("1");
+        mMinRecordingEditText = (EditText) view.findViewById(R.id.min_recording_time);
+        mMinRecordingEditText.setText("1");
 
-        mMaxRecordingTimeEditText = (EditText) view.findViewById(R.id.max_recording_time);
-        mMaxRecordingTimeEditText.setText("10");
+        mMaxRecordingEditText = (EditText) view.findViewById(R.id.max_recording_time);
+        mMaxRecordingEditText.setText("10");
+
+        mMaxFileSizeEditText = (EditText) view.findViewById(R.id.max_file_size);
+        mMaxFileSizeEditText.setText("0");
 
         Button recordButton = (Button) view.findViewById(R.id.record_button);
         recordButton.setOnClickListener(new View.OnClickListener() {
@@ -161,7 +164,7 @@ public class VideoRecorderRequestFragment extends Fragment {
 
         return view;
     }
-    
+
     @Override
     public void onRequestPermissionsResult(
             int requestCode, String permissions[], int[] grantResults) {
@@ -174,7 +177,7 @@ public class VideoRecorderRequestFragment extends Fragment {
                 break;
         }
     }
-    
+
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
@@ -211,7 +214,7 @@ public class VideoRecorderRequestFragment extends Fragment {
                 break;
         }
     }
-    
+
     private void checkPermissions() {
         if (hasAllPermissions()) {
             launchVideoRecorder();
@@ -220,7 +223,7 @@ public class VideoRecorderRequestFragment extends Fragment {
 
         requestPermissions(VIDEO_PERMISSIONS, REQUEST_VIDEO_PERMISSIONS_REQUEST);
     }
-    
+
     private void handleRequestPermissionsResult() {
         if (hasAllPermissions()) {
             launchVideoRecorder();
@@ -242,7 +245,7 @@ public class VideoRecorderRequestFragment extends Fragment {
                     .show();
         }
     }
-    
+
     public boolean hasAllPermissions() {
         for (String permission : VIDEO_PERMISSIONS) {
             if (ContextCompat.checkSelfPermission(getContext(), permission)
@@ -252,7 +255,7 @@ public class VideoRecorderRequestFragment extends Fragment {
         }
         return true;
     }
-    
+
     public boolean shouldShowRequestPermissionRationale() {
         for (String permission : VIDEO_PERMISSIONS) {
             if (shouldShowRequestPermissionRationale(permission)) {
@@ -261,7 +264,7 @@ public class VideoRecorderRequestFragment extends Fragment {
         }
         return false;
     }
-    
+
     private void startAppDetailsIntent() {
         Intent intent = new Intent();
         intent.addCategory(Intent.CATEGORY_DEFAULT);
@@ -312,37 +315,19 @@ public class VideoRecorderRequestFragment extends Fragment {
         return allowZero ? -1 : 0;
     }
 
-    private void validateOneOfBitrateAndQualityAreSet(
-            EditText bitrateEditText, EditText qualityEditText, int bitrate, int quality) {
-        if (bitrateEditText.getError() == null && qualityEditText.getError() == null) {
-            if ((quality == -1) == (bitrate == 0)) {
-                bitrateEditText.setError(getString(R.string.error_one_defined));
-                qualityEditText.setError(getString(R.string.error_one_defined));
-                if (mErrorView == null) {
-                    mErrorView = qualityEditText;
-                }
-            }
-        }
-    }
-
     private void launchVideoRecorder() {
         mErrorView = null;
         int videoWidth = validateEmptyPositiveIntegerEditText(mVideoWidthEditText);
         int videoHeight = validateEmptyPositiveIntegerEditText(mVideoHeightEditText);
-        int videoQuality = validateEmptyNonNegativeIntegerEditText(mVideoQualityEditText);
         int videoBitrate = validateEmptyPositiveIntegerEditText(mVideoBitrateEditText);
-        validateOneOfBitrateAndQualityAreSet(
-                mVideoBitrateEditText, mVideoQualityEditText, videoBitrate, videoQuality);
         int videoFrameRate = validatePositiveIntegerEditText(mVideoFrameRateEditText);
 
         int audioSampleRate = validatePositiveIntegerEditText(mAudioSampleRateEditText);
-        int audioQuality = validateEmptyNonNegativeIntegerEditText(mAudioQualityEditText);
         int audioBitrate = validateEmptyPositiveIntegerEditText(mAudioBitrateEditText);
-        validateOneOfBitrateAndQualityAreSet(
-                mAudioBitrateEditText, mAudioQualityEditText, audioBitrate, audioQuality);
 
-        int minRecordingTime = validateEmptyNonNegativeIntegerEditText(mMinRecordingTimeEditText);
-        int maxRecordingTime = validateEmptyNonNegativeIntegerEditText(mMaxRecordingTimeEditText);
+        int minRecordingMillis = validateEmptyNonNegativeIntegerEditText(mMinRecordingEditText);
+        int maxRecordingMillis = validateEmptyNonNegativeIntegerEditText(mMaxRecordingEditText);
+        int maxFileSizeBytes = validateEmptyNonNegativeIntegerEditText(mMaxFileSizeEditText);
 
         if (mErrorView != null) {
             mErrorView.requestFocus();
@@ -357,22 +342,22 @@ public class VideoRecorderRequestFragment extends Fragment {
                 .videoWidth(videoWidth)
                 .videoHeight(videoHeight)
                 .videoCodec((VideoCodec) mVideoCodecSpinner.getSelectedItem())
-                .videoQuality(videoQuality)
                 .videoBitrate(videoBitrate)
                 .videoFrameRate(videoFrameRate)
 
-                .videoCameraFacing(mVideoCameraFacingSpinner.getSelectedItemPosition())
+                .videoCameraFacing((CameraControllerI.Facing) mVideoCameraFacingSpinner.getSelectedItem())
                 .videoScaleType((ScaleType) mVideoScaleTypeSpinner.getSelectedItem())
                 .canUpscaleVideo(mVideoCanUpscaleSwitchCompat.isChecked())
+                .canPadVideo(mVideoCanPadSwitchCompat.isChecked())
 
                 .audioCodec((AudioCodec) mAudioCodecSpinner.getSelectedItem())
                 .audioSamplingRateHz(audioSampleRate)
-                .audioQuality(audioQuality)
                 .audioBitrate(audioBitrate)
                 .audioChannelCount((Integer) mAudioChannelCount.getSelectedItem())
 
-                .minRecordingTimeNanos(TimeUnit.SECONDS.toNanos(minRecordingTime))
-                .maxRecordingTimeNanos(TimeUnit.SECONDS.toNanos(maxRecordingTime))
+                .minRecordingMillis(TimeUnit.SECONDS.toMillis(minRecordingMillis))
+                .maxRecordingMillis(TimeUnit.SECONDS.toMillis(maxRecordingMillis))
+                .maxFileSizeBytes(maxFileSizeBytes)
                 .build();
 
         // Start the intent for the activity so that the activity can handle the requestCode

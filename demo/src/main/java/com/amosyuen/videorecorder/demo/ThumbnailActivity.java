@@ -1,17 +1,12 @@
 package com.amosyuen.videorecorder.demo;
 
 
-import android.annotation.SuppressLint;
 import android.graphics.BitmapFactory;
-import android.support.annotation.CallSuper;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.os.Handler;
+import android.support.annotation.CallSuper;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
-import android.view.MotionEvent;
-import android.view.View;
 import android.widget.ImageView;
 
 /**
