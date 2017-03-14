@@ -1,12 +1,14 @@
 package com.amosyuen.videorecorder.recorder;
 
 
+import android.media.MediaMetadataRetriever;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.amosyuen.videorecorder.recorder.common.ImageSize;
 import com.amosyuen.videorecorder.recorder.params.EncoderParams;
 import com.amosyuen.videorecorder.util.Util;
-import com.google.common.collect.Lists;
+import com.amosyuen.videorecorder.util.VideoUtil;
 
 import org.bytedeco.javacv.FFmpegFrameFilter;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
@@ -16,10 +18,13 @@ import org.bytedeco.javacv.FrameGrabber;
 import org.bytedeco.javacv.FrameRecorder;
 
 import java.io.File;
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
+import java.util.LinkedList;
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Combined multiple video files and transforms video to the desired size.
@@ -59,44 +64,52 @@ public class VideoTransformerTask implements Runnable {
         HashMap<FilterParams, FFmpegFrameFilter> filterMap = new HashMap<>();
         FFmpegFrameRecorder recorder = null;
         try {
-            int i = 0;
-            int totalFrames = 0;
-            List<FrameGrabber> frameGrabbers =
-                    Lists.newArrayListWithCapacity(mFilesToTransform.size());
-            ImageSize.Builder targetSizeBuilder = mParams.getVideoSize().toBuilder();
+            long processedMillis = 0;
+            long totalMillis = 0;
+            LinkedList<FrameGrabberWrapper> frameGrabbers = new LinkedList<>();
+            ImageSize.Builder maxRecordedSizeBuilder = ImageSize.UNDEFINED.toBuilder();
             for (File file : mFilesToTransform) {
+                int rotationDegrees = getRotationDegrees(file);
+
                 FrameGrabber frameGrabber = new FFmpegFrameGrabber(file);
                 frameGrabber.start();
-                totalFrames += frameGrabber.getLengthInFrames();
-                frameGrabbers.add(frameGrabber);
+                totalMillis += frameGrabber.getLengthInTime();
+                ImageSize recordedSize =
+                        new ImageSize(frameGrabber.getImageWidth(), frameGrabber.getImageHeight());
+                FilterParams filterParams = new FilterParams(
+                        recordedSize, frameGrabber.getPixelFormat(), rotationDegrees);
+                frameGrabbers.add(new FrameGrabberWrapper(frameGrabber, filterParams));
 
-                if (!targetSizeBuilder.areDimensionsDefined()) {
-                    ImageSize recordedSize =
-                            new ImageSize(frameGrabber.getImageWidth(), frameGrabber.getImageHeight());
-                    ImageSize targetSize = mParams.getVideoSize().toBuilder()
-                            .calculateUndefinedDimensions(recordedSize)
-                            .build();
-                    targetSizeBuilder.max(targetSize);
-                }
+                ImageSize rotatedRecordedSize = (rotationDegrees % 180 == 90)
+                        ? recordedSize.toBuilder().invert().build()
+                        : recordedSize;
+                maxRecordedSizeBuilder.max(rotatedRecordedSize);
             }
-            ImageSize targetSize = targetSizeBuilder.build();
-            Log.v(LOG_TAG, String.format(
-                    "Start transforming %d files with %d frames to target size %s",
-                    mFilesToTransform.size(), totalFrames, targetSize));
+            ImageSize maxRecordedSize = maxRecordedSizeBuilder.build();
+            ImageSize targetSize = mParams.getVideoSize();
+            if (!targetSize.areDimensionsDefined()) {
+                targetSize = targetSize.toBuilder()
+                        .calculateUndefinedDimensions(maxRecordedSize)
+                        .build();
+            }
+            Log.d(LOG_TAG, String.format(
+                    "Start transforming %d files of length %.3fs to target size %s",
+                    mFilesToTransform.size(),
+                    (float) totalMillis / TimeUnit.SECONDS.toMillis(1),
+                    targetSize));
 
             recorder = Util.createFrameRecorder(mVideoOutputFile, mParams);
             recorder.setImageWidth(targetSize.width);
             recorder.setImageHeight(targetSize.height);
             recorder.start();
 
-            for (FrameGrabber frameGrabber : frameGrabbers) {
+            while (!frameGrabbers.isEmpty()) {
+                FrameGrabberWrapper wrapper = frameGrabbers.poll();
+                FrameGrabber frameGrabber = wrapper.frameGrabber;
                 // Create a filter to transform image size into desired size if needed
-                ImageSize recordedSize =
-                        new ImageSize(frameGrabber.getImageWidth(), frameGrabber.getImageHeight());
-                FFmpegFrameFilter filter = recordedSize.equals(targetSize)
-                        ? null
-                        : getFilter(filterMap, recordedSize, targetSize, frameGrabber);
-
+                FFmpegFrameFilter filter =
+                        getFilter(filterMap, wrapper.filterParams, maxRecordedSize, targetSize);
+                long lastMillis = 0;
                 Frame frame;
                 while ((frame = frameGrabber.grabFrame()) != null) {
                     if (filter == null) {
@@ -107,12 +120,14 @@ public class VideoTransformerTask implements Runnable {
                             recorder.record(frame);
                         }
                     }
-                    i++;
+                    processedMillis += frameGrabber.getTimestamp() - lastMillis;
+                    lastMillis = frameGrabber.getTimestamp();
                     if (mProgressListener != null) {
-                        mProgressListener.onProgress(i, totalFrames);
+                        mProgressListener.onProgress((int) processedMillis, (int) totalMillis);
                     }
                 }
                 frameGrabber.stop();
+                frameGrabber.release();
             }
             recorder.stop();
             Log.v(LOG_TAG, "Finished transforming");
@@ -140,62 +155,77 @@ public class VideoTransformerTask implements Runnable {
         }
     }
 
+    protected static int getRotationDegrees(File file) {
+        MediaMetadataRetriever metadataRetriever = new MediaMetadataRetriever();
+        metadataRetriever.setDataSource(file.getAbsolutePath());
+        String rotation = metadataRetriever.extractMetadata(
+                MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION);
+        metadataRetriever.release();
+        return rotation == null ? 0 : VideoUtil.roundOrientation(Integer.parseInt(rotation));
+    }
+
     // Create a filter to transform the frame to the desired size. Uses an existing filter if the
     // params match.
     protected FFmpegFrameFilter getFilter(
-            HashMap<FilterParams, FFmpegFrameFilter> filterMap, ImageSize recordedSize,
-            ImageSize calculatedTargetSize, FrameGrabber frameGrabber)
-            throws FrameFilter.Exception {
-        FilterParams params = new FilterParams(recordedSize, frameGrabber.getPixelFormat());
+            HashMap<FilterParams, FFmpegFrameFilter> filterMap,
+            FilterParams params, ImageSize maxRecordedSize, ImageSize targetSize)
+                    throws FrameFilter.Exception {
+        if (params.imageSize.equals(targetSize) && params.rotationDegrees == 0) {
+            return null;
+        }
+
         FFmpegFrameFilter filter = filterMap.get(params);
         if (filter != null) {
             return filter;
         }
 
         ArrayList<String> transforms = new ArrayList<String>();
-        ImageSize.Builder imageSizeBuilder = recordedSize.toBuilder().scale(
-                calculatedTargetSize, mParams.getVideoScaleType(), mParams.canUpscaleVideo());
-        transforms.add("scale=" + imageSizeBuilder.width + ":" + imageSizeBuilder.height);
-        imageSizeBuilder.cropTo(calculatedTargetSize);
-        transforms.add("crop=" + imageSizeBuilder.width + ":" + imageSizeBuilder.height);
-        if (mParams.canPadVideo()) {
-            imageSizeBuilder.padTo(calculatedTargetSize);
-            transforms.add(
-                    "pad=" + imageSizeBuilder.width + ":" + imageSizeBuilder.height + ":(ow-iw)/2:(oh-ih)/2");
-
+        switch (params.rotationDegrees) {
+            case 0:
+                break;
+            case 90:
+                transforms.add("transpose=clock");
+                break;
+            case 180:
+                transforms.add("vflip");
+                transforms.add("hflip");
+                break;
+            case 270:
+                transforms.add("transpose=cclock");
+                break;
+            default:
+                throw new InvalidParameterException(String.format(
+                        Locale.US, "Unsupported rotation %d", params.rotationDegrees));
         }
+        ImageSize.Builder imageSizeBuilder = params.imageSize.toBuilder()
+                .scale(targetSize, mParams.getVideoImageFit(), mParams.getVideoImageScale());
+        transforms.add("scale=" + imageSizeBuilder.width + ":" + imageSizeBuilder.height);
+        imageSizeBuilder.cropTo(targetSize);
+        transforms.add("crop=" + imageSizeBuilder.width + ":" + imageSizeBuilder.height);
+        ImageSize padSize = mParams.canPadVideo()
+                ? imageSizeBuilder.padTo(targetSize).build()
+                : maxRecordedSize;
+        transforms.add("pad=" + padSize.width + ":" + padSize.height + ":(ow-iw)/2:(oh-ih)/2");
 
         filter = new FFmpegFrameFilter(
-                combineTransforms(transforms),
-                recordedSize.width,
-                recordedSize.height);
-        filter.setPixelFormat(frameGrabber.getPixelFormat());
+                TextUtils.join(",", transforms),
+                params.imageSize.width,
+                params.imageSize.height);
+        filter.setPixelFormat(params.pixelFormat);
         filter.start();
         filterMap.put(params, filter);
         return filter;
     }
 
-    protected static String combineTransforms(ArrayList<String> transforms) {
-        String combinedTransform = null;
-        for (String transform : transforms) {
-            if (transform != null && !transform.isEmpty()) {
-                if (combinedTransform == null) {
-                    combinedTransform = transform;
-                } else {
-                    combinedTransform += "," + transform;
-                }
-            }
-        }
-        return combinedTransform;
-    }
+    protected static class FilterParams {
+        public ImageSize imageSize;
+        public int pixelFormat;
+        public int rotationDegrees;
 
-    public class FilterParams {
-        public ImageSize mImageSize;
-        public int mPixelFormat;
-
-        public FilterParams(ImageSize imageSize, int pixelFormat) {
-            mImageSize = imageSize;
-            mPixelFormat = pixelFormat;
+        public FilterParams(ImageSize imageSize, int pixelFormat, int rotationDegrees) {
+            this.imageSize = imageSize;
+            this.pixelFormat = pixelFormat;
+            this.rotationDegrees = rotationDegrees;
         }
 
         @Override
@@ -205,18 +235,32 @@ public class VideoTransformerTask implements Runnable {
 
             FilterParams that = (FilterParams) o;
 
-            if (mPixelFormat != that.mPixelFormat) return false;
-            return mImageSize != null
-                    ? mImageSize.equals(that.mImageSize)
-                    : that.mImageSize ==  null;
+            if (pixelFormat != that.pixelFormat) return false;
+            if (rotationDegrees != that.rotationDegrees) return false;
+            return imageSize != null
+                    ? imageSize.equals(that.imageSize)
+                    : that.imageSize == null;
 
         }
 
         @Override
         public int hashCode() {
-            int result = mImageSize != null ? mImageSize.hashCode() : 0;
-            result = 31 * result + mPixelFormat;
+            int result = imageSize != null ? imageSize.hashCode() : 0;
+            result = 31 * result + pixelFormat;
+            result = 31 * result + rotationDegrees;
             return result;
+        }
+    }
+
+    protected static class FrameGrabberWrapper {
+        public final FrameGrabber frameGrabber;
+        public final FilterParams filterParams;
+
+        public FrameGrabberWrapper(
+                FrameGrabber frameGrabber,
+                FilterParams filterParams) {
+            this.frameGrabber = frameGrabber;
+            this.filterParams = filterParams;
         }
     }
 

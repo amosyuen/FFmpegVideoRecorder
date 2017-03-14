@@ -46,7 +46,7 @@ public class MediaClipsRecorder implements
 
     protected void newTempFile() {
         try {
-            mCurrentFile = File.createTempFile("video", "mp4", mTempDirectory);
+            mCurrentFile = File.createTempFile("media-clips-", ".mp4", mTempDirectory);
             mCurrentFile.deleteOnExit();
         } catch (IOException e) {
             Log.e(LOG_TAG, "Error creating temp file", e);

@@ -3,14 +3,13 @@ package com.amosyuen.videorecorder.util;
 
 import android.content.Context;
 import android.content.res.Configuration;
-import android.media.MediaRecorder;
-import android.view.OrientationEventListener;
 import android.view.Surface;
 import android.view.WindowManager;
 
 import com.amosyuen.videorecorder.camera.CameraControllerI;
+import com.amosyuen.videorecorder.recorder.common.ImageScale;
 import com.amosyuen.videorecorder.recorder.common.ImageSize;
-import com.amosyuen.videorecorder.recorder.params.EncoderParams;
+import com.amosyuen.videorecorder.recorder.common.ImageFit;
 import com.google.common.base.Preconditions;
 
 import java.util.List;
@@ -22,68 +21,50 @@ public class VideoUtil {
 
     /**
      *  Finds the best supported camera preview size for the target size.
-     *  Target size must have at least one dimension specified.
+     *  Target size must have at least one dimension specified and should be rotated into the same
+     *  orientation as the preview sizes.
      */
-    public static ImageSize getBestResolution(
-            List<ImageSize> previewSizes, ImageSize targetSize, boolean isRecordingLandscape) {
+    public static ImageSize getBestResolution(List<ImageSize> previewSizes,
+            ImageSize targetSize, ImageFit imageFit, ImageScale imageScale) {
         Preconditions.checkState(targetSize.isAtLeastOneDimensionDefined());
-        if (!isRecordingLandscape) {
-            //noinspection SuspiciousNameCombination
-            targetSize = new ImageSize(targetSize.height, targetSize.width);
-        }
-        if (targetSize.areDimensionsDefined()) {
-            // Find the size closest in aspect ratio that is bigger than the target size
-            float aspectRatio = (float) targetSize.width / targetSize.height;
-            float bestSizeAspectRatioDiff = Float.POSITIVE_INFINITY;
-            ImageSize bestSize = null;
-            for (ImageSize size : previewSizes) {
-                if (size.width >= targetSize.width && size.height >= targetSize.height) {
-                    float aspectRatioDiff =
-                            Math.abs((float) size.width / size.height - aspectRatio);
-                    if (aspectRatioDiff < bestSizeAspectRatioDiff) {
-                        bestSizeAspectRatioDiff = aspectRatioDiff;
-                        bestSize = size;
-                    }
-                }
-            }
-            // If no size was found, find the size with the most pixels that fit in the target
-            // size.
-            if (bestSize == null) {
-                int bestPixelCount = 0;
-                for (ImageSize size : previewSizes) {
-                    int pixelCount = Math.min(size.width, targetSize.width)
-                            * Math.min(size.height, targetSize.height);
-                    if (pixelCount >= bestPixelCount) {
-                        bestPixelCount = pixelCount;
-                        bestSize = size;
-                    }
-                }
-            }
-            return bestSize;
-        }
-
-        // Choose the closest camera size whose dimension is greater than the one defined
-        // dimension in the target size, or the closest size if none is greater.
-        int bestSizeDiff = Integer.MIN_VALUE;
         ImageSize bestSize = null;
+        float bestScore = 0;
         for (ImageSize size : previewSizes) {
-            int sizeDiff = targetSize.width == ImageSize.SIZE_UNDEFINED
-                    ? size.height - targetSize.height
-                    : size.width - targetSize.width;
-            if (sizeDiff == 0) {
+            float score = calculateCameraSizeScore(size, targetSize, imageFit, imageScale);
+            if (bestSize == null || score > bestScore) {
                 bestSize = size;
-                break;
-            } else if (bestSizeDiff < 0) {
-                if (sizeDiff > bestSizeDiff) {
-                    bestSizeDiff = sizeDiff;
-                    bestSize = size;
-                }
-            } else if (sizeDiff > 0 && sizeDiff < bestSizeDiff) {
-                bestSizeDiff = sizeDiff;
-                bestSize = size;
+                bestScore = score;
             }
         }
         return bestSize;
+    }
+
+    /**
+     * Calculate a score for how good a camera size is for recording the desired target size based
+     * on these goals:
+     * <ul>
+     * <li> Increase recorded image pixels (that aren't scaled up) </li>
+     * <li> Decrease camera pixels recorded that are wasted </li>
+     * </ul>
+     */
+    public static float calculateCameraSizeScore(
+            ImageSize cameraSize, ImageSize targetSize,
+            ImageFit imageFit, ImageScale imageScale) {
+        if (!targetSize.areDimensionsDefined()) {
+            targetSize = targetSize.toBuilder().calculateUndefinedDimensions(cameraSize).build();
+        }
+        // Find the intersection of these sizes to find the recorded non upscaled pixels:
+        // 1) Camera size scaled to target size
+        // 2) Target size
+        // 3) Camera size
+        long recordedNonUpscaledPixels = cameraSize.toBuilder()
+                .scale(targetSize, imageFit, imageScale)
+                .min(targetSize)
+                .min(cameraSize)
+                .getArea();
+        long pixelsWasted = Math.max(0, cameraSize.getArea() - recordedNonUpscaledPixels);
+        float score = 100f * recordedNonUpscaledPixels - pixelsWasted;
+        return score;
     }
 
     /**
@@ -134,7 +115,7 @@ public class VideoUtil {
     /**
      * Determine the orientation to display the camera surface.
      */
-    public static int determineCameraSurfaceOrientation(
+    public static int determineCameraDisplayRotation(
             int surfaceOrientationDegrees,
             int cameraOrientationDegrees,
             CameraControllerI.Facing cameraFacing) {
@@ -151,7 +132,7 @@ public class VideoUtil {
                 || (orientationDegrees > 225 && orientationDegrees < 315);
     }
 
-    public static int getContextOrientationDegrees(Context context) {
+    public static int getContextRotation(Context context) {
         WindowManager windowManager =
                 (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         switch (windowManager.getDefaultDisplay().getRotation()) {
@@ -170,5 +151,9 @@ public class VideoUtil {
     public static boolean isContextLandscape(Context context) {
         return context.getResources().getConfiguration().orientation
                 == Configuration.ORIENTATION_LANDSCAPE;
+    }
+
+    public static int roundOrientation(int orientation) {
+        return ((orientation + 45) / 90 * 90) % 360;
     }
 }

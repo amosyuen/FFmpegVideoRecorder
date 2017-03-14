@@ -113,8 +113,8 @@ public class TapToFocusView extends View implements View.OnLayoutChangeListener 
         // Note: Use float so that division is float division
         float focusSize = CAMERA_FOCUS_MAX - CAMERA_FOCUS_MIN;
         int orientationDegrees =
-                VideoUtil.determineCameraSurfaceOrientation(
-                        VideoUtil.getContextOrientationDegrees(getContext()),
+                VideoUtil.determineCameraDisplayRotation(
+                        VideoUtil.getContextRotation(getContext()),
                         cameraController.getCameraOrientationDegrees(),
                         cameraController.getCameraFacing());
         mFocusMatrix = new Matrix();

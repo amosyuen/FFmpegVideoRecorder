@@ -3,7 +3,6 @@ package com.amosyuen.videorecorder.activity;
 
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
 import android.graphics.Color;
@@ -25,6 +24,7 @@ import android.support.v7.widget.AppCompatImageButton;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MotionEvent;
+import android.view.OrientationEventListener;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -38,6 +38,7 @@ import com.amosyuen.videorecorder.camera.CameraController;
 import com.amosyuen.videorecorder.camera.CameraControllerI;
 import com.amosyuen.videorecorder.recorder.MediaClipsRecorder;
 import com.amosyuen.videorecorder.recorder.VideoTransformerTask;
+import com.amosyuen.videorecorder.recorder.common.ImageSize;
 import com.amosyuen.videorecorder.recorder.params.CameraParams;
 import com.amosyuen.videorecorder.ui.CameraPreviewView;
 import com.amosyuen.videorecorder.ui.ProgressSectionsView;
@@ -92,9 +93,10 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
     protected AppCompatImageButton mNextButton;
 
     // State variables
+    protected ActivityOrientationEventListener mOrientationEventListener;
+    protected int mOpenCameraOrientationDegrees;
     protected MediaClipsRecorder mMediaClipsRecorder;
     protected CameraControllerI mCameraController;
-    protected int mOrientation;
     protected int mOriginalRequestedOrientation;
     protected long mResumeAutoFocusTaskStartMillis;
     protected OpenCameraTask mOpenCameraTask;
@@ -166,6 +168,8 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
                 }
             }
         });
+
+        mOrientationEventListener = new ActivityOrientationEventListener();
 
         mOriginalRequestedOrientation = getRequestedOrientation();
     }
@@ -239,7 +243,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         mMediaClipsRecorder.setMediaCLipstRecorderListener(this);
 
         setRequestedOrientation(mOriginalRequestedOrientation);
-        updateOrientation(getResources().getConfiguration());
 
         openCamera(getThemeParams().getVideoCameraFacing());
     }
@@ -251,14 +254,28 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         // Camera must be set first
         mCameraController.setMediaRecorder(recorder);
         // Then other config
-        Util.setMediaRecorderParams(recorder, mMediaClipsRecorder, getThemeParams());
-        // Set the orientation hint
-        recorder.setOrientationHint(VideoUtil.getContextOrientationDegrees(this));
+        Util.setMediaRecorderParams(recorder, getThemeParams(),
+                mMediaClipsRecorder.getRecordedMillis(), mMediaClipsRecorder.getRecordedBytes());
+
+        // Set the same params as the camera
+        ImageSize pictureSize = mCameraController.getPictureSize();
+        recorder.setVideoSize(pictureSize.width, pictureSize.height);
+        Log.v(LOG_TAG, String.format("Orientation: %d", mCameraController.getPreviewDisplayOrientationDegrees()));
+        recorder.setOrientationHint(mCameraController.getPreviewDisplayOrientationDegrees());
+
+        int[] framteRateRange = mCameraController.getFrameRateRange();
+        int fps = framteRateRange[0] / 1000;
+        try {
+            recorder.setVideoFrameRate(fps);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, String.format("Error setting recorder frame rate to %d", fps), e);
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        mOrientationEventListener.enable();
         initRecorders();
     }
 
@@ -311,24 +328,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         mMediaClipsRecorder.deleteClips();
         mCameraController.closeCamera();
         releaseResources();
-    }
-
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        updateOrientation(newConfig);
-    }
-
-    protected void updateOrientation(Configuration config) {
-        // If the view orientation changed, reopen the camera as there might be a different camera
-        // resolution that fits the desired resolution better. Also the display orientation needs
-        // to be updated.
-        if (mOrientation != config.orientation) {
-            mOrientation = config.orientation;
-            if (mCameraController.isCameraOpen()) {
-                openCamera(mCameraController.getCameraFacing());
-            }
-        }
+        mOrientationEventListener.disable();
     }
 
     protected void openCamera(CameraControllerI.Facing facing) {
@@ -339,6 +339,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         Log.d(LOG_TAG, String.format("Opening camera facing %s", facing));
         showProgress(R.string.initializing);
         mCameraPreviewView.setPreviewSize(null);
+        mOpenCameraOrientationDegrees = mOrientationEventListener.mOrientationDegrees;
         mOpenCameraTask = new OpenCameraTask();
         mOpenCameraTask.execute(Preconditions.checkNotNull(facing));
     }
@@ -451,7 +452,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         mSwitchCameraButton.setVisibility(View.INVISIBLE);
         // Lock the orientation the first time we start recording if there is no request orientation
         if (mMediaClipsRecorder.getClips().isEmpty() && mOriginalRequestedOrientation == -1) {
-            setRequestedOrientation(mOrientation);
+            setRequestedOrientation(getResources().getConfiguration().orientation);
         }
     }
 
@@ -691,16 +692,27 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         mCameraController.closeCamera();
     }
 
-    protected class OpenCameraTask extends AsyncTask<CameraControllerI.Facing, Void, Exception> {
+    protected class ActivityOrientationEventListener extends OrientationEventListener {
+        protected int mOrientationDegrees;
 
-        private int mSurfaceOrientationDegrees;
+        public ActivityOrientationEventListener() {
+            super(FFmpegRecorderActivity.this);
+        }
 
         @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            mSurfaceOrientationDegrees =
-                    VideoUtil.getContextOrientationDegrees(FFmpegRecorderActivity.this);
+        public void onOrientationChanged(int orientationDegrees)
+        {
+            // If the view orientation when we opened the camera doesn't match the current
+            // orientation, reopen the camera.
+            mOrientationDegrees = VideoUtil.getContextRotation(FFmpegRecorderActivity.this);
+            if (mCameraController.isCameraOpen()
+                    && mOpenCameraOrientationDegrees != mOrientationDegrees) {
+                openCamera(mCameraController.getCameraFacing());
+            }
         }
+    }
+
+    protected class OpenCameraTask extends AsyncTask<CameraControllerI.Facing, Void, Exception> {
 
         @Override
         protected Exception doInBackground(CameraControllerI.Facing[] params) {
@@ -715,7 +727,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
                             .videoCameraFacing(facing)
                             .build();
                 }
-                mCameraController.openCamera(cameraParams, mSurfaceOrientationDegrees);
+                mCameraController.openCamera(cameraParams, mOpenCameraOrientationDegrees);
             } catch (Exception e) {
                 return e;
             }

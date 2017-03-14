@@ -37,7 +37,8 @@
     <string name="video_height_px">Video Height (px)</string>
     <string name="video_length">Video Length</string>
     <string name="video_options">Video Options</string>
-    <string name="video_scale_type">Video Scale Type</string>
+    <string name="video_scale_direction">Video Scale Direction</string>
+    <string name="video_scale_fit">Video Scale Fit</string>
     <string name="video_width">Video Width</string>
     <string name="video_width_px">Video Width (px)</string>
     <string name="thumbnail">Thumbnail</string>

@@ -38,8 +38,9 @@ public class Util {
 
     public static void setMediaRecorderParams(
             MediaRecorder mediaRecorder,
-            MediaClipsRecorder mediaClipsRecorder,
-            RecorderParams params) {
+            RecorderParams params,
+            long millisRecorded,
+            long bytesRecorded) {
         // Sources must be set first
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         mediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
@@ -53,22 +54,14 @@ public class Util {
 
         mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
         mediaRecorder.setVideoEncodingBitRate(params.getVideoBitrate());
-        // Most video frame rates aren't supported. So don't set it
-
-        ImageSize imageSize = params.getVideoSize();
-        if (imageSize.areDimensionsDefined()) {
-            //mediaRecorder.setVideoSize(imageSize.width, imageSize.height);
-        }
 
         if (params.getMaxRecordingMillis() > 0) {
-            int remainingMillis =
-                    (int)(params.getMaxRecordingMillis() - mediaClipsRecorder.getRecordedMillis());
+            int remainingMillis = (int)(params.getMaxRecordingMillis() - millisRecorded);
             Preconditions.checkArgument(remainingMillis > 0);
             mediaRecorder.setMaxDuration(remainingMillis);
         }
         if (params.getMaxFileSizeBytes() > 0) {
-            int remainingBytes =
-                    (int)(params.getMaxFileSizeBytes() - mediaClipsRecorder.getRecordedBytes());
+            int remainingBytes = (int)(params.getMaxFileSizeBytes() - bytesRecorded);
             Preconditions.checkArgument(remainingBytes > 0);
             mediaRecorder.setMaxFileSize(remainingBytes);
         }

@@ -5,8 +5,9 @@ import android.net.Uri;
 import android.support.annotation.CallSuper;
 
 import com.amosyuen.videorecorder.camera.CameraControllerI;
+import com.amosyuen.videorecorder.recorder.common.ImageFit;
+import com.amosyuen.videorecorder.recorder.common.ImageScale;
 import com.amosyuen.videorecorder.recorder.common.ImageSize;
-import com.amosyuen.videorecorder.recorder.common.ScaleType;
 import com.google.common.base.MoreObjects;
 
 import java.io.File;
@@ -56,8 +57,8 @@ public interface RecorderParams extends
             VideoTransformerParams.BuilderI<T> {
         protected ImageSize.Builder videoSize = ImageSize.UNDEFINED.toBuilder();
         protected CameraControllerI.Facing videoCameraFacing = CameraControllerI.Facing.BACK;
-        protected ScaleType videoScaleType = ScaleType.FILL;
-        protected boolean canUpscaleVideo = false;
+        protected ImageFit mVideoImageFit = ImageFit.FILL;
+        protected ImageScale mVideoImageScale = ImageScale.DOWNSCALE;
         protected boolean canPadVideo = true;
         protected int videoBitrate = 1000000;
         protected int videoCodec = VideoCodec.H264.ffmpegCodecValue;
@@ -91,8 +92,8 @@ public interface RecorderParams extends
         public T merge(RecorderParams copy) {
             videoSize = copy.getVideoSize().toBuilder();
             videoCameraFacing = copy.getVideoCameraFacing();
-            videoScaleType = copy.getVideoScaleType();
-            canUpscaleVideo = copy.canUpscaleVideo();
+            mVideoImageFit = copy.getVideoImageFit();
+            mVideoImageScale = copy.getVideoImageScale();
             canPadVideo = copy.canPadVideo();
             videoBitrate = copy.getVideoBitrate();
             videoCodec = copy.getVideoCodec();
@@ -143,13 +144,13 @@ public interface RecorderParams extends
             return (T) this;
         }
 
-        public T videoScaleType(ScaleType val) {
-            videoScaleType = val;
+        public T videoScaleFit(ImageFit val) {
+            mVideoImageFit = val;
             return (T) this;
         }
 
-        public T canUpscaleVideo(boolean val) {
-            canUpscaleVideo = val;
+        public T videoScaleDirection(ImageScale val) {
+            mVideoImageScale = val;
             return (T) this;
         }
 
@@ -259,7 +260,7 @@ public interface RecorderParams extends
 
             AbstractBuilder<?> that = (AbstractBuilder<?>) o;
 
-            if (canUpscaleVideo != that.canUpscaleVideo) return false;
+            if (mVideoImageScale != that.mVideoImageScale) return false;
             if (canPadVideo != that.canPadVideo) return false;
             if (videoBitrate != that.videoBitrate) return false;
             if (videoCodec != that.videoCodec) return false;
@@ -274,7 +275,7 @@ public interface RecorderParams extends
             if (videoSize != null ? !videoSize.equals(that.videoSize) : that.videoSize != null)
                 return false;
             if (videoCameraFacing != that.videoCameraFacing) return false;
-            if (videoScaleType != that.videoScaleType) return false;
+            if (mVideoImageFit != that.mVideoImageFit) return false;
             if (videoOutputFormat != null ? !videoOutputFormat.equals(that.videoOutputFormat) :
                     that.videoOutputFormat != null)
                 return false;
@@ -291,8 +292,8 @@ public interface RecorderParams extends
         public int hashCode() {
             int result = videoSize != null ? videoSize.hashCode() : 0;
             result = 31 * result + (videoCameraFacing != null ? videoCameraFacing.hashCode() : 0);
-            result = 31 * result + (videoScaleType != null ? videoScaleType.hashCode() : 0);
-            result = 31 * result + (canUpscaleVideo ? 1 : 0);
+            result = 31 * result + (mVideoImageFit != null ? mVideoImageFit.hashCode() : 0);
+            result = 31 * result + (mVideoImageScale != null ? mVideoImageScale.hashCode() : 0);
             result = 31 * result + (canPadVideo ? 1 : 0);
             result = 31 * result + videoBitrate;
             result = 31 * result + videoCodec;
@@ -315,8 +316,8 @@ public interface RecorderParams extends
             return MoreObjects.toStringHelper(this)
                     .add("videoSize", videoSize)
                     .add("videoCameraFacing", videoCameraFacing)
-                    .add("videoScaleType", videoScaleType)
-                    .add("canUpscaleVideo", canUpscaleVideo)
+                    .add("mVideoImageFit", mVideoImageFit)
+                    .add("getVideoImageScale", mVideoImageScale)
                     .add("canPadVideo", canPadVideo)
                     .add("videoBitrate", videoBitrate)
                     .add("videoCodec", videoCodec)
@@ -360,8 +361,8 @@ public interface RecorderParams extends
         public static class RecorderParamsImpl implements RecorderParams {
             private final ImageSize videoSize;
             private final CameraControllerI.Facing videoCameraFacing;
-            private final ScaleType videoScaleType;
-            private final boolean canUpscaleVideo;
+            private final ImageFit mVideoImageFit;
+            private final ImageScale mVideoImageScale;
             private final boolean canPadVideo;
             private final int videoBitrate;
             private final int videoCodec;
@@ -383,8 +384,8 @@ public interface RecorderParams extends
             public RecorderParamsImpl(AbstractBuilder builder) {
                 videoSize = builder.videoSize.build();
                 videoCameraFacing = builder.videoCameraFacing;
-                videoScaleType = builder.videoScaleType;
-                canUpscaleVideo = builder.canUpscaleVideo;
+                mVideoImageFit = builder.mVideoImageFit;
+                mVideoImageScale = builder.mVideoImageScale;
                 canPadVideo = builder.canPadVideo;
                 videoBitrate = builder.videoBitrate;
                 videoCodec = builder.videoCodec;
@@ -414,14 +415,12 @@ public interface RecorderParams extends
                 return videoCameraFacing;
             }
 
-            @Override
-            public ScaleType getVideoScaleType() {
-                return videoScaleType;
+            public ImageFit getVideoImageFit() {
+                return mVideoImageFit;
             }
 
-            @Override
-            public boolean canUpscaleVideo() {
-                return canUpscaleVideo;
+            public ImageScale getVideoImageScale() {
+                return mVideoImageScale;
             }
 
             @Override
@@ -502,7 +501,7 @@ public interface RecorderParams extends
 
                 AbstractBuilder<?> that = (AbstractBuilder<?>) o;
 
-                if (canUpscaleVideo != that.canUpscaleVideo) return false;
+                if (mVideoImageScale != that.mVideoImageScale) return false;
                 if (canPadVideo != that.canPadVideo) return false;
                 if (videoBitrate != that.videoBitrate) return false;
                 if (videoCodec != that.videoCodec) return false;
@@ -517,7 +516,7 @@ public interface RecorderParams extends
                 if (videoSize != null ? !videoSize.equals(that.videoSize) : that.videoSize != null)
                     return false;
                 if (videoCameraFacing != that.videoCameraFacing) return false;
-                if (videoScaleType != that.videoScaleType) return false;
+                if (mVideoImageFit != that.mVideoImageFit) return false;
                 if (videoOutputFormat != null ? !videoOutputFormat.equals(that.videoOutputFormat) :
                         that.videoOutputFormat != null)
                     return false;
@@ -534,8 +533,8 @@ public interface RecorderParams extends
             public int hashCode() {
                 int result = videoSize != null ? videoSize.hashCode() : 0;
                 result = 31 * result + (videoCameraFacing != null ? videoCameraFacing.hashCode() : 0);
-                result = 31 * result + (videoScaleType != null ? videoScaleType.hashCode() : 0);
-                result = 31 * result + (canUpscaleVideo ? 1 : 0);
+                result = 31 * result + (mVideoImageFit != null ? mVideoImageFit.hashCode() : 0);
+                result = 31 * result + (mVideoImageScale != null ? mVideoImageScale.hashCode() : 0);
                 result = 31 * result + (canPadVideo ? 1 : 0);
                 result = 31 * result + videoBitrate;
                 result = 31 * result + videoCodec;
@@ -558,8 +557,8 @@ public interface RecorderParams extends
                 return MoreObjects.toStringHelper(this)
                         .add("videoSize", videoSize)
                         .add("videoCameraFacing", videoCameraFacing)
-                        .add("videoScaleType", videoScaleType)
-                        .add("canUpscaleVideo", canUpscaleVideo)
+                        .add("mVideoImageFit", mVideoImageFit)
+                        .add("getVideoImageScale", mVideoImageScale)
                         .add("canPadVideo", canPadVideo)
                         .add("videoBitrate", videoBitrate)
                         .add("videoCodec", videoCodec)

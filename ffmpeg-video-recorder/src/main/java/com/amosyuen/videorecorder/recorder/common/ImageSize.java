@@ -30,8 +30,10 @@ public class ImageSize implements Serializable {
     }
 
     public float getAspectRatio() {
-        return areDimensionsDefined() ? (float)width / height : Float.NaN;
+        return (float) width / height;
     }
+
+    public long getArea() { return (long) width * height; }
 
     public Builder toBuilder() {
         return new Builder(width, height);
@@ -85,8 +87,10 @@ public class ImageSize implements Serializable {
         }
 
         public float getAspectRatio() {
-            return (float)width / height;
+            return (float) width / height;
         }
+
+        public long getArea() { return (long) width * height; }
 
         public Builder width(int width) {
             this.width = width;
@@ -155,17 +159,17 @@ public class ImageSize implements Serializable {
         /**
          * @param targetSize must be a defined size.
          */
-        public Builder scale(ImageSize targetSize, ScaleType scaleType, boolean allowUpscale) {
-            switch (scaleType) {
+        public Builder scale(ImageSize targetSize, ImageFit imageFit, ImageScale imageScale) {
+            switch (imageFit) {
                 case FILL:
-                    scaleToFill(targetSize, allowUpscale);
+                    scaleToFill(targetSize, imageScale);
                     break;
                 case FIT:
-                    scaleToFit(targetSize, allowUpscale);
+                    scaleToFit(targetSize, imageScale);
                     break;
                 default:
                     throw new IllegalArgumentException(
-                            String.format("Unsupported scale type %s", scaleType));
+                            String.format("Unsupported scale fit %s", imageFit));
             }
             return this;
         }
@@ -173,31 +177,33 @@ public class ImageSize implements Serializable {
         /**
          * @param targetSize must be a defined size.
          */
-        public Builder scaleToFill(ImageSize targetSize, boolean allowUpscale) {
-            scale(targetSize, allowUpscale, true);
+        public Builder scaleToFill(ImageSize targetSize, ImageScale imageScale) {
+            scale(targetSize, imageScale, true);
             return this;
         }
 
         /**
          * @param targetSize must be a defined size.
          */
-        public Builder scaleToFit(ImageSize targetSize, boolean allowUpscale) {
-            scale(targetSize, allowUpscale, false);
+        public Builder scaleToFit(ImageSize targetSize, ImageScale imageScale) {
+            scale(targetSize, imageScale, false);
             return this;
         }
 
         /**
          * @param targetSize must be a defined size.
          */
-        protected void scale(ImageSize targetSize, boolean allowUpscale, boolean isFill) {
+        protected void scale(ImageSize targetSize, ImageScale imageScale, boolean isFill) {
             Preconditions.checkArgument(targetSize.areDimensionsDefined());
             boolean isAspectRatioGreaterThan = targetSize.getAspectRatio() > getAspectRatio();
             if (isAspectRatioGreaterThan ^ isFill) {
-                if (targetSize.height < height || (targetSize.height > height && allowUpscale)) {
+                if ((targetSize.height < height && ImageScale.DOWNSCALE.intersects(imageScale))
+                        || (targetSize.height > height && ImageScale.UPSCALE.intersects(imageScale))) {
                     width = width * targetSize.height / height;
                     height = targetSize.height;
                 }
-            } else if (targetSize.width < width || (targetSize.width > width && allowUpscale)) {
+            } else if ((targetSize.width < width && ImageScale.DOWNSCALE.intersects(imageScale))
+                    || (targetSize.width > width && ImageScale.UPSCALE.intersects(imageScale))) {
                 height = height * targetSize.width / width;
                 width = targetSize.width;
             }

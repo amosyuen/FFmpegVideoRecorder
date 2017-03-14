@@ -17,18 +17,15 @@ import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MotionEvent;
-import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 
 import com.amosyuen.videorecorder.camera.CameraControllerI;
+import com.amosyuen.videorecorder.recorder.common.ImageScale;
 import com.amosyuen.videorecorder.recorder.common.ImageSize;
 import com.amosyuen.videorecorder.recorder.params.VideoTransformerParams;
 import com.amosyuen.videorecorder.util.VideoUtil;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-
-import java.io.IOException;
 
 /**
  * View that previews the camera. Scales and limits the view according to the desired dimensions.
@@ -50,8 +47,8 @@ public class CameraPreviewView extends SurfaceView {
     protected int mFocusWeight;
 
     // Params
-    protected ImageSize mScaledPreviewSize;
-    protected ImageSize mScaledTargetSize;
+    protected ImageSize mScaledPreviewSize = ImageSize.UNDEFINED;
+    protected ImageSize mScaledTargetSize = ImageSize.UNDEFINED;
     @ColorInt protected int mBlackColor;
     protected Matrix mFocusMatrix;
 
@@ -164,8 +161,6 @@ public class CameraPreviewView extends SurfaceView {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        Log.v(LOG_TAG, "onMeasure");
-
         // Get the parent size
         ImageSize parentSize;
         if (getParent() instanceof View) {
@@ -188,7 +183,8 @@ public class CameraPreviewView extends SurfaceView {
             // If there is no preview size calculate it by scaling the targetSize to fir the parent
             // or use the parent if the target size doesn't have both dimensions defined.
             mPreviewSize = targetSize.areDimensionsDefined()
-                    ? targetSize.toBuilder().scaleToFit(parentSize, true).build()
+                    ? targetSize.toBuilder()
+                            .scaleToFit(parentSize, ImageScale.DOWNSCALE_OR_UPSCALE).build()
                     : parentSize;
             scalePreviewSizeBuilder = mPreviewSize.toBuilder();
         } else {
@@ -210,8 +206,8 @@ public class CameraPreviewView extends SurfaceView {
                     .roundWidthUpToEvenAndMaintainAspectRatio();
             scalePreviewSizeBuilder.scale(
                     scaleTargetSizeBuilder.build(),
-                    mParams.getVideoScaleType(),
-                    mParams.canUpscaleVideo());
+                    mParams.getVideoImageFit(),
+                    mParams.getVideoImageScale());
         } else {
             // No target size was specified, so just use the preview size.
             scaleTargetSizeBuilder = scalePreviewSizeBuilder.clone()
@@ -221,35 +217,37 @@ public class CameraPreviewView extends SurfaceView {
 
         // Scale the target to fit within the parent view
         ImageSize preScaleTargetSize = scaleTargetSizeBuilder.build();
-        mScaledTargetSize = scaleTargetSizeBuilder.scaleToFit(parentSize, true).build();
+        mScaledTargetSize = scaleTargetSizeBuilder
+                .scaleToFit(parentSize, ImageScale.DOWNSCALE_OR_UPSCALE).build();
         // Scale the preview size by the same amount that target size was scaled
         scalePreviewSizeBuilder.width = scalePreviewSizeBuilder.width
                 * mScaledTargetSize.width / preScaleTargetSize.width;
         scalePreviewSizeBuilder.height = scalePreviewSizeBuilder.height
                 * mScaledTargetSize.height / preScaleTargetSize.height;
         mScaledPreviewSize = scalePreviewSizeBuilder.build();
+
+        boolean hasChanged = getMeasuredWidth() == mScaledPreviewSize.width
+                && getMeasuredHeight() == mScaledPreviewSize.height;
+        setMeasuredDimension(mScaledPreviewSize.width, mScaledPreviewSize.height);
+        if (!hasChanged) {
+            return;
+        }
+
         Log.v(LOG_TAG, String.format(
                 "Parent=%s Target=%s Preview=%s", parentSize, targetSize, mPreviewSize));
         Log.v(LOG_TAG, String.format(
                 "ScaledTarget=%s ScaledPreview=%s", mScaledTargetSize, mScaledPreviewSize));
-
-        setMeasuredDimension(mScaledPreviewSize.width, mScaledPreviewSize.height);
-
         if (mCameraController.canFocusOnRect()) {
-            // Calculate matrix for transforming preview x:y coordinates into the camera -1000:1000
+            // Calculate matrix for transforming preview x:y coordinates into the camera
+            // -1000:1000
             // coordinate space, taking into account camera rotation and flipping
             // Note: Use float so that division is float division
             float focusSize = CAMERA_FOCUS_MAX - CAMERA_FOCUS_MIN;
-            int orientationDegrees =
-                    VideoUtil.determineCameraSurfaceOrientation(
-                            VideoUtil.getContextOrientationDegrees(getContext()),
-                            mCameraController.getCameraOrientationDegrees(),
-                            mCameraController.getCameraFacing());
             mFocusMatrix = new Matrix();
             mFocusMatrix.postScale(
                     focusSize / mScaledPreviewSize.width, focusSize / mScaledPreviewSize.height);
             mFocusMatrix.postTranslate(-0.5f * focusSize, -0.5f * focusSize);
-            mFocusMatrix.postRotate(-orientationDegrees);
+            mFocusMatrix.postRotate(-mCameraController.getPreviewDisplayOrientationDegrees());
         }
     }
 
@@ -286,11 +284,11 @@ public class CameraPreviewView extends SurfaceView {
                 && mCameraController.canFocusOnRect()
                 && mFocusSize > 0) {
             final RectF uiFocusRect = calculateTapArea(event.getX(), event.getY());
-            RectF transformedFocusRect = new RectF();
-            mFocusMatrix.mapRect(transformedFocusRect, uiFocusRect);
+            RectF cameraFocusRectF = new RectF();
+            mFocusMatrix.mapRect(cameraFocusRectF, uiFocusRect);
             Rect cameraFocusRect = new Rect(
-                    Math.round(transformedFocusRect.left), Math.round(transformedFocusRect.top),
-                    Math.round(transformedFocusRect.right), Math.round(transformedFocusRect.bottom));
+                    Math.round(cameraFocusRectF.left), Math.round(cameraFocusRectF.top),
+                    Math.round(cameraFocusRectF.right), Math.round(cameraFocusRectF.bottom));
             Log.v(LOG_TAG, String.format("Tap to focus on %s", cameraFocusRect));
 
             try {

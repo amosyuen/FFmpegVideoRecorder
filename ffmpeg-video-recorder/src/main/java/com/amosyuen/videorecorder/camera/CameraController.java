@@ -7,7 +7,9 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 import android.view.SurfaceHolder;
 
+import com.amosyuen.videorecorder.recorder.common.ImageScale;
 import com.amosyuen.videorecorder.recorder.common.ImageSize;
+import com.amosyuen.videorecorder.recorder.common.ImageFit;
 import com.amosyuen.videorecorder.recorder.params.CameraParams;
 import com.amosyuen.videorecorder.util.VideoUtil;
 import com.google.common.base.Preconditions;
@@ -55,6 +57,7 @@ public class CameraController implements CameraControllerI {
     protected Camera.CameraInfo mCameraInfo = new Camera.CameraInfo();
     @Nullable protected Camera mCamera;
     protected Camera.Parameters mParameters;
+    protected int mPreviewDisplayOrientationDegrees;
     protected CameraPreviewCallback mCameraPreviewCallback = new CameraPreviewCallback();
     protected boolean mIsPreviewing;
     protected List<CameraListener> mListeners = new ArrayList<>();
@@ -85,13 +88,13 @@ public class CameraController implements CameraControllerI {
     }
 
     @Override
-    public void openCamera(CameraParams params, int surfaceOrientationDegrees) {
+    public void openCamera(CameraParams params, int surfaceRotationDegrees) {
         if (mCamera != null) {
             closeCamera();
         }
 
         Log.d(LOG_TAG, String.format(
-                "Opening camera params %s orientation %d", params, surfaceOrientationDegrees));
+                "Opening camera params %s orientation %d", params, surfaceRotationDegrees));
         // Choose a camera matching the desired facing
         Facing cameraFacing = params.getVideoCameraFacing();
         Preconditions.checkNotNull(cameraFacing);
@@ -116,21 +119,25 @@ public class CameraController implements CameraControllerI {
         Camera camera = Camera.open(cameraId);
         Camera.Parameters parameters = camera.getParameters();
 
-        // Preview Size
-        List<Camera.Size> cameraPreviewSizes = camera.getParameters().getSupportedPreviewSizes();
+        // Preview and picture sizes
         ImageSize targetSize = params.getVideoSize();
         if (targetSize.isAtLeastOneDimensionDefined()) {
-            List<ImageSize> previewSizes =
-                    Lists.newArrayListWithCapacity(cameraPreviewSizes.size());
-            for (Camera.Size size : cameraPreviewSizes) {
-                previewSizes.add(new ImageSize(size.width, size.height));
+            if (VideoUtil.isLandscapeAngle(surfaceRotationDegrees)) {
+                targetSize = targetSize.toBuilder().invert().build();
             }
-            ImageSize bestPreviewSize = VideoUtil.getBestResolution(
-                    previewSizes,
-                    targetSize,
-                    VideoUtil.isLandscapeAngle(surfaceOrientationDegrees));
+            ImageFit imageFit = params.getVideoImageFit();
+            ImageScale videoImageScale = params.getVideoImageScale();
+            ImageSize bestPictureSize = getBestImageSize(
+                    camera.getParameters().getSupportedPictureSizes(),
+                    targetSize, imageFit, videoImageScale);
+            parameters.setPictureSize(bestPictureSize.width, bestPictureSize.height);
+            Log.v(LOG_TAG, String.format("Set camera picture size %s", bestPictureSize));
+
+            ImageSize bestPreviewSize = getBestImageSize(
+                    camera.getParameters().getSupportedPreviewSizes(),
+                    bestPictureSize, imageFit, videoImageScale);
             parameters.setPreviewSize(bestPreviewSize.width, bestPreviewSize.height);
-            Log.v(LOG_TAG, String.format("Set camera preview %s", bestPreviewSize));
+            Log.v(LOG_TAG, String.format("Set camera preview size %s", bestPreviewSize));
         }
 
         // Preview frame rate
@@ -151,10 +158,11 @@ public class CameraController implements CameraControllerI {
         }
 
         // Display orientation
-        int orientationDegrees = VideoUtil.determineCameraSurfaceOrientation(
-                surfaceOrientationDegrees, mCameraInfo.orientation, cameraFacing);
-        camera.setDisplayOrientation(orientationDegrees);
-        Log.v(LOG_TAG, String.format("Set camera orientation to %d", orientationDegrees));
+        mPreviewDisplayOrientationDegrees = VideoUtil.determineCameraDisplayRotation(
+                surfaceRotationDegrees, mCameraInfo.orientation, cameraFacing);
+        camera.setDisplayOrientation(mPreviewDisplayOrientationDegrees);
+        Log.v(LOG_TAG, String.format(
+                "Set camera display orientation to %d", mPreviewDisplayOrientationDegrees));
 
         mCamera = camera;
 
@@ -164,10 +172,20 @@ public class CameraController implements CameraControllerI {
         }
     }
 
+    protected static ImageSize getBestImageSize(
+            List<Camera.Size> supportedSizes,
+            ImageSize targetSize, ImageFit imageFit, ImageScale videoImageScale) {
+        List<ImageSize> pictureSizes =
+                Lists.newArrayListWithCapacity(supportedSizes.size());
+        for (Camera.Size size : supportedSizes) {
+            pictureSizes.add(new ImageSize(size.width, size.height));
+        }
+        return VideoUtil.getBestResolution(pictureSizes, targetSize, imageFit, videoImageScale);
+    }
+
     @Override
     public void closeCamera() {
         if (isCameraOpen()) {
-            //lock();
             stopPreview();
             mCamera.release();
             mCamera = null;
@@ -201,7 +219,15 @@ public class CameraController implements CameraControllerI {
         }
         Camera.Size size = mParameters.getPreviewSize();
         return new ImageSize(size.width, size.height);
+    }
 
+    @Override
+    public ImageSize getPictureSize() {
+        if (!isCameraOpen()) {
+            return null;
+        }
+        Camera.Size size = mParameters.getPictureSize();
+        return new ImageSize(size.width, size.height);
     }
 
     @Override
@@ -217,18 +243,16 @@ public class CameraController implements CameraControllerI {
         if (!isCameraOpen()) {
             return;
         }
-        //lock();
         mCameraPreviewCallback.setPreviewCallback(callback);
-        //unlock();
+        
     }
 
     public void setPreviewDisplay(@Nullable SurfaceHolder holder) throws IOException {
         if (!isCameraOpen()) {
             return;
         }
-       //lock();
         mCamera.setPreviewDisplay(holder);
-       //unlock();
+       
     }
 
     @Override
@@ -236,12 +260,10 @@ public class CameraController implements CameraControllerI {
         if (!isCameraOpen() || mIsPreviewing) {
             return;
         }
-       //lock();
         mCamera.startPreview();
         mCamera.setPreviewCallback(mCameraPreviewCallback);
         mCameraPreviewCallback.setFirstCall(true);
         mIsPreviewing = true;
-       //unlock();
 
         // Start with auto focus. Must be called after starting preview
         autoFocus();
@@ -252,11 +274,9 @@ public class CameraController implements CameraControllerI {
         if (!isCameraOpen() || !mIsPreviewing) {
             return;
         }
-       //lock();
         mCamera.stopPreview();
         mCamera.setPreviewCallback(null);
         mIsPreviewing = false;
-       //unlock();
         for (CameraListener listener : mListeners) {
             listener.onCameraStopPreview();
         }
@@ -276,6 +296,22 @@ public class CameraController implements CameraControllerI {
     }
 
     @Override
+    public int getPreviewDisplayOrientationDegrees() {
+        return isCameraOpen() ? mPreviewDisplayOrientationDegrees : -1;
+    }
+
+    @Override
+    @Nullable
+    public int[] getFrameRateRange() {
+        if (!isCameraOpen()) {
+            return null;
+        }
+        int[] frameRateRange = new int[2];
+        mParameters.getPreviewFpsRange(frameRateRange);
+        return frameRateRange;
+    }
+
+    @Override
     public FlashMode getFlashMode() {
         if (!isCameraOpen()) {
             return null;
@@ -287,27 +323,21 @@ public class CameraController implements CameraControllerI {
 
     @Override
     public boolean supportsFlashMode(FlashMode flashMode) {
-        if (!isCameraOpen()) {
-            return false;
-        }
-        boolean supportsFlashMode = !Sets.intersection(
+        return isCameraOpen() && !Sets.intersection(
                         ImmutableSet.copyOf(mParameters.getSupportedFlashModes()),
                         FLASH_MODE_MAP.get(flashMode))
                 .isEmpty();
-        return supportsFlashMode;
     }
 
     @Override
     public boolean setFlashMode(FlashMode flashMode) {
         if (isCameraOpen()) {
-           //lock();
             Camera.Parameters parameters = mCamera.getParameters();
             boolean setFlashMode = setFlashModeParams(flashMode, parameters);
             if (setFlashMode) {
                 mCamera.setParameters(parameters);
                 mParameters = parameters;
             }
-           //unlock();
             if (setFlashMode) {
                 for (CameraListener listener : mListeners) {
                     listener.onFlashModeChanged(flashMode);
@@ -343,7 +373,6 @@ public class CameraController implements CameraControllerI {
     public boolean focusOnRect(Rect rect, int focusWeight) {
         if (isCameraOpen()) {
             Log.v(LOG_TAG, String.format("Focus on %s with weight %d", rect, focusWeight));
-           //lock();
             Camera.Parameters parameters = mCamera.getParameters();
             parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
             List<Camera.Area> focusAreas = new ArrayList<Camera.Area>();
@@ -363,7 +392,6 @@ public class CameraController implements CameraControllerI {
                     Log.v(LOG_TAG, "Finished focusing");
                 }
             });
-           //unlock();
 
             for (CameraListener listener : mListeners) {
                 listener.onCameraFocusOnRect(rect);
@@ -374,24 +402,18 @@ public class CameraController implements CameraControllerI {
 
     @Override
     public boolean canAutoFocus() {
-        if (!isCameraOpen()) {
-            return false;
-        }
-        boolean canAutoFocus = !Sets.intersection(
+        return isCameraOpen() && !Sets.intersection(
                         ImmutableSet.copyOf(mParameters.getSupportedFocusModes()),
                         FOCUS_MODE_PREFERRED_ORDER)
                 .isEmpty();
-        return canAutoFocus;
     }
 
     @Override
     public boolean autoFocus() {
         if (isCameraOpen()) {
-           //lock();
             Camera.Parameters parameters = mCamera.getParameters();
             ImmutableSet<String> focusModes =
                     ImmutableSet.copyOf(parameters.getSupportedFocusModes());
-
             String selectedFocusMode = null;
             for (String focusMode : FOCUS_MODE_PREFERRED_ORDER) {
                 if (focusModes.contains(focusMode)) {
@@ -402,9 +424,6 @@ public class CameraController implements CameraControllerI {
             if (selectedFocusMode != null) {
                 parameters.setFocusMode(selectedFocusMode);
                 mCamera.autoFocus(null);
-            }
-           //unlock();
-            if (selectedFocusMode != null) {
                 for (CameraListener listener : mListeners) {
                     listener.onCameraAutoFocus();
                 }

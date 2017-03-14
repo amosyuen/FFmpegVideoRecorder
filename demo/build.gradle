@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId "com.amosyuen.videorecorder.demo"
-        minSdkVersion 16
+        minSdkVersion 17
         targetSdkVersion 25
         versionCode 3
         versionName '1.2.0'

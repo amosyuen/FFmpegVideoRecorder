@@ -4,6 +4,8 @@ package com.amosyuen.videorecorder.recorder.params;
 import android.support.annotation.CallSuper;
 
 import com.amosyuen.videorecorder.camera.CameraControllerI;
+import com.amosyuen.videorecorder.recorder.common.ImageFit;
+import com.amosyuen.videorecorder.recorder.common.ImageScale;
 import com.amosyuen.videorecorder.recorder.common.ImageSize;
 import com.google.common.base.MoreObjects;
 
@@ -12,15 +14,18 @@ import java.io.Serializable;
 /**
  * Params for the camera.
  */
-public interface CameraParams extends VideoFrameRateParams, VideoSizeParams, Serializable {
+public interface CameraParams
+        extends VideoFrameRateParams, VideoScaleParams, VideoSizeParams, Serializable {
 
     /**
      * Get the video camera facing.
      */
     CameraControllerI.Facing getVideoCameraFacing();
 
-    interface BuilderI<T extends BuilderI<T>>
-            extends VideoFrameRateParams.BuilderI<T>, VideoSizeParams.BuilderI<T> {
+    interface BuilderI<T extends BuilderI<T>> extends
+            VideoFrameRateParams.BuilderI<T>,
+            VideoScaleParams.BuilderI<T>,
+            VideoSizeParams.BuilderI<T> {
 
         /**
          * Set the video camera facing.
@@ -32,11 +37,15 @@ public interface CameraParams extends VideoFrameRateParams, VideoSizeParams, Ser
 
     class Builder implements BuilderI<Builder> {
         protected ImageSize.Builder videoSize = ImageSize.UNDEFINED.toBuilder();
+        protected ImageFit mVideoImageFit = ImageFit.FILL;
+        protected ImageScale mVideoImageScale = ImageScale.DOWNSCALE;
         protected CameraControllerI.Facing videoCameraFacing = CameraControllerI.Facing.BACK;
         protected int videoFrameRate = 30;
 
         public Builder merge(CameraParams copy) {
             videoSize = copy.getVideoSize().toBuilder();
+            mVideoImageFit = copy.getVideoImageFit();
+            mVideoImageScale = copy.getVideoImageScale();
             videoCameraFacing = copy.getVideoCameraFacing();
             videoFrameRate = copy.getVideoFrameRate();
             return this;
@@ -67,6 +76,18 @@ public interface CameraParams extends VideoFrameRateParams, VideoSizeParams, Ser
         }
 
         @Override
+        public Builder videoScaleFit(ImageFit val) {
+            mVideoImageFit = val;
+            return this;
+        }
+
+        @Override
+        public Builder videoScaleDirection(ImageScale val) {
+            mVideoImageScale = val;
+            return this;
+        }
+
+        @Override
         public Builder videoCameraFacing(CameraControllerI.Facing val) {
             videoCameraFacing = val;
             return this;
@@ -82,13 +103,61 @@ public interface CameraParams extends VideoFrameRateParams, VideoSizeParams, Ser
             return new CameraParamsImpl(this);
         }
 
+        @Override
+        @CallSuper
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Builder builder = (Builder) o;
+
+            if (mVideoImageScale != builder.mVideoImageScale) return false;
+            if (videoFrameRate != builder.videoFrameRate) return false;
+            if (videoSize != null ? !videoSize.equals(builder.videoSize) : builder.videoSize !=
+                    null)
+                return false;
+            if (mVideoImageFit != builder.mVideoImageFit) return false;
+            return videoCameraFacing == builder.videoCameraFacing;
+
+        }
+
+        @Override
+        @CallSuper
+        public int hashCode() {
+            int result = videoSize != null ? videoSize.hashCode() : 0;
+            result = 31 * result + (mVideoImageFit != null ? mVideoImageFit.hashCode() : 0);
+            result = 31 * result + (mVideoImageScale != null ? mVideoImageScale.hashCode() : 0);
+            result = 31 * result + (videoCameraFacing != null ? videoCameraFacing.hashCode() : 0);
+            result = 31 * result + videoFrameRate;
+            return result;
+        }
+
+        @CallSuper
+        protected MoreObjects.ToStringHelper toStringHelper() {
+            return MoreObjects.toStringHelper(this)
+                    .add("videoSize", videoSize)
+                    .add("mVideoImageFit", mVideoImageFit)
+                    .add("getVideoImageScale", mVideoImageScale)
+                    .add("videoCameraFacing", videoCameraFacing)
+                    .add("videoFrameRate", videoFrameRate);
+        }
+
+        @Override
+        public final String toString() {
+            return toStringHelper().toString();
+        }
+
         public static class CameraParamsImpl implements CameraParams {
             private final ImageSize videoSize;
+            private final ImageFit mVideoImageFit;
+            private final ImageScale mVideoImageScale;
             private final CameraControllerI.Facing videoCameraFacing;
             private final int videoFrameRate;
 
             public CameraParamsImpl(Builder builder) {
                 videoSize = builder.videoSize.build();
+                mVideoImageFit = builder.mVideoImageFit;
+                mVideoImageScale = builder.mVideoImageScale;
                 videoCameraFacing = builder.videoCameraFacing;
                 videoFrameRate = builder.videoFrameRate;
             }
@@ -96,6 +165,14 @@ public interface CameraParams extends VideoFrameRateParams, VideoSizeParams, Ser
             @Override
             public ImageSize getVideoSize() {
                 return videoSize;
+            }
+
+            public ImageFit getVideoImageFit() {
+                return mVideoImageFit;
+            }
+
+            public ImageScale getVideoImageScale() {
+                return mVideoImageScale;
             }
 
             @Override
@@ -114,12 +191,15 @@ public interface CameraParams extends VideoFrameRateParams, VideoSizeParams, Ser
                 if (this == o) return true;
                 if (o == null || getClass() != o.getClass()) return false;
 
-                CameraParamsImpl that = (CameraParamsImpl) o;
+                Builder builder = (Builder) o;
 
-                if (videoFrameRate != that.videoFrameRate) return false;
-                if (videoSize != null ? !videoSize.equals(that.videoSize) : that.videoSize != null)
+                if (mVideoImageScale != builder.mVideoImageScale) return false;
+                if (videoFrameRate != builder.videoFrameRate) return false;
+                if (videoSize != null ? !videoSize.equals(builder.videoSize) : builder.videoSize !=
+                        null)
                     return false;
-                return videoCameraFacing == that.videoCameraFacing;
+                if (mVideoImageFit != builder.mVideoImageFit) return false;
+                return videoCameraFacing == builder.videoCameraFacing;
 
             }
 
@@ -127,6 +207,8 @@ public interface CameraParams extends VideoFrameRateParams, VideoSizeParams, Ser
             @CallSuper
             public int hashCode() {
                 int result = videoSize != null ? videoSize.hashCode() : 0;
+                result = 31 * result + (mVideoImageFit != null ? mVideoImageFit.hashCode() : 0);
+                result = 31 * result + (mVideoImageScale != null ? mVideoImageScale.hashCode() : 0);
                 result = 31 * result + (videoCameraFacing != null ? videoCameraFacing.hashCode() : 0);
                 result = 31 * result + videoFrameRate;
                 return result;
@@ -136,6 +218,8 @@ public interface CameraParams extends VideoFrameRateParams, VideoSizeParams, Ser
             protected MoreObjects.ToStringHelper toStringHelper() {
                 return MoreObjects.toStringHelper(this)
                         .add("videoSize", videoSize)
+                        .add("mVideoImageFit", mVideoImageFit)
+                        .add("getVideoImageScale", mVideoImageScale)
                         .add("videoCameraFacing", videoCameraFacing)
                         .add("videoFrameRate", videoFrameRate);
             }

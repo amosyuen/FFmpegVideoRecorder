@@ -40,7 +40,7 @@ public interface CameraControllerI {
      * Open the camera that best matches the specified params.
      * This should be run on a background thread to avoid blocking the UI thread.
      */
-    void openCamera(CameraParams params, int surfaceOrientationDegrees);
+    void openCamera(CameraParams params, int surfaceRotationDegrees);
 
     /**
      * Close the camera and free up resources.
@@ -61,6 +61,11 @@ public interface CameraControllerI {
      * Return the preview size of the camera.
      */
     ImageSize getPreviewSize();
+
+    /**
+     * Return the picture size of the camera.
+     */
+    ImageSize getPictureSize();
 
     /**
      * Set the media recorder to use the camera.
@@ -96,6 +101,16 @@ public interface CameraControllerI {
      * Return the camera orientation in degrees.
      */
     int getCameraOrientationDegrees();
+
+    /**
+     * Return the camera preview display orientation in degrees.
+     */
+    int getPreviewDisplayOrientationDegrees();
+
+    /**
+     * Return the camera frame rate range.
+     */
+    int[] getFrameRateRange();
 
     /**
      * Return the current flash mode.

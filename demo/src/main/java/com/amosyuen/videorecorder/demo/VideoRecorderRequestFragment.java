@@ -25,7 +25,8 @@ import android.widget.Spinner;
 import com.amosyuen.videorecorder.activity.FFmpegRecorderActivity;
 import com.amosyuen.videorecorder.activity.RecorderActivityParams;
 import com.amosyuen.videorecorder.camera.CameraControllerI;
-import com.amosyuen.videorecorder.recorder.common.ScaleType;
+import com.amosyuen.videorecorder.recorder.common.ImageFit;
+import com.amosyuen.videorecorder.recorder.common.ImageScale;
 import com.amosyuen.videorecorder.recorder.params.EncoderParams.AudioCodec;
 import com.amosyuen.videorecorder.recorder.params.EncoderParams.VideoCodec;
 
@@ -63,8 +64,8 @@ public class VideoRecorderRequestFragment extends Fragment {
     private EditText mVideoBitrateEditText;
     private EditText mVideoFrameRateEditText;
     private Spinner mVideoCameraFacingSpinner;
-    private Spinner mVideoScaleTypeSpinner;
-    private SwitchCompat mVideoCanUpscaleSwitchCompat;
+    private Spinner mVideoScaleFitSpinner;
+    private Spinner mVideoScaleDirectionSpinner;
     private SwitchCompat mVideoCanPadSwitchCompat;
 
     private Spinner mAudioCodecSpinner;
@@ -118,13 +119,18 @@ public class VideoRecorderRequestFragment extends Fragment {
         mVideoCameraFacingSpinner.setSelection(
                 facingAdapter.getPosition(CameraControllerI.Facing.BACK));
 
-        ArrayAdapter<ScaleType> scaleTypeAdapter = new ArrayAdapter<>(
-                getContext(), android.R.layout.simple_spinner_item, ScaleType.values());
-        mVideoScaleTypeSpinner = (Spinner) view.findViewById(R.id.video_scale_type);
-        mVideoScaleTypeSpinner.setAdapter(scaleTypeAdapter);
-        mVideoScaleTypeSpinner.setSelection(scaleTypeAdapter.getPosition(ScaleType.FILL));
+        ArrayAdapter<ImageFit> scaleFitAdapter = new ArrayAdapter<>(
+                getContext(), android.R.layout.simple_spinner_item, ImageFit.values());
+        mVideoScaleFitSpinner = (Spinner) view.findViewById(R.id.video_scale_fit);
+        mVideoScaleFitSpinner.setAdapter(scaleFitAdapter);
+        mVideoScaleFitSpinner.setSelection(scaleFitAdapter.getPosition(ImageFit.FILL));
 
-        mVideoCanUpscaleSwitchCompat = (SwitchCompat) view.findViewById(R.id.video_can_upscale);
+        ArrayAdapter<ImageScale> scaleDirectionAdapter = new ArrayAdapter<>(
+                getContext(), android.R.layout.simple_spinner_item, ImageScale.values());
+        mVideoScaleDirectionSpinner = (Spinner) view.findViewById(R.id.video_scale_direction);
+        mVideoScaleDirectionSpinner.setAdapter(scaleDirectionAdapter);
+        mVideoScaleDirectionSpinner
+                .setSelection(scaleDirectionAdapter.getPosition(ImageScale.DOWNSCALE));
 
         mVideoCanPadSwitchCompat = (SwitchCompat) view.findViewById(R.id.video_can_pad);
         mVideoCanPadSwitchCompat.setChecked(true);
@@ -346,8 +352,8 @@ public class VideoRecorderRequestFragment extends Fragment {
                 .videoFrameRate(videoFrameRate)
 
                 .videoCameraFacing((CameraControllerI.Facing) mVideoCameraFacingSpinner.getSelectedItem())
-                .videoScaleType((ScaleType) mVideoScaleTypeSpinner.getSelectedItem())
-                .canUpscaleVideo(mVideoCanUpscaleSwitchCompat.isChecked())
+                .videoScaleFit((ImageFit) mVideoScaleFitSpinner.getSelectedItem())
+                .videoScaleDirection((ImageScale) mVideoScaleDirectionSpinner.getSelectedItem())
                 .canPadVideo(mVideoCanPadSwitchCompat.isChecked())
 
                 .audioCodec((AudioCodec) mAudioCodecSpinner.getSelectedItem())
@@ -377,14 +383,14 @@ public class VideoRecorderRequestFragment extends Fragment {
                 int n = (int) (Math.random() * Integer.MAX_VALUE);
                 String videoFileName = Integer.toString(n) + VIDEO_FILE_POSTFIX;
                 mVideoFile = new File(dir, videoFileName);
-                    if (!mVideoFile.exists() && mVideoFile.createNewFile()) {
-                        String thumbnailFileName = Integer.toString(n) + THUMBNAIL_FILE_POSTFIX;
-                        mThumbnailFile = new File(dir, thumbnailFileName);
-                        if (!mThumbnailFile.exists() && mThumbnailFile.createNewFile()) {
-                            return;
-                        }
-                        mVideoFile.delete();
+                if (!mVideoFile.exists() && mVideoFile.createNewFile()) {
+                    String thumbnailFileName = Integer.toString(n) + THUMBNAIL_FILE_POSTFIX;
+                    mThumbnailFile = new File(dir, thumbnailFileName);
+                    if (!mThumbnailFile.exists() && mThumbnailFile.createNewFile()) {
+                        return;
                     }
+                    mVideoFile.delete();
+                }
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
