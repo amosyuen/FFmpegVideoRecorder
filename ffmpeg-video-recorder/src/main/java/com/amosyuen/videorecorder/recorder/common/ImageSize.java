@@ -201,7 +201,7 @@ public class ImageSize extends ImageSizeOrBuilder implements Serializable {
             Preconditions.checkState(isAtLeastOneDimensionDefined());
             Preconditions.checkArgument(source.areBothDimensionsDefined());
             if (mHeight != UNDEFINED) {
-                if (mWidth != UNDEFINED) {
+                if (mWidth == UNDEFINED) {
                     mWidth = source.width() * mHeight / source.height();
                 }
             } else if (mWidth != UNDEFINED) {

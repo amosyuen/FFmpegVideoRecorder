@@ -29,8 +29,8 @@ import com.amosyuen.videorecorder.recorder.common.ImageFit;
 import com.amosyuen.videorecorder.recorder.common.ImageScale;
 import com.amosyuen.videorecorder.recorder.common.ImageSize;
 import com.amosyuen.videorecorder.recorder.params.EncoderParamsI.AudioCodec;
-import com.amosyuen.videorecorder.recorder.params.EncoderParamsI.VideoCodec;
 import com.amosyuen.videorecorder.recorder.params.EncoderParamsI.OutputFormat;
+import com.amosyuen.videorecorder.recorder.params.EncoderParamsI.VideoCodec;
 import com.google.common.base.Optional;
 
 import java.io.File;
@@ -45,10 +45,8 @@ import static android.app.Activity.RESULT_OK;
  */
 public class VideoRecorderRequestFragment extends Fragment {
 
-    static final String VIDEO_FILE_EXTENSION = ".mp4";
-    static final String VIDEO_FILE_POSTFIX = ".video" + VIDEO_FILE_EXTENSION;
+    static final String FILE_PREFIX = "recorder-";
     static final String THUMBNAIL_FILE_EXTENSION = ".jpg";
-    static final String THUMBNAIL_FILE_POSTFIX = ".thumbnail" + THUMBNAIL_FILE_EXTENSION;
 
     private static final String[] VIDEO_PERMISSIONS = new String[]{
             Manifest.permission.CAMERA,
@@ -209,7 +207,7 @@ public class VideoRecorderRequestFragment extends Fragment {
                         Uri videoUri = data.getData();
                         Uri thumbnailUri =
                                 data.getParcelableExtra(FFmpegRecorderActivity.RESULT_THUMBNAIL_URI_KEY);
-                        mListener.onVideoRecorded(new VideoFile(
+                        mListener.onVideoRecorded(VideoFile.create(
                                 new File(videoUri.getPath()), new File(thumbnailUri.getPath())));
                         mVideoFile = null;
                         mThumbnailFile = null;
@@ -420,12 +418,14 @@ public class VideoRecorderRequestFragment extends Fragment {
 
         File dir = getContext().getExternalCacheDir();
         try {
+            String videoExt =
+                    ((OutputFormat) mOutputFormatSpinner.getSelectedItem()).getFileExtension();
             while (true) {
                 int n = (int) (Math.random() * Integer.MAX_VALUE);
-                String videoFileName = Integer.toString(n) + VIDEO_FILE_POSTFIX;
+                String videoFileName = FILE_PREFIX + Integer.toString(n) + "." + videoExt;
                 mVideoFile = new File(dir, videoFileName);
                 if (!mVideoFile.exists() && mVideoFile.createNewFile()) {
-                    String thumbnailFileName = Integer.toString(n) + THUMBNAIL_FILE_POSTFIX;
+                    String thumbnailFileName = Integer.toString(n) + THUMBNAIL_FILE_EXTENSION;
                     mThumbnailFile = new File(dir, thumbnailFileName);
                     if (!mThumbnailFile.exists() && mThumbnailFile.createNewFile()) {
                         return;

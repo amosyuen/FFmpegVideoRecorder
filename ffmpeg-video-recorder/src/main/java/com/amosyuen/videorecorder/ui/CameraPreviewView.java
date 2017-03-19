@@ -33,7 +33,7 @@ import com.google.common.base.Preconditions;
  */
 public class CameraPreviewView extends SurfaceView {
 
-    protected static final String LOG_TAG = "VideoFrameRecorderView";
+    protected static final String LOG_TAG = "CameraPreviewView";
 
     private static final int CAMERA_FOCUS_MIN = -1000;
     private static final int CAMERA_FOCUS_MAX = 1000;
@@ -219,29 +219,35 @@ public class CameraPreviewView extends SurfaceView {
         }
         Preconditions.checkState(scaleTargetSizeBuilder.areBothDimensionsDefined());
 
+        ImageSize newScaledTargetSize;
+        ImageSize newScaledPreviewSize;
         if (mParams.getVideoImageFit() == ImageFit.FILL && !mParams.getShouldCropVideo()
                 || mParams.getVideoImageFit() == ImageFit.FIT && !mParams.getShouldPadVideo()) {
             // If we can't modify the aspect ratio using cropping or padding, then the target view
             // will be the same as the preview for viewing
-            mScaledPreviewSize = scalePreviewSizeBuilder
+            newScaledTargetSize = scalePreviewSizeBuilder
                     .scaleToFit(parentSize, ImageScale.ANY)
                     .build();
-            mScaledTargetSize = mScaledPreviewSize;
+            newScaledPreviewSize = newScaledTargetSize;
         } else {
             // Scale the target to fit within the parent view
             ImageSize preScaleTargetSize = scaleTargetSizeBuilder.build();
-            mScaledTargetSize = scaleTargetSizeBuilder
+            newScaledTargetSize = scaleTargetSizeBuilder
                     .scaleToFit(parentSize, ImageScale.ANY).build();
             // Scale the preview size by the same amount that target size was scaled
             scalePreviewSizeBuilder.width(scalePreviewSizeBuilder.getWidthUnchecked()
-                    * mScaledTargetSize.getWidthUnchecked() / preScaleTargetSize.getWidthUnchecked());
+                    * newScaledTargetSize.getWidthUnchecked()
+                    / preScaleTargetSize.getWidthUnchecked());
             scalePreviewSizeBuilder.height(scalePreviewSizeBuilder.getHeightUnchecked()
-                    * mScaledTargetSize.getHeightUnchecked() / preScaleTargetSize.getHeightUnchecked());
-            mScaledPreviewSize = scalePreviewSizeBuilder.build();
+                    * newScaledTargetSize.getHeightUnchecked()
+                    / preScaleTargetSize.getHeightUnchecked());
+            newScaledPreviewSize = scalePreviewSizeBuilder.build();
         }
 
-        boolean hasChanged = getMeasuredWidth() == mScaledPreviewSize.getWidthUnchecked()
-                && getMeasuredHeight() == mScaledPreviewSize.getHeightUnchecked();
+        boolean hasChanged = !mScaledTargetSize.equals(newScaledTargetSize)
+                || !mScaledPreviewSize.equals(newScaledPreviewSize);
+        mScaledTargetSize = newScaledTargetSize;
+        mScaledPreviewSize = newScaledPreviewSize;
         setMeasuredDimension(
                 mScaledPreviewSize.getWidthUnchecked(), mScaledPreviewSize.getHeightUnchecked());
         if (!hasChanged) {

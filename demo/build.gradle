@@ -26,4 +26,5 @@ dependencies {
     compile 'com.android.support:support-v4:25.2.0'
     compile 'com.github.rahatarmanahmed:circularprogressview:2.5.0'
     compile 'com.yqritc:recyclerview-flexibledivider:1.4.0'
+    provided 'com.google.auto.value:auto-value:1.4-rc3'
 }

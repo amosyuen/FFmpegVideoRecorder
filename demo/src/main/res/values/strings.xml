@@ -33,6 +33,7 @@
     <string name="video_camera_facing">Video Camera Facing</string>
     <string name="video_codec">Video Codec</string>
     <string name="video_date">Video Date</string>
+    <string name="video_file_format">Video File Format</string>
     <string name="video_file_size">Video File Size</string>
     <string name="video_frames_per_second">Video Frames Per Second</string>
     <string name="video_frame_rate">Video Frame Rate</string>
@@ -46,4 +47,5 @@
     <string name="video_width_px">Video Width (px)</string>
     <string name="thumbnail">Thumbnail</string>
     <string name="thumbnail_file_size">Thumbnail File Size</string>
+    <string name="unknown">Unknown</string>
 </resources>

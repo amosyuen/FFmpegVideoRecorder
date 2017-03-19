@@ -1,28 +1,14 @@
 package com.amosyuen.videorecorder.util;
 
 
-import android.content.Context;
-import android.content.res.Configuration;
-import android.content.res.Resources;
-import android.graphics.PorterDuff;
-import android.graphics.drawable.Drawable;
 import android.media.MediaRecorder;
-import android.support.annotation.AttrRes;
-import android.support.annotation.ColorInt;
-import android.util.Log;
-import android.util.TypedValue;
-import android.view.Surface;
-import android.view.WindowManager;
 
 import com.amosyuen.videorecorder.activity.params.InteractionParamsI;
 import com.amosyuen.videorecorder.camera.CameraControllerI;
 import com.amosyuen.videorecorder.recorder.FFmpegFrameRecorder;
 import com.amosyuen.videorecorder.recorder.common.ImageSize;
 import com.amosyuen.videorecorder.recorder.params.EncoderParamsI;
-import com.amosyuen.videorecorder.recorder.params.RecorderParamsI;
 import com.google.common.base.Preconditions;
-
-import org.bytedeco.javacv.FrameGrabber;
 
 import java.io.File;
 

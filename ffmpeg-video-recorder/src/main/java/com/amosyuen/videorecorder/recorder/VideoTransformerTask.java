@@ -1,14 +1,12 @@
 package com.amosyuen.videorecorder.recorder;
 
 
-import android.media.MediaMetadataRetriever;
 import android.text.TextUtils;
 import android.util.Log;
 
 import com.amosyuen.videorecorder.camera.CameraControllerI;
 import com.amosyuen.videorecorder.recorder.common.ImageSize;
 import com.amosyuen.videorecorder.recorder.params.VideoTransformerParamsI;
-import com.amosyuen.videorecorder.util.Util;
 import com.google.auto.value.AutoValue;
 import com.google.common.base.Preconditions;
 
@@ -19,7 +17,6 @@ import org.bytedeco.javacv.FrameFilter;
 import org.bytedeco.javacv.FrameGrabber;
 import org.bytedeco.javacv.FrameRecorder;
 
-import java.io.File;
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -66,7 +63,6 @@ public class VideoTransformerTask implements Runnable {
 
         HashMap<FilterParams, FFmpegFrameFilter> filterMap = new HashMap<>();
         try {
-            long processedMillis = 0;
             long totalMillis = 0;
             LinkedList<FrameGrabberWrapper> frameGrabbers = new LinkedList<>();
             ImageSize targetSize = mParams.getVideoSize();
@@ -80,7 +76,7 @@ public class VideoTransformerTask implements Runnable {
                 ImageSize recordedSize =
                         new ImageSize(frameGrabber.getImageWidth(), frameGrabber.getImageHeight());
                 FilterParams filterParams = FilterParams.create(
-                        recordedSize, frameGrabber.getPixelFormat(),
+                        recordedSize, frameGrabber.getFrameRate(),
                         clip.getFacing(), clip.getOrientationDegrees());
                 frameGrabbers.add(FrameGrabberWrapper.create(frameGrabber, filterParams));
 
@@ -105,29 +101,31 @@ public class VideoTransformerTask implements Runnable {
             mRecorder.setImageHeight(outputSize.getHeightUnchecked());
             mRecorder.start();
 
+            long processedMillis = 0;
             while (!frameGrabbers.isEmpty()) {
                 FrameGrabberWrapper wrapper = frameGrabbers.poll();
                 FrameGrabber frameGrabber = wrapper.getFrameGrabber();
                 // Create a filter to transform image size into desired size if needed
                 FFmpegFrameFilter filter =
                         getFilter(filterMap, wrapper.getFilterParams(), outputSize);
-                long lastMillis = 0;
+                long currMillis = 0;
                 Frame frame;
                 while ((frame = frameGrabber.grabFrame()) != null) {
-                    if (filter == null) {
-                        mRecorder.record(frame);
-                    } else {
+                    Preconditions.checkState((frame.image != null) ^ (frame.samples != null));
+                    if (frame.image != null && filter != null) {
                         filter.push(frame);
-                        while ((frame = filter.pull()) != null) {
-                            mRecorder.record(frame);
-                        }
+                        frame = Preconditions.checkNotNull(filter.pull());
                     }
-                    processedMillis += frameGrabber.getTimestamp() - lastMillis;
-                    lastMillis = frameGrabber.getTimestamp();
+                    mRecorder.setTimestamp(frameGrabber.getTimestamp());
+                    mRecorder.record(frame);
+                    currMillis = Math.max(currMillis, frameGrabber.getTimestamp());
                     if (mProgressListener != null) {
-                        mProgressListener.onProgress((int) processedMillis, (int) totalMillis);
+                        mProgressListener.onProgress(
+                                (int) (processedMillis + currMillis),
+                                (int) frameGrabber.getLengthInTime());
                     }
                 }
+                processedMillis += frameGrabber.getLengthInTime();
                 frameGrabber.stop();
                 frameGrabber.release();
             }
@@ -190,15 +188,16 @@ public class VideoTransformerTask implements Runnable {
             FilterParams params, ImageSize outputSize)
                     throws FrameFilter.Exception {
         ImageSize targetSize = mParams.getVideoSize();
-        ImageSize imageSize = params.getImageSize();
         int rotationDegrees = params.getRotationDegrees();
+        ImageSize imageSize = params.getImageSize();
+        ImageSize rotatedImageSize = getRotatedRecordedSize(imageSize, rotationDegrees);
         if (targetSize.isOneDimensionDefined()) {
             targetSize = targetSize.toBuilder()
-                    .calculateUndefinedDimensions(
-                            getRotatedRecordedSize(imageSize, rotationDegrees))
+                    .calculateUndefinedDimensions(rotatedImageSize)
                     .build();
         }
-        if (imageSize.equals(targetSize) && rotationDegrees == 0) {
+        if (rotationDegrees == 0 && params.getFacing() == CameraControllerI.Facing.BACK
+                && imageSize.equals(targetSize)) {
             return null;
         }
 
@@ -228,7 +227,7 @@ public class VideoTransformerTask implements Runnable {
                 throw new InvalidParameterException(String.format(
                         Locale.US, "Unsupported rotation %d", rotationDegrees));
         }
-        ImageSize.Builder imageSizeBuilder = imageSize.toBuilder()
+        ImageSize.Builder imageSizeBuilder = rotatedImageSize.toBuilder()
                 .scale(targetSize, mParams.getVideoImageFit(), mParams.getVideoImageScale());
         transforms.add("scale=" + imageSizeBuilder.getWidthUnchecked()
                 + ":" + imageSizeBuilder.getHeightUnchecked());
@@ -243,11 +242,12 @@ public class VideoTransformerTask implements Runnable {
                     + ":" + outputSize.getHeightUnchecked() + ":(ow-iw)/2:(oh-ih)/2");
         }
 
+        Log.v(LOG_TAG, String.format("Creating filter with transforms %s", transforms));
         filter = new FFmpegFrameFilter(
                 TextUtils.join(",", transforms),
                 imageSize.getWidthUnchecked(),
                 imageSize.getHeightUnchecked());
-        filter.setPixelFormat(params.getPixelFormat());
+        filter.setFrameRate(params.getFrameRate());
         filter.start();
         filterMap.put(params, filter);
         return filter;
@@ -256,14 +256,14 @@ public class VideoTransformerTask implements Runnable {
     @AutoValue
     public abstract static class FilterParams {
         public abstract ImageSize getImageSize();
-        public abstract int getPixelFormat();
+        public abstract double getFrameRate();
         public abstract CameraControllerI.Facing getFacing();
         public abstract int getRotationDegrees();
 
-        public static FilterParams create(ImageSize imageSize, int pixelFormat,
+        public static FilterParams create(ImageSize imageSize, double frameRate,
                 CameraControllerI.Facing facing, int rotationDegrees) {
             return new AutoValue_VideoTransformerTask_FilterParams(
-                    imageSize, pixelFormat, facing, rotationDegrees);
+                    imageSize, frameRate, facing, rotationDegrees);
         }
     }
 

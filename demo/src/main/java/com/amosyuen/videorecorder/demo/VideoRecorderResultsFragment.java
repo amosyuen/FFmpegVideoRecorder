@@ -15,6 +15,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.AppCompatButton;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -25,6 +26,7 @@ import android.widget.TextView;
 
 import com.amosyuen.videorecorder.activity.FFmpegPreviewActivity;
 import com.amosyuen.videorecorder.activity.params.FFmpegPreviewActivityParams;
+import com.amosyuen.videorecorder.recorder.params.EncoderParamsI;
 import com.yqritc.recyclerviewflexibledivider.HorizontalDividerItemDecoration;
 
 import java.io.File;
@@ -59,6 +61,7 @@ import static android.media.MediaFormat.MIMETYPE_VIDEO_MPEG4;
 import static android.media.MediaFormat.MIMETYPE_VIDEO_RAW;
 import static android.media.MediaFormat.MIMETYPE_VIDEO_VP8;
 import static android.media.MediaFormat.MIMETYPE_VIDEO_VP9;
+import static com.amosyuen.videorecorder.demo.VideoRecorderRequestFragment.FILE_PREFIX;
 
 
 /**
@@ -67,6 +70,8 @@ import static android.media.MediaFormat.MIMETYPE_VIDEO_VP9;
 public class VideoRecorderResultsFragment extends Fragment {
 
     private static final String ADAPTER_KEY = "adapter";
+
+    private static final String LOG_TAG = "VideoRecorderResults";
 
     private RecyclerView mRecyclerView;
 
@@ -131,46 +136,40 @@ public class VideoRecorderResultsFragment extends Fragment {
     private void loadExistingFiles() {
         File dir = getContext().getExternalCacheDir();
         File[] files = dir.listFiles();
-        HashMap<Integer, File> videoFiles = new HashMap<>();
-        ArrayList<File> thumbnailFiles = new ArrayList<>();
+        ArrayList<File> videoFiles = new ArrayList<>();
+        HashMap<String, File> thumbnailFiles = new HashMap<>();
         for (File file : files) {
-            String name = file.getName();
-            if (name.endsWith(VideoRecorderRequestFragment.VIDEO_FILE_EXTENSION)) {
+            String[] parts = file.getName().split("\\.");
+            if (parts.length != 2 || !parts[0].startsWith(FILE_PREFIX)) {
+                continue;
+            }
+            String ext = parts[1];
+            if (ext.endsWith(VideoRecorderRequestFragment.THUMBNAIL_FILE_EXTENSION)) {
+                thumbnailFiles.put(parts[0], file);
+            } else {
                 try {
-                    videoFiles.put(
-                            getFileBase(name, VideoRecorderRequestFragment.VIDEO_FILE_POSTFIX),
-                            file);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    continue;
+                    EncoderParamsI.OutputFormat.valueOf(ext.toUpperCase());
+                    videoFiles.add(file);
+                } catch (IllegalArgumentException e) {
+                    Log.e(LOG_TAG, String.format("Unsupported video file: %s", file.getName()));
                 }
-            } else if (name.endsWith(VideoRecorderRequestFragment.THUMBNAIL_FILE_EXTENSION)) {
-                thumbnailFiles.add(file);
             }
         }
 
-        for (File thumbnailFile : thumbnailFiles) {
-            try {
-                Integer fileBase = getFileBase(
-                        thumbnailFile.getName(), VideoRecorderRequestFragment.THUMBNAIL_FILE_POSTFIX);
-                File videoFile = videoFiles.get(fileBase);
-                if (videoFile != null) {
-                    mVideoFileAdapter.mVideoFiles.add(new VideoFile(videoFile, thumbnailFile));
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+        for (File file : videoFiles) {
+            String[] parts = file.getName().split("\\.");
+            File thumbnailFile = thumbnailFiles.get(parts[0]);
+            if (thumbnailFile == null) {
+                Log.e(LOG_TAG, String.format("Video file is missing thumbnail %s", file.getName()));
                 continue;
             }
+            mVideoFileAdapter.mVideoFiles.add(VideoFile.create(file, thumbnailFile));
         }
 
         if (!mVideoFileAdapter.mVideoFiles.isEmpty()) {
             Collections.sort(mVideoFileAdapter.mVideoFiles);
             mVideoFileAdapter.notifyDataSetChanged();
         }
-    }
-
-    private int getFileBase(String name, String postfix) {
-        return Integer.parseInt(name.substring(0, name.length() - postfix.length()));
     }
 
     static class VideoFileAdapter
@@ -189,8 +188,8 @@ public class VideoRecorderResultsFragment extends Fragment {
         }
 
         public void deleteVideoFile(VideoFile videoFile) {
-            videoFile.videoFile.delete();
-            videoFile.thumbnailFile.delete();
+            videoFile.getVideoFile().delete();
+            videoFile.getThumbnailFile().delete();
             int index = mVideoFiles.indexOf(videoFile);
             mVideoFiles.remove(index);
             notifyItemRemoved(index);
@@ -198,8 +197,8 @@ public class VideoRecorderResultsFragment extends Fragment {
 
         public void clearVideoFiles() {
             for (VideoFile videoFile : mVideoFiles) {
-                videoFile.videoFile.delete();
-                videoFile.thumbnailFile.delete();
+                videoFile.getVideoFile().delete();
+                videoFile.getThumbnailFile().delete();
             }
             mVideoFiles.clear();
             notifyDataSetChanged();
@@ -234,11 +233,16 @@ public class VideoRecorderResultsFragment extends Fragment {
             private TextView mThumbnailFileSizeTextView;
             private TextView mVideoFileDateTextView;
             private TextView mVideoFileSizeTextView;
+            private TextView mVideoFileFormatTextView;
+            private TextView mVideoLengthTextView;
+
+            private TextView mVideoCodecTextView;
             private TextView mVideoWidthTextView;
             private TextView mVideoHeightTextView;
-            private TextView mVideoLengthTextView;
             private TextView mVideoFrameRateTextView;
             private TextView mVideoBitrateTextView;
+
+            private TextView mAudioCodecTextView;
             private TextView mAudioSampleRateTextView;
             private TextView mAudioChannelsTextView;
 
@@ -253,12 +257,16 @@ public class VideoRecorderResultsFragment extends Fragment {
 
                 mVideoFileDateTextView = (TextView) view.findViewById(R.id.video_file_date);
                 mVideoFileSizeTextView = (TextView) view.findViewById(R.id.video_file_size);
+                mVideoFileFormatTextView = (TextView) view.findViewById(R.id.video_file_format);
+                mVideoLengthTextView = (TextView) view.findViewById(R.id.video_length);
+
+                mVideoCodecTextView = (TextView) view.findViewById(R.id.video_codec);
                 mVideoWidthTextView = (TextView) view.findViewById(R.id.video_width);
                 mVideoHeightTextView = (TextView) view.findViewById(R.id.video_height);
-                mVideoLengthTextView = (TextView) view.findViewById(R.id.video_length);
                 mVideoFrameRateTextView = (TextView) view.findViewById(R.id.video_frame_rate);
                 mVideoBitrateTextView = (TextView) view.findViewById(R.id.video_bitrate);
 
+                mAudioCodecTextView = (TextView) view.findViewById(R.id.audio_codec);
                 mAudioSampleRateTextView = (TextView) view.findViewById(R.id.audio_sample_rate);
                 mAudioChannelsTextView = (TextView) view.findViewById(R.id.audio_channels);
 
@@ -270,12 +278,13 @@ public class VideoRecorderResultsFragment extends Fragment {
                                 .setCancelable(false)
                                 .setTitle(R.string.are_you_sure)
                                 .setMessage(R.string.delete_video_file)
-                                .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialog, int which) {
-                                        deleteVideoFile(mVideoFile);
-                                    }
-                                })
+                                .setPositiveButton(R.string.ok,
+                                        new DialogInterface.OnClickListener() {
+                                            @Override
+                                            public void onClick(DialogInterface dialog, int which) {
+                                                deleteVideoFile(mVideoFile);
+                                            }
+                                        })
                                 .setNegativeButton(R.string.cancel, null)
                                 .show();
                     }
@@ -289,8 +298,8 @@ public class VideoRecorderResultsFragment extends Fragment {
                         Intent intent = new Intent(mView.getContext(), FFmpegPreviewActivity.class);
                         intent.putExtra(
                                 FFmpegPreviewActivity.REQUEST_PARAMS_KEY,
-                                FFmpegPreviewActivityParams.builder()
-                                        .setVideoFileUri(videoFile.videoFile).build());
+                                FFmpegPreviewActivityParams.builder(mView.getContext())
+                                        .setVideoFileUri(videoFile.getVideoFile()).build());
                         mView.getContext().startActivity(intent);
                     }
                 });
@@ -298,39 +307,44 @@ public class VideoRecorderResultsFragment extends Fragment {
                 mVideoFile = videoFile;
                 mThumbnailImageView.setBackground(new BitmapDrawable(
                         mView.getContext().getResources(),
-                        BitmapFactory.decodeFile(videoFile.thumbnailFile.getAbsolutePath())));
+                        BitmapFactory.decodeFile(videoFile.getThumbnailFile().getAbsolutePath())));
                 mThumbnailImageView.setOnClickListener(new OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         Intent intent = new Intent(mView.getContext(), ThumbnailActivity.class);
-                        intent.setData(Uri.fromFile(mVideoFile.thumbnailFile));
+                        intent.setData(Uri.fromFile(mVideoFile.getThumbnailFile()));
                         mView.getContext().startActivity(intent);
                     }
                 });
                 mThumbnailFileSizeTextView.setText(
-                        Util.getHumanReadableByteCount(videoFile.thumbnailFile.length(), true));
+                        Util.getHumanReadableByteCount(videoFile.getThumbnailFile().length(), true));
                 mVideoFileDateTextView.setText(Util.getHumanReadableDate(
-                        videoFile.videoFile.lastModified()));
+                        videoFile.getVideoFile().lastModified()));
                 mVideoFileSizeTextView.setText(Util.getHumanReadableByteCount(
-                        videoFile.videoFile.length(), true));
+                        videoFile.getVideoFile().length(), true));
+                String[] parts = videoFile.getVideoFile().getName().split("\\.");
+                mVideoFileFormatTextView.setText(parts[1]);
 
                 MediaMetadataRetriever metadataRetriever = new MediaMetadataRetriever();
                 try {
-                    metadataRetriever.setDataSource(videoFile.videoFile.getAbsolutePath());
+                    metadataRetriever.setDataSource(videoFile.getVideoFile().getAbsolutePath());
                     mVideoBitrateTextView.setText(Util.getHumanReadableBitrate(
                             Integer.parseInt(metadataRetriever.extractMetadata(
                                     MediaMetadataRetriever.METADATA_KEY_BITRATE)), true));
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    Log.e(LOG_TAG, "Error extracting video birate", e);
                     mVideoBitrateTextView.setText("");
                 }
 
                 MediaExtractor mediaExtractor = new MediaExtractor();
+                mVideoCodecTextView.setText(R.string.unknown);
+                mAudioCodecTextView.setText(R.string.unknown);
                 try {
-                    mediaExtractor.setDataSource(videoFile.videoFile.getAbsolutePath());
+                    mediaExtractor.setDataSource(videoFile.getVideoFile().getAbsolutePath());
                     for (int i = 0; i < mediaExtractor.getTrackCount(); i++) {
                         MediaFormat mediaFormat = mediaExtractor.getTrackFormat(i);
-                        switch (mediaFormat.getString(KEY_MIME)) {
+                        String mimeType = mediaFormat.getString(KEY_MIME);
+                        switch (mimeType) {
                             case MIMETYPE_VIDEO_AVC:
                             case MIMETYPE_VIDEO_DOLBY_VISION:
                             case MIMETYPE_VIDEO_H263:
@@ -340,12 +354,13 @@ public class VideoRecorderResultsFragment extends Fragment {
                             case MIMETYPE_VIDEO_RAW:
                             case MIMETYPE_VIDEO_VP8:
                             case MIMETYPE_VIDEO_VP9:
+                                mVideoLengthTextView.setText(Util.getHumanReadableDuration(
+                                        mediaFormat.getLong(MediaFormat.KEY_DURATION)));
+                                mVideoCodecTextView.setText(Util.getMimetype(mimeType));
                                 mVideoWidthTextView.setText(String.format(Locale.US, "%d px",
                                         mediaFormat.getInteger(MediaFormat.KEY_WIDTH)));
                                 mVideoHeightTextView.setText(String.format(Locale.US, "%d px",
                                         mediaFormat.getInteger(MediaFormat.KEY_HEIGHT)));
-                                mVideoLengthTextView.setText(Util.getHumanReadableDuration(
-                                        mediaFormat.getLong(MediaFormat.KEY_DURATION)));
                                 mVideoFrameRateTextView.setText(String.format(Locale.US, "%d fps",
                                         mediaFormat.getInteger(MediaFormat.KEY_FRAME_RATE)));
                                 break;
@@ -363,6 +378,7 @@ public class VideoRecorderResultsFragment extends Fragment {
                             case MIMETYPE_AUDIO_QCELP:
                             case MIMETYPE_AUDIO_RAW:
                             case MIMETYPE_AUDIO_VORBIS:
+                                mAudioCodecTextView.setText(Util.getMimetype(mimeType));
                                 mAudioSampleRateTextView.setText(String.format(Locale.US, "%d Hz",
                                         mediaFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)));
                                 mAudioChannelsTextView.setText(String.format(Locale.US, "%d",
@@ -371,13 +387,14 @@ public class VideoRecorderResultsFragment extends Fragment {
                         }
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
-                    mVideoFileSizeTextView.setText("");
+                    Log.e(LOG_TAG, "Error extracting media metadata", e);
+                    mVideoLengthTextView.setText("");
+                    mVideoCodecTextView.setText("");
                     mVideoWidthTextView.setText("");
                     mVideoHeightTextView.setText("");
-                    mVideoLengthTextView.setText("");
                     mVideoFrameRateTextView.setText("");
-                    mVideoBitrateTextView.setText("");
+
+                    mAudioCodecTextView.setText("");
                     mAudioSampleRateTextView.setText("");
                     mAudioChannelsTextView.setText("");
                 }

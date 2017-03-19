@@ -85,10 +85,10 @@
             android:layout_height="wrap_content"
             android:layout_row="4"
             android:layout_column="0"
-            android:text="@string/video_width"/>
+            android:text="@string/video_file_format"/>
 
         <TextView
-            android:id="@+id/video_width"
+            android:id="@+id/video_file_format"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_row="4"
@@ -99,10 +99,10 @@
             android:layout_height="wrap_content"
             android:layout_row="5"
             android:layout_column="0"
-            android:text="@string/video_height"/>
+            android:text="@string/video_length"/>
 
         <TextView
-            android:id="@+id/video_height"
+            android:id="@+id/video_length"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_row="5"
@@ -113,10 +113,10 @@
             android:layout_height="wrap_content"
             android:layout_row="6"
             android:layout_column="0"
-            android:text="@string/video_length"/>
+            android:text="@string/video_codec"/>
 
         <TextView
-            android:id="@+id/video_length"
+            android:id="@+id/video_codec"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_row="6"
@@ -127,10 +127,10 @@
             android:layout_height="wrap_content"
             android:layout_row="7"
             android:layout_column="0"
-            android:text="@string/video_frame_rate"/>
+            android:text="@string/video_width"/>
 
         <TextView
-            android:id="@+id/video_frame_rate"
+            android:id="@+id/video_width"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_row="7"
@@ -141,10 +141,10 @@
             android:layout_height="wrap_content"
             android:layout_row="8"
             android:layout_column="0"
-            android:text="@string/video_bitrate"/>
+            android:text="@string/video_height"/>
 
         <TextView
-            android:id="@+id/video_bitrate"
+            android:id="@+id/video_height"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_row="8"
@@ -155,10 +155,10 @@
             android:layout_height="wrap_content"
             android:layout_row="9"
             android:layout_column="0"
-            android:text="@string/audio_sample_rate"/>
+            android:text="@string/video_frame_rate"/>
 
         <TextView
-            android:id="@+id/audio_sample_rate"
+            android:id="@+id/video_frame_rate"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_row="9"
@@ -169,13 +169,55 @@
             android:layout_height="wrap_content"
             android:layout_row="10"
             android:layout_column="0"
+            android:text="@string/video_bitrate"/>
+
+        <TextView
+            android:id="@+id/video_bitrate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="10"
+            android:layout_column="2"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="11"
+            android:layout_column="0"
+            android:text="@string/audio_codec"/>
+
+        <TextView
+            android:id="@+id/audio_codec"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="11"
+            android:layout_column="2"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="12"
+            android:layout_column="0"
+            android:text="@string/audio_sample_rate"/>
+
+        <TextView
+            android:id="@+id/audio_sample_rate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="12"
+            android:layout_column="2"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_row="13"
+            android:layout_column="0"
             android:text="@string/audio_channel_count"/>
 
         <TextView
             android:id="@+id/audio_channels"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_row="10"
+            android:layout_row="13"
             android:layout_column="2"/>
 
     </GridLayout>

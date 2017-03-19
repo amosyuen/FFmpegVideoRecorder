@@ -231,7 +231,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         mProgressView.setVisibility(View.GONE);
         mNextButton.setVisibility(View.INVISIBLE);
 
-        mMediaClipsRecorder = new MediaClipsRecorder(this, getExternalCacheDir());
+        mMediaClipsRecorder = new MediaClipsRecorder(this, getCacheDir());
         mMediaClipsRecorder.setMediaCLipstRecorderListener(this);
 
         setRequestedOrientation(mOriginalRequestedOrientation);

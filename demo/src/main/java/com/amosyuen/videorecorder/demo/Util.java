@@ -41,4 +41,9 @@ public final class Util {
     public static String getHumanReadableDate(long millis) {
         return SimpleDateFormat.getDateTimeInstance().format(new Date(millis));
     }
+
+    public static String getMimetype(String mimeType) {
+        String[] parts = mimeType.split("/");
+        return parts[parts.length - 1];
+    }
 }

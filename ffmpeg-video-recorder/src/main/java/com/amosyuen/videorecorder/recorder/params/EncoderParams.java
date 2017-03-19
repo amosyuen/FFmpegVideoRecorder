@@ -1,8 +1,5 @@
 package com.amosyuen.videorecorder.recorder.params;
 
-import com.amosyuen.videorecorder.recorder.common.ImageFit;
-import com.amosyuen.videorecorder.recorder.common.ImageScale;
-import com.amosyuen.videorecorder.recorder.common.ImageSize;
 import com.google.auto.value.AutoValue;
 import com.google.common.base.Optional;
 

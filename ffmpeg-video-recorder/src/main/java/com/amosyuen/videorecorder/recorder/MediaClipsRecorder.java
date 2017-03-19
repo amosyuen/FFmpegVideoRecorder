@@ -2,7 +2,6 @@ package com.amosyuen.videorecorder.recorder;
 
 import android.media.MediaMetadataRetriever;
 import android.media.MediaRecorder;
-import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
