@@ -449,8 +449,8 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
                 clips.size() + (mMediaClipsRecorder.isRecording() ? 1 : 0));
         long totalRecordedMillis = 0;
         for (MediaClipsRecorder.Clip clip : clips) {
-            totalRecordedMillis += clip.durationMillis;
-            progressList.add((int) clip.durationMillis);
+            totalRecordedMillis += clip.getDurationMillis();
+            progressList.add((int) clip.getDurationMillis());
         }
         if (mMediaClipsRecorder.isRecording()) {
             progressList.add((int) mMediaClipsRecorder.getCurrentRecordedTimeMillis());
@@ -718,6 +718,9 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
 
         @Override
         protected void onPostExecute(Exception e) {
+            mMediaClipsRecorder.setFacing(mCameraController.getCameraFacing());
+            mMediaClipsRecorder.setViewOrientationDegrees(
+                    mCameraController.getPreviewDisplayOrientationDegrees());
             mOpenCameraTask = null;
             if (e != null) {
                 Log.e(LOG_TAG, "Error opening camera", e);
@@ -748,15 +751,10 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
                     ? new File(Uri.parse(mParams.getVideoThumbnailOutputFileUri().get()).getPath())
                     : null;
 
-            List<MediaClipsRecorder.Clip> clips = mMediaClipsRecorder.getClips();
-            List<File> files = Lists.newArrayListWithCapacity(clips.size());
-            for (MediaClipsRecorder.Clip clip : clips) {
-                files.add(clip.file);
-            }
             FFmpegFrameRecorder recorder =
                     Util.createFrameRecorder(mVideoOutputFile, getRecorderParams());
-            mVideoTransformerTask =
-                    new VideoTransformerTask(recorder, getRecorderParams(), files);
+            mVideoTransformerTask = new VideoTransformerTask(
+                    recorder, getRecorderParams(), mMediaClipsRecorder.getClips());
             mVideoTransformerTask.setProgressListener(this);
 
             try {

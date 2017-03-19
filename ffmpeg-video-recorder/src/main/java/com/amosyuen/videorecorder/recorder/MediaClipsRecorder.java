@@ -1,9 +1,13 @@
 package com.amosyuen.videorecorder.recorder;
 
+import android.media.MediaMetadataRetriever;
 import android.media.MediaRecorder;
+import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
+import com.amosyuen.videorecorder.camera.CameraControllerI;
+import com.google.auto.value.AutoValue;
 import com.google.common.base.Preconditions;
 
 import java.io.File;
@@ -29,6 +33,8 @@ public class MediaClipsRecorder implements
     protected List<Clip> mClips;
     protected File mCurrentFile;
     protected long mStartTimeMillis;
+    protected CameraControllerI.Facing mFacing;
+    protected int mViewOrientationDegrees;
 
     public MediaClipsRecorder(
             @NonNull MediaRecorderConfigurer mediaRecorderConfigurer,
@@ -42,6 +48,22 @@ public class MediaClipsRecorder implements
 
     public void setMediaCLipstRecorderListener(MediaClipsRecorderListener listener) {
         mListener = listener;
+    }
+
+    public CameraControllerI.Facing getFacing() {
+        return mFacing;
+    }
+
+    public void setFacing(CameraControllerI.Facing facing) {
+        mFacing = facing;
+    }
+
+    public int getViewOrientationDegrees() {
+        return mViewOrientationDegrees;
+    }
+
+    public void setViewOrientationDegrees(int viewOrientationDegrees) {
+        mViewOrientationDegrees = viewOrientationDegrees;
     }
 
     protected void newTempFile() {
@@ -71,7 +93,7 @@ public class MediaClipsRecorder implements
     public long getRecordedMillis() {
         long recordedTimeMillis = getCurrentRecordedTimeMillis();
         for (Clip clip : mClips) {
-            recordedTimeMillis += clip.durationMillis;
+            recordedTimeMillis += clip.getDurationMillis();
         }
         return recordedTimeMillis;
     }
@@ -83,7 +105,7 @@ public class MediaClipsRecorder implements
     public long getRecordedBytes() {
         long recordedBytes = getCurrentRecordedBytes();
         for (Clip clip : mClips) {
-            recordedBytes += clip.bytes;
+            recordedBytes += clip.getBytes();
         }
         return recordedBytes;
     }
@@ -134,7 +156,14 @@ public class MediaClipsRecorder implements
         try {
             mMediaRecorder.stop();
             long duration = System.currentTimeMillis() - mStartTimeMillis;
-            mClips.add(new Clip(mCurrentFile, duration, mCurrentFile.getTotalSpace()));
+            MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+            retriever.setDataSource(mCurrentFile.getAbsolutePath());
+            long fileDuration = Long.parseLong(
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
+            Log.v(LOG_TAG, String.format(
+                    "File duration %d compared to computed duration %d", fileDuration, duration));
+            mClips.add(Clip.create(mCurrentFile, mFacing, mViewOrientationDegrees,
+                    fileDuration, mCurrentFile.getTotalSpace()));
         } catch (RuntimeException e) {
             // RuntimeException is thrown when stop() is called immediately after start().
             // In this case the output file is not properly constructed ans should be deleted.
@@ -157,7 +186,7 @@ public class MediaClipsRecorder implements
 
     public void deleteClips() {
         for (Clip clip : mClips) {
-            clip.file.delete();
+            clip.getFile().delete();
         }
         mClips.clear();
     }
@@ -205,15 +234,18 @@ public class MediaClipsRecorder implements
         }
     }
 
-    public static class Clip {
-        public final File file;
-        public final long durationMillis;
-        public final long bytes;
+    @AutoValue
+    public static abstract class Clip implements VideoClipI {
+        public abstract File getFile();
+        public abstract CameraControllerI.Facing getFacing();
+        public abstract int getOrientationDegrees();
+        public abstract long getDurationMillis();
+        public abstract long getBytes();
 
-        public Clip(File file, long durationMillis, long bytes) {
-            this.file = file;
-            this.durationMillis = durationMillis;
-            this.bytes = bytes;
+        public static Clip create(File file, CameraControllerI.Facing facing,
+                int orientationDegrees, long durationMillis, long bytes) {
+            return new AutoValue_MediaClipsRecorder_Clip(
+                    file, facing, orientationDegrees, durationMillis, bytes);
         }
     }
 
