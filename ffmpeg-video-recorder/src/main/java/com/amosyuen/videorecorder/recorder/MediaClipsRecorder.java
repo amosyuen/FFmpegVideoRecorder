@@ -2,6 +2,8 @@ package com.amosyuen.videorecorder.recorder;
 
 import android.media.MediaMetadataRetriever;
 import android.media.MediaRecorder;
+import android.os.Handler;
+import android.os.SystemClock;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
@@ -22,12 +24,15 @@ public class MediaClipsRecorder implements
 
     protected static final String LOG_TAG = "MediaClipsRecorder";
 
+    protected static final long START_DELAY_MILLIS = 600;
+
     // Params
     protected MediaRecorderConfigurer mMediaRecorderConfigurer;
     protected File mTempDirectory;
     protected MediaClipsRecorderListener mListener;
 
     // State
+    protected Handler mHandler;
     protected MediaRecorder mMediaRecorder;
     protected List<Clip> mClips;
     protected File mCurrentFile;
@@ -38,6 +43,7 @@ public class MediaClipsRecorder implements
     public MediaClipsRecorder(
             @NonNull MediaRecorderConfigurer mediaRecorderConfigurer,
             @NonNull File tempDirectory) {
+        mHandler = new Handler();
         mMediaRecorderConfigurer = Preconditions.checkNotNull(mediaRecorderConfigurer);
         mTempDirectory = Preconditions.checkNotNull(tempDirectory);
         mMediaRecorder = new MediaRecorder();
@@ -86,7 +92,7 @@ public class MediaClipsRecorder implements
     }
 
     public long getCurrentRecordedTimeMillis() {
-        return isRecording() ? System.currentTimeMillis() - mStartTimeMillis : 0;
+        return isRecording() ? Math.max(0, SystemClock.uptimeMillis() - mStartTimeMillis) : 0;
     }
 
     public long getRecordedMillis() {
@@ -136,7 +142,8 @@ public class MediaClipsRecorder implements
 
         try {
             mMediaRecorder.start();
-            mStartTimeMillis = System.currentTimeMillis();
+            // There's a slight delay before it starts recording.
+            mStartTimeMillis = SystemClock.uptimeMillis() + START_DELAY_MILLIS;
         } catch (Exception e) {
             if (mMediaRecorder != null) {
                 release();
@@ -154,11 +161,8 @@ public class MediaClipsRecorder implements
         }
         try {
             mMediaRecorder.stop();
-            long duration = System.currentTimeMillis() - mStartTimeMillis;
-            MediaMetadataRetriever retriever = new MediaMetadataRetriever();
-            retriever.setDataSource(mCurrentFile.getAbsolutePath());
-            long fileDuration = Long.parseLong(
-                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
+            long duration = getCurrentRecordedTimeMillis();
+            long fileDuration = getCurrentFileDuration();
             Log.v(LOG_TAG, String.format(
                     "File duration %d compared to computed duration %d", fileDuration, duration));
             mClips.add(Clip.create(mCurrentFile, mFacing, mViewOrientationDegrees,
@@ -181,6 +185,14 @@ public class MediaClipsRecorder implements
         mMediaRecorder.reset();
         mMediaRecorder.release();
         mMediaRecorder = null;
+    }
+
+    protected long getCurrentFileDuration() {
+        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+        retriever.setDataSource(mCurrentFile.getAbsolutePath());
+        String duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
+        retriever.release();
+        return duration == null ? 0 : Long.parseLong(duration);
     }
 
     public void deleteClips() {

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.os.SystemClock;
 import android.support.annotation.ColorInt;
 import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
@@ -207,7 +208,7 @@ public class ProgressSectionsView extends View
 
 		if (!hasCurrentProgress) {
 			// Show and hide the cursor every mCursorFlashIntervalMillis
-			long currMillis = System.currentTimeMillis();
+			long currMillis = SystemClock.uptimeMillis();
 			if (currMillis - mCursorLastChangeMillis >= mCursorFlashIntervalMillis) {
 				mIsCursorVisible = !mIsCursorVisible;
 				mCursorLastChangeMillis = currMillis;

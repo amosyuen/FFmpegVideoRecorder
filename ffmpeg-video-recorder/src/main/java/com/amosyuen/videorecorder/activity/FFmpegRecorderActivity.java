@@ -14,6 +14,7 @@ import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.StringRes;
 import android.support.v4.app.ActivityCompat;
@@ -458,7 +459,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         if (mNextButton.getVisibility() == View.INVISIBLE) {
             long minRecordingMillis = getInteractionParams().getMinRecordingMillis();
             if (totalRecordedMillis > minRecordingMillis) {
-                Log.v(LOG_TAG, "Reached min recoding time");
+                Log.v(LOG_TAG, "Reached min recording time");
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -529,12 +530,12 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         if (tapToFocusHoldTimeMillis <= 0) {
             return;
         }
-        mResumeAutoFocusTaskStartMillis = System.currentTimeMillis();
+        mResumeAutoFocusTaskStartMillis = SystemClock.uptimeMillis();
         if (mCameraController.canAutoFocus()) {
             mFocusRectView.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    if (System.currentTimeMillis()
+                    if (SystemClock.uptimeMillis()
                             >= mResumeAutoFocusTaskStartMillis + tapToFocusHoldTimeMillis
                             && mCameraController.canAutoFocus()
                             && !mMediaClipsRecorder.isRecording()) {

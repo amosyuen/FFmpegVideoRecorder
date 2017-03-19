@@ -46,7 +46,7 @@ import static android.app.Activity.RESULT_OK;
 public class VideoRecorderRequestFragment extends Fragment {
 
     static final String FILE_PREFIX = "recorder-";
-    static final String THUMBNAIL_FILE_EXTENSION = ".jpg";
+    static final String THUMBNAIL_FILE_EXTENSION = "jpg";
 
     private static final String[] VIDEO_PERMISSIONS = new String[]{
             Manifest.permission.CAMERA,
@@ -425,7 +425,8 @@ public class VideoRecorderRequestFragment extends Fragment {
                 String videoFileName = FILE_PREFIX + Integer.toString(n) + "." + videoExt;
                 mVideoFile = new File(dir, videoFileName);
                 if (!mVideoFile.exists() && mVideoFile.createNewFile()) {
-                    String thumbnailFileName = Integer.toString(n) + THUMBNAIL_FILE_EXTENSION;
+                    String thumbnailFileName =
+                            FILE_PREFIX + Integer.toString(n) + "." + THUMBNAIL_FILE_EXTENSION;
                     mThumbnailFile = new File(dir, thumbnailFileName);
                     if (!mThumbnailFile.exists() && mThumbnailFile.createNewFile()) {
                         return;

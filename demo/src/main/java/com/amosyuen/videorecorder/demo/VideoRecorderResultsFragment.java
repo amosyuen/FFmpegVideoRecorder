@@ -144,7 +144,7 @@ public class VideoRecorderResultsFragment extends Fragment {
                 continue;
             }
             String ext = parts[1];
-            if (ext.endsWith(VideoRecorderRequestFragment.THUMBNAIL_FILE_EXTENSION)) {
+            if (ext.equals(VideoRecorderRequestFragment.THUMBNAIL_FILE_EXTENSION)) {
                 thumbnailFiles.put(parts[0], file);
             } else {
                 try {
@@ -334,6 +334,8 @@ public class VideoRecorderResultsFragment extends Fragment {
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "Error extracting video birate", e);
                     mVideoBitrateTextView.setText("");
+                } finally {
+                    metadataRetriever.release();
                 }
 
                 MediaExtractor mediaExtractor = new MediaExtractor();
@@ -397,6 +399,8 @@ public class VideoRecorderResultsFragment extends Fragment {
                     mAudioCodecTextView.setText("");
                     mAudioSampleRateTextView.setText("");
                     mAudioChannelsTextView.setText("");
+                } finally {
+                    mediaExtractor.release();
                 }
             }
         }
