@@ -33,22 +33,6 @@ public enum ImageScale {
     }
 
     public boolean intersects(ImageScale direction) {
-        return (mBitMask | direction.mBitMask) != 0;
-    }
-
-    public ImageScale invert() {
-        switch (this) {
-            case NONE:
-                return ImageScale.NONE;
-            case DOWNSCALE:
-                return ImageScale.UPSCALE;
-            case ANY:
-                return ImageScale.ANY;
-            case UPSCALE:
-                return ImageScale.DOWNSCALE;
-            default:
-                throw new InvalidParameterException(
-                        String.format("Unsupported image scale %s", this));
-        }
+        return (mBitMask & direction.mBitMask) != 0;
     }
 }

@@ -17,16 +17,4 @@ public enum ImageFit {
      * while maintaining the aspect ratio.
      */
     FIT;
-
-    public ImageFit invert() {
-        switch (this) {
-            case FILL:
-                return ImageFit.FIT;
-            case FIT:
-                return ImageFit.FILL;
-            default:
-                throw new InvalidParameterException(
-                        String.format("Unsupported image fit %s", this));
-        }
-    }
 }
