@@ -1,24 +1,16 @@
-package com.amosyuen.videorecorder.util;
+package com.amosyuen.videorecorder.camera;
 
-
-import android.content.Context;
-import android.content.res.Configuration;
-import android.view.Surface;
-import android.view.WindowManager;
-
-import com.amosyuen.videorecorder.camera.CameraControllerI;
+import com.amosyuen.videorecorder.recorder.common.ImageFit;
 import com.amosyuen.videorecorder.recorder.common.ImageScale;
 import com.amosyuen.videorecorder.recorder.common.ImageSize;
-import com.amosyuen.videorecorder.recorder.common.ImageFit;
 import com.google.common.base.Preconditions;
 
 import java.util.List;
 
 /**
- * Video utilities
+ * Utils for camera controllers.
  */
-public class VideoUtil {
-
+public final class CameraUtil {
     /**
      *  Finds the best supported camera preview size for the target size.
      *  Target size must have at least one dimension specified and should be rotated into the same
@@ -50,7 +42,7 @@ public class VideoUtil {
     public static float calculateCameraSizeScore(
             ImageSize cameraSize, ImageSize targetSize,
             ImageFit imageFit, ImageScale imageScale) {
-        if (!targetSize.areDimensionsDefined()) {
+        if (!targetSize.areBothDimensionsDefined()) {
             targetSize = targetSize.toBuilder().calculateUndefinedDimensions(cameraSize).build();
         }
         // Find the intersection of these sizes to find the recorded non upscaled pixels:
@@ -127,33 +119,5 @@ public class VideoUtil {
         }
     }
 
-    public static boolean isLandscapeAngle(int orientationDegrees) {
-        return (orientationDegrees > 45 && orientationDegrees < 135)
-                || (orientationDegrees > 225 && orientationDegrees < 315);
-    }
-
-    public static int getContextRotation(Context context) {
-        WindowManager windowManager =
-                (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
-        switch (windowManager.getDefaultDisplay().getRotation()) {
-            case Surface.ROTATION_270:
-                return 270;
-            case Surface.ROTATION_180:
-                return 180;
-            case Surface.ROTATION_90:
-                return 90;
-            case Surface.ROTATION_0:
-            default:
-                return 0;
-        }
-    }
-
-    public static boolean isContextLandscape(Context context) {
-        return context.getResources().getConfiguration().orientation
-                == Configuration.ORIENTATION_LANDSCAPE;
-    }
-
-    public static int roundOrientation(int orientation) {
-        return ((orientation + 45) / 90 * 90) % 360;
-    }
+    private CameraUtil() {}
 }

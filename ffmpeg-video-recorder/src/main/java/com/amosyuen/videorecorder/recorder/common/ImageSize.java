@@ -1,42 +1,57 @@
 package com.amosyuen.videorecorder.recorder.common;
 
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 
 import java.io.Serializable;
 
 /**
- * Immutable class representing an integer based size.
+ * Immutable class representing an integer based image size. It allows undefined dimensions.
  */
-public class ImageSize implements Serializable {
+public class ImageSize extends ImageSizeOrBuilder implements Serializable {
 
-    public static final int SIZE_UNDEFINED = 0;
-    public static ImageSize UNDEFINED = new ImageSize(SIZE_UNDEFINED, SIZE_UNDEFINED);
+    public static final ImageSize UNDEFINED = ImageSize.builder().build();
 
-    public final int width;
-    public final int height;
+    protected final int mWidth;
+    protected final int mHeight;
 
     public ImageSize(int width, int height) {
-        this.width = width;
-        this.height = height;
+        mWidth = checkDimension(width);
+        mHeight = checkDimension(height);
     }
 
-    public boolean areDimensionsDefined() {
-        return width != SIZE_UNDEFINED && height != SIZE_UNDEFINED;
+    public ImageSize(Optional<Integer> width, Optional<Integer> height) {
+        mWidth = checkDimension(width);
+        mHeight = checkDimension(height);
     }
 
-    public boolean isAtLeastOneDimensionDefined() {
-        return width != SIZE_UNDEFINED || height != SIZE_UNDEFINED;
+    protected ImageSize(int width, int height, boolean checkDimensions) {
+        if (checkDimensions) {
+            mWidth = checkDimension(width);
+            mHeight = checkDimension(height);
+        } else {
+            mWidth = width;
+            mHeight = height;
+        }
     }
 
-    public float getAspectRatio() {
-        return (float) width / height;
+    @Override
+    public int width() {
+        return mWidth;
     }
 
-    public long getArea() { return (long) width * height; }
+    @Override
+    public int height() {
+        return mHeight;
+    }
 
     public Builder toBuilder() {
-        return new Builder(width, height);
+        return new Builder(mWidth, mHeight);
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     @Override
@@ -45,121 +60,165 @@ public class ImageSize implements Serializable {
             return false;
         }
         ImageSize other = (ImageSize) obj;
-        return width == other.width && height == other.height;
+        return mWidth == other.mWidth && mHeight == other.mHeight;
     }
 
     @Override
     public int hashCode() {
-        int result = width;
-        result = 31 * result + height;
+        int result = mWidth;
+        result = 31 * result + mHeight;
         return result;
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName()
-                + "(width=" + (width == SIZE_UNDEFINED ? "undefined" : width)
-                + ", height=" + (height == SIZE_UNDEFINED ? "undefined" : height) + ")";
     }
 
     /**
      * AbstractBuilder class for image size that supports common operations.
      */
-    public static class Builder {
-        public int width;
-        public int height;
+    public static class Builder extends ImageSizeOrBuilder {
 
-        public Builder(int width, int height) {
-            this.width = width;
-            this.height = height;
+        protected int mWidth;
+        protected int mHeight;
+
+        protected Builder() {
+            mWidth = UNDEFINED;
+            mHeight = UNDEFINED;
         }
 
-        public Builder clone() {
-            return new Builder(width, height);
+        protected Builder(int width, int height) {
+            mWidth = width;
+            mHeight = height;
         }
 
-        public boolean areDimensionsDefined() {
-            return width != SIZE_UNDEFINED && height != SIZE_UNDEFINED;
+        @Override
+        public int width() {
+            return mWidth;
         }
 
-        public boolean isAtLeastOneDimensionDefined() {
-            return width != SIZE_UNDEFINED || height != SIZE_UNDEFINED;
+        @Override
+        public int height() {
+            return mHeight;
         }
-
-        public float getAspectRatio() {
-            return (float) width / height;
-        }
-
-        public long getArea() { return (long) width * height; }
 
         public Builder width(int width) {
-            this.width = width;
+            mWidth = checkDimension(width);
+            return this;
+        }
+
+        public Builder width(Optional<Integer> width) {
+            mWidth = checkDimension(width);
             return this;
         }
 
         public Builder height(int height) {
-            this.height = height;
+            mHeight = checkDimension(height);
             return this;
         }
 
-        public Builder setSize(ImageSize imageSize) {
-            setSize(imageSize.width, imageSize.height);
+        public Builder height(Optional<Integer> height) {
+            mHeight = checkDimension(height);
             return this;
         }
 
-        public Builder setSize(int width, int height) {
-            this.width = width;
-            this.height = height;
+        public Builder size(int width, int height) {
+            mWidth = checkDimension(width);
+            mHeight = checkDimension(height);
             return this;
         }
 
-        public Builder max(ImageSize imageSize) {
-            width = Math.max(width, imageSize.width);
-            height = Math.max(height, imageSize.height);
+        public Builder size(Optional<Integer> width, Optional<Integer> height) {
+            mWidth = checkDimension(width);
+            mHeight = checkDimension(height);
             return this;
         }
 
-        public Builder min(ImageSize imageSize) {
-            width = Math.min(width, imageSize.width);
-            height = Math.min(height, imageSize.height);
+        public Builder size(ImageSizeOrBuilder imageSize) {
+            mWidth = imageSize.width();
+            mHeight = imageSize.height();
+            return this;
+        }
+
+        /**
+         * For each dimensions takes the maximum if the dimension is defined.
+         */
+        public Builder max(ImageSizeOrBuilder imageSize) {
+            int width = imageSize.width();
+            int height = imageSize.height();
+            if (width != UNDEFINED) {
+                mWidth = Math.max(mWidth, width);
+            }
+            if (height != UNDEFINED) {
+                mHeight = Math.max(mHeight, height);
+            }
+            return this;
+        }
+
+        /**
+         * For each dimensions takes the minimum if the dimension is defined.
+         */
+        public Builder min(ImageSizeOrBuilder imageSize) {
+            int width = imageSize.width();
+            int height = imageSize.height();
+            if (width != UNDEFINED) {
+                mWidth = mWidth == UNDEFINED ? width : Math.min(mWidth, width);
+            }
+            if (height != UNDEFINED) {
+                mHeight = mHeight == UNDEFINED ? width : Math.min(mHeight, width);
+            }
             return this;
         }
 
         public Builder invert() {
-            int temp = width;
+            int temp = mWidth;
             //noinspection SuspiciousNameCombination
-            width = height;
-            height = temp;
+            mWidth = mHeight;
+            mHeight = temp;
             return this;
         }
 
+        /**
+         * Rounds the width up to the nearest even number if defined. If height is defined it scales
+         * height to maintain the same aspect ratio.
+         */
         public Builder roundWidthUpToEvenAndMaintainAspectRatio() {
-            if (width != SIZE_UNDEFINED && width % 2 != 0) {
-                int roundedWidth = width + 1;
-                if (height != SIZE_UNDEFINED) {
-                    height = (roundedWidth * height + width / 2) / width;
+            if (mWidth != UNDEFINED) {
+                 if (mWidth % 2 != 0) {
+                    int roundedWidth = mWidth + 1;
+                    if (mHeight != UNDEFINED) {
+                        mHeight = (roundedWidth * mHeight + mWidth / 2) / mWidth;
+                    }
+                    mWidth = roundedWidth;
                 }
-                width = roundedWidth;
             }
             return this;
         }
 
         /**
-         * Calculates the undefined dimensions in this size using the aspect ratio from the source size.
+         * Calculates the undefined dimensions in this size using the aspect ratio from the source
+         * size. The size must have at least one dimensions defined.
+         * @param source Size whose aspect ratio to use to calculate the undefined dimension. Must
+         *               have both dimensions defined.
          */
-        public Builder calculateUndefinedDimensions(ImageSize source) {
-            if (width == SIZE_UNDEFINED) {
-                width = source.width * height / source.height;
-            } else if (height == SIZE_UNDEFINED) {
-                height = source.height * width / source.width;
+        public Builder calculateUndefinedDimensions(ImageSizeOrBuilder source) {
+            Preconditions.checkState(isAtLeastOneDimensionDefined());
+            Preconditions.checkArgument(source.areBothDimensionsDefined());
+            if (mHeight != UNDEFINED) {
+                if (mWidth != UNDEFINED) {
+                    mWidth = source.width() * mHeight / source.height();
+                }
+            } else if (mWidth != UNDEFINED) {
+                mHeight = source.height() * mWidth / source.width();
             }
             return this;
         }
 
         /**
-         * @param targetSize must be a defined size.
+         * Scale the size to the target size using the image fit if it is the scale allowed by
+         * imageScale. Size must have both dimensions defined.
+         * @param targetSize Size to scale to. Must have both dimensions defined.
+         * @param imageFit How to fit the image to the targetSize.
+         * @param imageScale The allowed scale.
          */
-        public Builder scale(ImageSize targetSize, ImageFit imageFit, ImageScale imageScale) {
+        public Builder scale(
+                ImageSizeOrBuilder targetSize, ImageFit imageFit, ImageScale imageScale) {
             switch (imageFit) {
                 case FILL:
                     scaleToFill(targetSize, imageScale);
@@ -169,92 +228,65 @@ public class ImageSize implements Serializable {
                     break;
                 default:
                     throw new IllegalArgumentException(
-                            String.format("Unsupported scale fit %s", imageFit));
+                            String.format("Unsupported image fit %s", imageFit));
             }
             return this;
         }
 
         /**
-         * @param targetSize must be a defined size.
+         * Scale the size to the target size so that it fills the target size if allowed by
+         * imageScale. Size must have both dimensions defined.
+         * @param targetSize Size to scale to. Must have both dimensions defined.
+         * @param imageScale The allowed scale.
          */
-        public Builder scaleToFill(ImageSize targetSize, ImageScale imageScale) {
+        public Builder scaleToFill(ImageSizeOrBuilder targetSize, ImageScale imageScale) {
             scale(targetSize, imageScale, true);
             return this;
         }
 
         /**
-         * @param targetSize must be a defined size.
+         * Scale the size to the target size so that it fits the target size if allowed by
+         * imageScale. Size must have both dimensions defined.
+         * @param targetSize Size to scale to. Must have both dimensions defined.
+         * @param imageScale The allowed scale.
          */
-        public Builder scaleToFit(ImageSize targetSize, ImageScale imageScale) {
+        public Builder scaleToFit(ImageSizeOrBuilder targetSize, ImageScale imageScale) {
             scale(targetSize, imageScale, false);
             return this;
         }
 
-        /**
-         * @param targetSize must be a defined size.
-         */
-        protected void scale(ImageSize targetSize, ImageScale imageScale, boolean isFill) {
-            Preconditions.checkArgument(targetSize.areDimensionsDefined());
+        protected void scale(ImageSizeOrBuilder targetSize, ImageScale imageScale, boolean isFill) {
+            Preconditions.checkArgument(areBothDimensionsDefined());
+            Preconditions.checkArgument(targetSize.areBothDimensionsDefined());
             boolean isAspectRatioGreaterThan = targetSize.getAspectRatio() > getAspectRatio();
             if (isAspectRatioGreaterThan ^ isFill) {
-                if ((targetSize.height < height && ImageScale.DOWNSCALE.intersects(imageScale))
-                        || (targetSize.height > height && ImageScale.UPSCALE.intersects(imageScale))) {
-                    width = width * targetSize.height / height;
-                    height = targetSize.height;
+                int targetHeight = targetSize.height();
+                if ((targetHeight < mHeight && ImageScale.DOWNSCALE.intersects(imageScale))
+                        || (targetHeight > mHeight && ImageScale.UPSCALE.intersects(imageScale))) {
+                    mWidth = mWidth * targetHeight / mHeight;
+                    mHeight = targetHeight;
                 }
-            } else if ((targetSize.width < width && ImageScale.DOWNSCALE.intersects(imageScale))
-                    || (targetSize.width > width && ImageScale.UPSCALE.intersects(imageScale))) {
-                height = height * targetSize.width / width;
-                width = targetSize.width;
+            } else {
+                int targetWidth = targetSize.width();
+                if ((targetWidth < mWidth && ImageScale.DOWNSCALE.intersects(imageScale))
+                        || (targetWidth > mWidth && ImageScale.UPSCALE.intersects(imageScale))) {
+                    mHeight = mHeight * targetWidth / mWidth;
+                    mWidth = targetWidth;
+                }
             }
-        }
-
-        public Builder cropTo(ImageSize targetSize) {
-            if (width > targetSize.width) {
-                width = targetSize.width;
-            }
-            if (height > targetSize.height) {
-                height = targetSize.height;
-            }
-            return this;
-        }
-
-        public Builder padTo(ImageSize targetSize) {
-            if (width < targetSize.width) {
-                width = targetSize.width;
-            }
-            if (height < targetSize.height) {
-                height = targetSize.height;
-            }
-            return this;
         }
 
         public ImageSize build() {
-            return new ImageSize(width, height);
+            return new ImageSize(mWidth, mHeight, false);
         }
 
         @Override
         public boolean equals(Object obj) {
-            if (!(obj instanceof Builder)) {
+            if (!(obj instanceof ImageSizeOrBuilder)) {
                 return false;
             }
-            ImageSize other = (ImageSize) obj;
-            return width == other.width && height == other.height;
-        }
-
-        @Override
-        public int hashCode() {
-            int result = width;
-            result = 31 * result + height;
-            return result;
-        }
-
-        @Override
-        public String toString() {
-            return getClass().getSimpleName()
-                    + "(width=" + (width == SIZE_UNDEFINED ? "undefined" : width)
-                    + ", height=" + (height == SIZE_UNDEFINED ? "undefined" : height) + ")";
+            ImageSizeOrBuilder other = (ImageSizeOrBuilder) obj;
+            return mWidth == other.width() && mHeight == other.height();
         }
     }
-
 }

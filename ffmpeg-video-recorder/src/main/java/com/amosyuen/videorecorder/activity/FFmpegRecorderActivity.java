@@ -14,13 +14,13 @@ import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.annotation.ColorInt;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.StringRes;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.AppCompatImageButton;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MotionEvent;
@@ -34,17 +34,24 @@ import android.widget.TextView;
 
 import com.amosyuen.videorecorder.BuildConfig;
 import com.amosyuen.videorecorder.R;
+import com.amosyuen.videorecorder.activity.params.ActivityThemeParams;
+import com.amosyuen.videorecorder.activity.params.FFmpegPreviewActivityParams;
+import com.amosyuen.videorecorder.activity.params.FFmpegRecorderActivityParams;
+import com.amosyuen.videorecorder.activity.params.InteractionParamsI;
+import com.amosyuen.videorecorder.activity.params.RecorderActivityThemeParamsI;
 import com.amosyuen.videorecorder.camera.CameraController;
 import com.amosyuen.videorecorder.camera.CameraControllerI;
+import com.amosyuen.videorecorder.recorder.FFmpegFrameRecorder;
 import com.amosyuen.videorecorder.recorder.MediaClipsRecorder;
 import com.amosyuen.videorecorder.recorder.VideoTransformerTask;
 import com.amosyuen.videorecorder.recorder.common.ImageSize;
 import com.amosyuen.videorecorder.recorder.params.CameraParams;
+import com.amosyuen.videorecorder.recorder.params.RecorderParamsI;
 import com.amosyuen.videorecorder.ui.CameraPreviewView;
 import com.amosyuen.videorecorder.ui.ProgressSectionsView;
 import com.amosyuen.videorecorder.ui.TapToFocusView;
+import com.amosyuen.videorecorder.ui.ViewUtil;
 import com.amosyuen.videorecorder.util.Util;
-import com.amosyuen.videorecorder.util.VideoUtil;
 import com.github.rahatarmanahmed.cpv.CircularProgressView;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -68,18 +75,19 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         ProgressSectionsView.ProgressSectionsProvider,
         SurfaceHolder.Callback {
 
+    public static final String REQUEST_PARAMS_KEY =
+            BuildConfig.APPLICATION_ID + ".FFmpegRecorderActivityParams";
+
     public static final int RESULT_ERROR = RESULT_FIRST_USER;
-    public static final String ERROR_PATH_KEY = "error";
-    public static final String THUMBNAIL_URI_KEY = "thumbnail";
-
-    public static final String RECORDER_ACTIVITY_PARAMS_KEY =
-            BuildConfig.APPLICATION_ID + ".RecorderActivityParams";
-
-    private static final int PREVIEW_ACTIVITY_RESULT = 10000;
-
-    protected static final int FOCUS_WEIGHT = 1000;
+    public static final String RESULT_ERROR_PATH_KEY = "error";
+    public static final String RESULT_THUMBNAIL_URI_KEY = "thumbnail";
 
     protected static final String LOG_TAG = "FFmpegRecorderActivity";
+    protected static final int PREVIEW_ACTIVITY_RESULT = 10000;
+    protected static final int FOCUS_WEIGHT = 1000;
+
+    // User params
+    FFmpegRecorderActivityParams mParams;
 
     // Ui variables
     protected ProgressSectionsView mProgressView;
@@ -107,21 +115,23 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (mThemeParams == null) {
+
+        if (!extractIntentParams()) {
             return;
         }
+        layoutView();
+        setupToolbar((Toolbar) findViewById(R.id.toolbar));
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        RecorderActivityParams params = getThemeParams();
-
-        int progressColor = getProgressColor();
+        InteractionParamsI interactionParams =  getInteractionParams();
+        RecorderActivityThemeParamsI themeParams = getThemeParams();
         mProgressView = (ProgressSectionsView) findViewById(R.id.recorder_progress);
-        mProgressView.setMinProgress((int) params.getMinRecordingMillis());
-        mProgressView.setMaxProgress((int) params.getMaxRecordingMillis());
-        mProgressView.setProgressColor(progressColor);
-        mProgressView.setCursorColor(getProgressCursorColor());
-        mProgressView.setMinProgressColor(getProgressMinProgressColor());
+        mProgressView.setMinProgress(interactionParams.getMinRecordingMillis());
+        mProgressView.setMaxProgress(interactionParams.getMaxRecordingMillis());
+        mProgressView.setProgressColor(themeParams.getProgressColor());
+        mProgressView.setCursorColor(themeParams.getProgressCursorColor());
+        mProgressView.setMinProgressColor(themeParams.getProgressMinProgressColor());
         mProgressView.setProvider(this);
 
         // TODO: Support Camera 2
@@ -129,7 +139,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         mCameraController.addListener(this);
         mCameraPreviewView = (CameraPreviewView) findViewById(R.id.recorder_view);
         mCameraPreviewView.getHolder().addCallback(this);
-        mCameraPreviewView.setParams(params);
+        mCameraPreviewView.setParams(mParams.getRecorderParams());
         mCameraPreviewView.setCameraController(mCameraController);
         mCameraPreviewView.setFocusSize(getResources().getDimensionPixelSize(R.dimen.focus_size));
         mCameraPreviewView.setFocusWeight(FOCUS_WEIGHT);
@@ -145,21 +155,20 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         mRecordButton = (AppCompatImageButton) findViewById(R.id.record_button);
         mRecordButton.setOnTouchListener(FFmpegRecorderActivity.this);
 
-        @ColorInt int widgetcolor = getWidgetColor();
         mSwitchCameraButton = (AppCompatImageButton) findViewById(R.id.switch_camera_button);
         mSwitchCameraButton.setOnClickListener(FFmpegRecorderActivity.this);
-        mSwitchCameraButton.setColorFilter(widgetcolor);
+        mSwitchCameraButton.setColorFilter(themeParams.getWidgetColor());
 
         mFlashButton = (AppCompatImageButton) findViewById(R.id.flash_button);
         mFlashButton.setOnClickListener(this);
-        mFlashButton.setColorFilter(widgetcolor);
+        mFlashButton.setColorFilter(themeParams.getWidgetColor());
 
         mProgressBar = (CircularProgressView) findViewById(R.id.progress_bar) ;
-        mProgressBar.setColor(progressColor);
+        mProgressBar.setColor(themeParams.getProgressColor());
         mProgressText = (TextView) findViewById(R.id.progress_text) ;
     
         mNextButton = (AppCompatImageButton) findViewById(R.id.next_button);
-        mNextButton.setColorFilter(getToolbarWidgetColor());
+        mNextButton.setColorFilter(themeParams.getToolbarWidgetColor());
         mNextButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -176,25 +185,27 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
 
     @Override
     protected boolean extractIntentParams() {
-        RecorderActivityParams params = (RecorderActivityParams)
-                getIntent().getSerializableExtra(RECORDER_ACTIVITY_PARAMS_KEY);
-        if (params == null) {
+        mParams = (FFmpegRecorderActivityParams)
+                getIntent().getSerializableExtra(REQUEST_PARAMS_KEY);
+        if (mParams == null) {
             onError(new InvalidParameterException(
-                    "Intent did not have RECORDER_ACTIVITY_PARAMS_KEY params set."));
+                    "Intent did not have FFmpegRecorderActivity.REQUEST_PARAMS_KEY set."));
             return false;
         }
-        if (params.getVideoOutputUri() == null || params.getVideoOutputUri().isEmpty()) {
-            onError(new InvalidParameterException(
-                    "Intent did not have a valid video output uri set."));
-            return false;
-        }
-        mThemeParams = params;
         return true;
     }
 
+    protected InteractionParamsI getInteractionParams() {
+        return mParams.getInteractionParams();
+    }
+
+    protected RecorderParamsI getRecorderParams() {
+        return mParams.getRecorderParams();
+    }
+
     @Override
-    protected RecorderActivityParams getThemeParams() {
-        return (RecorderActivityParams) mThemeParams;
+    protected RecorderActivityThemeParamsI getThemeParams() {
+        return mParams.getThemeParams();
     }
 
     @Override
@@ -202,31 +213,12 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         setContentView(R.layout.activity_ffmpeg_recorder);
     }
 
-    @ColorInt
-    protected int getProgressCursorColor() {
-        int color = getThemeParams().getProgressCursorColor();
-        return color == 0
-                ? Util.getThemeColorAttribute(getTheme(), R.attr.colorPrimaryDark) : color;
-    }
-
-    @ColorInt
-    protected int getProgressMinProgressColor() {
-        int color = getThemeParams().getProgressMinProgressColor();
-        return color == 0
-                ? Util.getThemeColorAttribute(getTheme(), R.attr.colorPrimary) : color;
-    }
-
-    @ColorInt
-    protected int getWidgetColor() {
-        int color = getThemeParams().getWidgetColor();
-        return color == 0 ? ActivityCompat.getColor(this, android.R.color.white) : color;
-    }
-
     @Override
     protected void setupToolbar(android.support.v7.widget.Toolbar toolbar) {
         Drawable navButtonDrawable =
                 ContextCompat.getDrawable(this, R.drawable.ic_close_white_24dp);
-        toolbar.setNavigationIcon(Util.tintDrawable(navButtonDrawable, getToolbarWidgetColor()));
+        toolbar.setNavigationIcon(ViewUtil.tintDrawable(
+                navButtonDrawable, getThemeParams().getToolbarWidgetColor()));
         super.setupToolbar(toolbar);
     }
 
@@ -239,37 +231,26 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         mProgressView.setVisibility(View.GONE);
         mNextButton.setVisibility(View.INVISIBLE);
 
-        mMediaClipsRecorder = new MediaClipsRecorder(this, getCacheDir());
+        mMediaClipsRecorder = new MediaClipsRecorder(this, getExternalCacheDir());
         mMediaClipsRecorder.setMediaCLipstRecorderListener(this);
 
         setRequestedOrientation(mOriginalRequestedOrientation);
 
-        openCamera(getThemeParams().getVideoCameraFacing());
+        openCamera(getRecorderParams().getVideoCameraFacing());
     }
 
     @Override
     public void configureMediaRecorder(MediaRecorder recorder) {
-        Log.v(LOG_TAG, String.format("Remaining millis %d", getThemeParams().getMaxRecordingMillis()
-                - mMediaClipsRecorder.getRecordedMillis()));
+        Log.v(LOG_TAG, String.format("Remaining millis %d",
+                getInteractionParams().getMaxRecordingMillis()
+                        - mMediaClipsRecorder.getRecordedMillis()));
         // Camera must be set first
         mCameraController.setMediaRecorder(recorder);
         // Then other config
-        Util.setMediaRecorderParams(recorder, getThemeParams(),
+        Util.setMediaRecorderEncoderParams(recorder, getRecorderParams());
+        Util.setMediaRecorderInteractionParams(recorder, getInteractionParams(),
                 mMediaClipsRecorder.getRecordedMillis(), mMediaClipsRecorder.getRecordedBytes());
-
-        // Set the same params as the camera
-        ImageSize pictureSize = mCameraController.getPictureSize();
-        recorder.setVideoSize(pictureSize.width, pictureSize.height);
-        Log.v(LOG_TAG, String.format("Orientation: %d", mCameraController.getPreviewDisplayOrientationDegrees()));
-        recorder.setOrientationHint(mCameraController.getPreviewDisplayOrientationDegrees());
-
-        int[] framteRateRange = mCameraController.getFrameRateRange();
-        int fps = framteRateRange[0] / 1000;
-        try {
-            recorder.setVideoFrameRate(fps);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, String.format("Error setting recorder frame rate to %d", fps), e);
-        }
+        Util.setMediaRecorderCameraParams(recorder, mCameraController);
     }
 
     @Override
@@ -338,7 +319,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
 
         Log.d(LOG_TAG, String.format("Opening camera facing %s", facing));
         showProgress(R.string.initializing);
-        mCameraPreviewView.setPreviewSize(null);
+        mCameraPreviewView.setPreviewSize(ImageSize.UNDEFINED);
         mOpenCameraOrientationDegrees = mOrientationEventListener.mOrientationDegrees;
         mOpenCameraTask = new OpenCameraTask();
         mOpenCameraTask.execute(Preconditions.checkNotNull(facing));
@@ -374,7 +355,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
 
     @Override
     public void onCameraClose() {
-        mCameraPreviewView.setPreviewSize(null);
+        mCameraPreviewView.setPreviewSize(ImageSize.UNDEFINED);
     }
 
     @Override
@@ -475,7 +456,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
             progressList.add((int) mMediaClipsRecorder.getCurrentRecordedTimeMillis());
         }
         if (mNextButton.getVisibility() == View.INVISIBLE) {
-            long minRecordingMillis = getThemeParams().getMinRecordingMillis();
+            long minRecordingMillis = getInteractionParams().getMinRecordingMillis();
             if (totalRecordedMillis > minRecordingMillis) {
                 Log.v(LOG_TAG, "Reached min recoding time");
                 runOnUiThread(new Runnable() {
@@ -510,7 +491,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
     }
 
     protected void stopRecording() {
-        if (mThemeParams == null || !mMediaClipsRecorder.isRecording()) {
+        if (mParams == null || !mMediaClipsRecorder.isRecording()) {
             return;
         }
         Log.v(LOG_TAG, "Stop recording");
@@ -544,7 +525,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
     }
 
     protected void runTaskToAutoFocusAfterInactivity() {
-        final long tapToFocusHoldTimeMillis = getThemeParams().getTapToFocusHoldTimeMillis();
+        final long tapToFocusHoldTimeMillis = getInteractionParams().getTapToFocusHoldTimeMillis();
         if (tapToFocusHoldTimeMillis <= 0) {
             return;
         }
@@ -613,7 +594,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
     public void onError(final Exception e) {
         discardRecording();
         Intent intent = new Intent();
-        intent.putExtra(ERROR_PATH_KEY, e);
+        intent.putExtra(RESULT_ERROR_PATH_KEY, e);
         setResult(RESULT_ERROR, intent);
         finish();
     }
@@ -626,7 +607,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
 
     public void discardRecording() {
         Log.i(LOG_TAG, "Discard recording");
-        if (mThemeParams == null) {
+        if (mParams == null) {
             return;
         }
         if (mSaveVideoTask != null) {
@@ -666,10 +647,14 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
     protected void startPreviewActivity() {
         Log.i(LOG_TAG, "Saved recording. Starting preview");
         Intent previewIntent = new Intent(this, FFmpegPreviewActivity.class);
-        previewIntent.setData(Uri.fromFile(mVideoOutputFile));
-        previewIntent.putExtra(ACTIVITY_THEME_PARAMS_KEY,
-                new ActivityThemeParams.Builder().merge(mThemeParams).build());
-        previewIntent.putExtra(FFmpegPreviewActivity.CAN_CANCEL_KEY, true);
+        previewIntent.putExtra(
+                FFmpegPreviewActivity.REQUEST_PARAMS_KEY,
+                FFmpegPreviewActivityParams.builder()
+                    .setVideoFileUri(mVideoOutputFile)
+                    .setThemeParams(ActivityThemeParams.Builder.mergeOnlyClass(
+                            ActivityThemeParams.builder(), getThemeParams()).build())
+                    .setConfirmation(true)
+                    .build());
         startActivityForResult(previewIntent, PREVIEW_ACTIVITY_RESULT);
     }
 
@@ -678,14 +663,14 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         Intent resultIntent = new Intent();
         resultIntent.setData(Uri.fromFile(mVideoOutputFile));
         if (mVideoThumbnailOutputFile != null) {
-            resultIntent.putExtra(THUMBNAIL_URI_KEY, Uri.fromFile(mVideoThumbnailOutputFile));
+            resultIntent.putExtra(RESULT_THUMBNAIL_URI_KEY, Uri.fromFile(mVideoThumbnailOutputFile));
         }
         setResult(RESULT_OK, resultIntent);
         finish();
     }
 
     protected void releaseResources() {
-        if (mThemeParams == null) {
+        if (mParams == null) {
             return;
         }
         mMediaClipsRecorder.release();
@@ -704,7 +689,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         {
             // If the view orientation when we opened the camera doesn't match the current
             // orientation, reopen the camera.
-            mOrientationDegrees = VideoUtil.getContextRotation(FFmpegRecorderActivity.this);
+            mOrientationDegrees = ViewUtil.getContextRotation(FFmpegRecorderActivity.this);
             if (mCameraController.isCameraOpen()
                     && mOpenCameraOrientationDegrees != mOrientationDegrees) {
                 openCamera(mCameraController.getCameraFacing());
@@ -718,16 +703,13 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         protected Exception doInBackground(CameraControllerI.Facing[] params) {
             try {
                 CameraControllerI.Facing facing = Preconditions.checkNotNull(params[0]);
-                CameraParams cameraParams;
-                if (getThemeParams().getVideoCameraFacing() == facing) {
-                    cameraParams = getThemeParams();
-                } else {
-                    cameraParams = new CameraParams.Builder()
-                            .merge(getThemeParams())
-                            .videoCameraFacing(facing)
-                            .build();
+                CameraParams.Builder cameraParamsBuilder =
+                        CameraParams.Builder.merge(CameraParams.builder(), getRecorderParams());
+                if (getRecorderParams().getVideoCameraFacing() != facing) {
+                    cameraParamsBuilder.setVideoCameraFacing(facing);
                 }
-                mCameraController.openCamera(cameraParams, mOpenCameraOrientationDegrees);
+                mCameraController
+                        .openCamera(cameraParamsBuilder.build(), mOpenCameraOrientationDegrees);
             } catch (Exception e) {
                 return e;
             }
@@ -760,19 +742,21 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
 
         @Override
         protected Exception doInBackground(Object[] params) {
-            mVideoOutputFile = new File(Uri.parse(getThemeParams().getVideoOutputUri()).getPath());
+            mVideoOutputFile = new File(Uri.parse(mParams.getVideoOutputFileUri()).getPath());
 
-            String videoThumbnailOutputUri = getThemeParams().getVideoThumbnailOutputUri();
-            mVideoThumbnailOutputFile = videoThumbnailOutputUri == null
-                    ? null
-                    : new File(Uri.parse(videoThumbnailOutputUri).getPath());
+            mVideoThumbnailOutputFile = mParams.getVideoThumbnailOutputFileUri().isPresent()
+                    ? new File(Uri.parse(mParams.getVideoThumbnailOutputFileUri().get()).getPath())
+                    : null;
 
             List<MediaClipsRecorder.Clip> clips = mMediaClipsRecorder.getClips();
             List<File> files = Lists.newArrayListWithCapacity(clips.size());
             for (MediaClipsRecorder.Clip clip : clips) {
                 files.add(clip.file);
             }
-            mVideoTransformerTask = new VideoTransformerTask(mVideoOutputFile, getThemeParams(), files);
+            FFmpegFrameRecorder recorder =
+                    Util.createFrameRecorder(mVideoOutputFile, getRecorderParams());
+            mVideoTransformerTask =
+                    new VideoTransformerTask(recorder, getRecorderParams(), files);
             mVideoTransformerTask.setProgressListener(this);
 
             try {

@@ -7,6 +7,11 @@ import java.security.InvalidParameterException;
  */
 public enum ImageScale {
     /**
+     * Disallow any scaling.
+     */
+    NONE(0),
+
+    /**
      * Allow scaling images down.
      */
     DOWNSCALE(1),
@@ -17,9 +22,9 @@ public enum ImageScale {
     UPSCALE(1 << 1),
 
     /**
-     * Allow scaling images down or up.
+     * Allow any scaling.
      */
-    DOWNSCALE_OR_UPSCALE(DOWNSCALE.mBitMask | UPSCALE.mBitMask);
+    ANY(DOWNSCALE.mBitMask | UPSCALE.mBitMask);
 
     private final int mBitMask;
 
@@ -33,10 +38,12 @@ public enum ImageScale {
 
     public ImageScale invert() {
         switch (this) {
+            case NONE:
+                return ImageScale.NONE;
             case DOWNSCALE:
                 return ImageScale.UPSCALE;
-            case DOWNSCALE_OR_UPSCALE:
-                return ImageScale.DOWNSCALE_OR_UPSCALE;
+            case ANY:
+                return ImageScale.ANY;
             case UPSCALE:
                 return ImageScale.DOWNSCALE;
             default:

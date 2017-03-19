@@ -1,40 +1,41 @@
 package com.amosyuen.videorecorder.recorder.params;
 
-
 import com.amosyuen.videorecorder.recorder.common.ImageFit;
 import com.amosyuen.videorecorder.recorder.common.ImageScale;
 
-import java.io.Serializable;
-
 /**
- * Parameters for video scale fit.
+ * Common utils for {@link VideoScaleParamsI}.
  */
-public interface VideoScaleParams extends VideoSizeParams, Serializable {
+public final class VideoScaleParams {
 
-    /**
-     * Get how the video should be scaled to fit the desired width and height. Only used if one of
-     * the dimensions in video size are greater than 0.
-     */
-    ImageFit getVideoImageFit();
+    private VideoScaleParams() {}
 
-    /**
-     * Get the video scaling direction that is allowed.
-     */
-    ImageScale getVideoImageScale();
+    public static final class Builder {
 
-    interface BuilderI<T extends BuilderI<T>> extends VideoSizeParams.BuilderI<T> {
+        public static <T extends VideoScaleParamsI.BuilderI<T>> T setOnlyClassDefaults(T builder) {
+            return builder
+                    .setVideoImageFit(ImageFit.FILL)
+                    .setVideoImageScale(ImageScale.DOWNSCALE);
+        }
 
-        /**
-         * Set how the video should be scaled to the desired width and height. Only used if one of
-         * the dimensions in video size are greater than 0.
-         */
-        T videoScaleFit(ImageFit val);
+        public static <T extends VideoScaleParamsI.BuilderI<T>> T setDefaults(T builder) {
+            VideoSizeParams.Builder.setOnlyClassDefaults(builder);
+            return setOnlyClassDefaults(builder);
+        }
 
-        /**
-         * Set the video scaling that is allowed to reach the video size.
-         */
-        T videoScaleDirection(ImageScale val);
+        public static <T extends VideoScaleParamsI.BuilderI<T>> T mergeOnlyClass(
+                T builder, VideoScaleParamsI params) {
+            return builder
+                    .setVideoImageFit(params.getVideoImageFit())
+                    .setVideoImageScale(params.getVideoImageScale());
+        }
 
-        VideoScaleParams build();
+        public static <T extends VideoScaleParamsI.BuilderI<T>> T merge(
+                T builder, VideoScaleParamsI params) {
+            VideoSizeParams.Builder.mergeOnlyClass(builder, params);
+            return mergeOnlyClass(builder, params);
+        }
+
+        private Builder() {}
     }
 }

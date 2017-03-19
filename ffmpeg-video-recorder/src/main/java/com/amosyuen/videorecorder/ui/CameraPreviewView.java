@@ -1,6 +1,7 @@
 package com.amosyuen.videorecorder.ui;
 
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
@@ -21,10 +22,10 @@ import android.view.SurfaceView;
 import android.view.View;
 
 import com.amosyuen.videorecorder.camera.CameraControllerI;
+import com.amosyuen.videorecorder.recorder.common.ImageFit;
 import com.amosyuen.videorecorder.recorder.common.ImageScale;
 import com.amosyuen.videorecorder.recorder.common.ImageSize;
-import com.amosyuen.videorecorder.recorder.params.VideoTransformerParams;
-import com.amosyuen.videorecorder.util.VideoUtil;
+import com.amosyuen.videorecorder.recorder.params.VideoTransformerParamsI;
 import com.google.common.base.Preconditions;
 
 /**
@@ -38,10 +39,10 @@ public class CameraPreviewView extends SurfaceView {
     private static final int CAMERA_FOCUS_MAX = 1000;
 
     // User specified params
-    protected VideoTransformerParams mParams;
+    protected VideoTransformerParamsI mParams;
     protected CameraControllerI mCameraController;
     protected UIInteractionListener mUIInteractionListener;
-    @Nullable protected ImageSize mPreviewSize;
+    @Nullable protected ImageSize mPreviewSize = ImageSize.UNDEFINED;
     protected boolean mIsPreviewing;
     protected float mFocusSize;
     protected int mFocusWeight;
@@ -75,11 +76,11 @@ public class CameraPreviewView extends SurfaceView {
     }
 
     @Nullable
-    public VideoTransformerParams getParams() {
+    public VideoTransformerParamsI getParams() {
         return mParams;
     }
 
-    public void setParams(@NonNull VideoTransformerParams params) {
+    public void setParams(@NonNull VideoTransformerParamsI params) {
         mParams = Preconditions.checkNotNull(params);
     }
 
@@ -104,10 +105,12 @@ public class CameraPreviewView extends SurfaceView {
         return mPreviewSize;
     }
 
-    public void setPreviewSize(ImageSize previewSize) {
-        if (previewSize != mPreviewSize) {
+    public void setPreviewSize(@NonNull ImageSize previewSize) {
+        Preconditions.checkArgument(
+                !Preconditions.checkNotNull(previewSize).isOneDimensionDefined());
+        if (!mPreviewSize.equals(previewSize)) {
             mPreviewSize = previewSize;
-            if (mPreviewSize != null) {
+            if (mPreviewSize.areBothDimensionsDefined()) {
                 post(new Runnable() {
                     @Override
                     public void run() {
@@ -159,6 +162,7 @@ public class CameraPreviewView extends SurfaceView {
         mCameraController = Preconditions.checkNotNull(cameraController);
     }
 
+    @SuppressLint("DrawAllocation")
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         // Get the parent size
@@ -170,7 +174,7 @@ public class CameraPreviewView extends SurfaceView {
             DisplayMetrics metrics = getResources().getDisplayMetrics();
             parentSize = new ImageSize(metrics.widthPixels, metrics.heightPixels);
         }
-        if (!parentSize.areDimensionsDefined()) {
+        if (!parentSize.areBothDimensionsDefined()) {
             super.onMeasure(widthMeasureSpec, heightMeasureSpec);
             return;
         }
@@ -179,23 +183,23 @@ public class CameraPreviewView extends SurfaceView {
 
         // Get the preview size and rotate it into the correct orientation for the view.
         ImageSize.Builder scalePreviewSizeBuilder;
-        if (mPreviewSize == null) {
-            // If there is no preview size calculate it by scaling the targetSize to fir the parent
-            // or use the parent if the target size doesn't have both dimensions defined.
-            mPreviewSize = targetSize.areDimensionsDefined()
-                    ? targetSize.toBuilder()
-                            .scaleToFit(parentSize, ImageScale.DOWNSCALE_OR_UPSCALE).build()
-                    : parentSize;
-            scalePreviewSizeBuilder = mPreviewSize.toBuilder();
-        } else {
+        if (mPreviewSize.areBothDimensionsDefined()) {
             // Rotate the preview orientation if view orientation is portrait
-            boolean isLandscape = VideoUtil.isContextLandscape(getContext());
+            boolean isLandscape = ViewUtil.isContextLandscape(getContext());
             scalePreviewSizeBuilder = mPreviewSize.toBuilder();
             if (!isLandscape) {
                 scalePreviewSizeBuilder.invert();
             }
+        } else {
+            // If there is no preview size calculate it by scaling the targetSize to fir the parent
+            // or use the parent if the target size doesn't have both dimensions defined.
+            mPreviewSize = targetSize.areBothDimensionsDefined()
+                    ? targetSize.toBuilder()
+                            .scaleToFit(parentSize, ImageScale.ANY).build()
+                    : parentSize;
+            scalePreviewSizeBuilder = mPreviewSize.toBuilder();
         }
-        Preconditions.checkState(scalePreviewSizeBuilder.areDimensionsDefined());
+        Preconditions.checkState(scalePreviewSizeBuilder.areBothDimensionsDefined());
 
         // Calculate any undefined dimensions of the target size and scale the preview size to the
         // target size according to the requested params
@@ -210,25 +214,36 @@ public class CameraPreviewView extends SurfaceView {
                     mParams.getVideoImageScale());
         } else {
             // No target size was specified, so just use the preview size.
-            scaleTargetSizeBuilder = scalePreviewSizeBuilder.clone()
+            scaleTargetSizeBuilder = ImageSize.builder().size(scalePreviewSizeBuilder)
                     .roundWidthUpToEvenAndMaintainAspectRatio();
         }
-        Preconditions.checkState(scaleTargetSizeBuilder.areDimensionsDefined());
+        Preconditions.checkState(scaleTargetSizeBuilder.areBothDimensionsDefined());
 
-        // Scale the target to fit within the parent view
-        ImageSize preScaleTargetSize = scaleTargetSizeBuilder.build();
-        mScaledTargetSize = scaleTargetSizeBuilder
-                .scaleToFit(parentSize, ImageScale.DOWNSCALE_OR_UPSCALE).build();
-        // Scale the preview size by the same amount that target size was scaled
-        scalePreviewSizeBuilder.width = scalePreviewSizeBuilder.width
-                * mScaledTargetSize.width / preScaleTargetSize.width;
-        scalePreviewSizeBuilder.height = scalePreviewSizeBuilder.height
-                * mScaledTargetSize.height / preScaleTargetSize.height;
-        mScaledPreviewSize = scalePreviewSizeBuilder.build();
+        if (mParams.getVideoImageFit() == ImageFit.FILL && !mParams.getShouldCropVideo()
+                || mParams.getVideoImageFit() == ImageFit.FIT && !mParams.getShouldPadVideo()) {
+            // If we can't modify the aspect ratio using cropping or padding, then the target view
+            // will be the same as the preview for viewing
+            mScaledPreviewSize = scalePreviewSizeBuilder
+                    .scaleToFit(parentSize, ImageScale.ANY)
+                    .build();
+            mScaledTargetSize = mScaledPreviewSize;
+        } else {
+            // Scale the target to fit within the parent view
+            ImageSize preScaleTargetSize = scaleTargetSizeBuilder.build();
+            mScaledTargetSize = scaleTargetSizeBuilder
+                    .scaleToFit(parentSize, ImageScale.ANY).build();
+            // Scale the preview size by the same amount that target size was scaled
+            scalePreviewSizeBuilder.width(scalePreviewSizeBuilder.getWidthUnchecked()
+                    * mScaledTargetSize.getWidthUnchecked() / preScaleTargetSize.getWidthUnchecked());
+            scalePreviewSizeBuilder.height(scalePreviewSizeBuilder.getHeightUnchecked()
+                    * mScaledTargetSize.getHeightUnchecked() / preScaleTargetSize.getHeightUnchecked());
+            mScaledPreviewSize = scalePreviewSizeBuilder.build();
+        }
 
-        boolean hasChanged = getMeasuredWidth() == mScaledPreviewSize.width
-                && getMeasuredHeight() == mScaledPreviewSize.height;
-        setMeasuredDimension(mScaledPreviewSize.width, mScaledPreviewSize.height);
+        boolean hasChanged = getMeasuredWidth() == mScaledPreviewSize.getWidthUnchecked()
+                && getMeasuredHeight() == mScaledPreviewSize.getHeightUnchecked();
+        setMeasuredDimension(
+                mScaledPreviewSize.getWidthUnchecked(), mScaledPreviewSize.getHeightUnchecked());
         if (!hasChanged) {
             return;
         }
@@ -244,8 +259,8 @@ public class CameraPreviewView extends SurfaceView {
             // Note: Use float so that division is float division
             float focusSize = CAMERA_FOCUS_MAX - CAMERA_FOCUS_MIN;
             mFocusMatrix = new Matrix();
-            mFocusMatrix.postScale(
-                    focusSize / mScaledPreviewSize.width, focusSize / mScaledPreviewSize.height);
+            mFocusMatrix.postScale(focusSize / mScaledPreviewSize.getWidthUnchecked(),
+                    focusSize / mScaledPreviewSize.getHeightUnchecked());
             mFocusMatrix.postTranslate(-0.5f * focusSize, -0.5f * focusSize);
             mFocusMatrix.postRotate(-mCameraController.getPreviewDisplayOrientationDegrees());
         }
@@ -253,21 +268,22 @@ public class CameraPreviewView extends SurfaceView {
 
     @Override
     public void draw(Canvas canvas) {
-        if (mScaledTargetSize != null) {
+        if (mScaledTargetSize.areBothDimensionsDefined()) {
             // Clip the drawable bounds to the target size
-            float targetMarginX = Math.max(0, 0.5f * (canvas.getWidth() - mScaledTargetSize.width));
-            float targetMarginY =
-                    Math.max(0, 0.5f * (canvas.getHeight() - mScaledTargetSize.height));
+            float targetMarginX =
+                    Math.max(0, 0.5f * (canvas.getWidth() - mScaledTargetSize.getWidthUnchecked()));
+            float targetMarginY = Math.max(0,
+                    0.5f * (canvas.getHeight() - mScaledTargetSize.getHeightUnchecked()));
             canvas.clipRect(
                     targetMarginX,
                     targetMarginY,
-                    targetMarginX + mScaledTargetSize.width,
-                    targetMarginY + mScaledTargetSize.height);
+                    targetMarginX + mScaledTargetSize.getWidthUnchecked(),
+                    targetMarginY + mScaledTargetSize.getHeightUnchecked());
             Log.v(LOG_TAG, String.format("ClipRect left=%f top=%f right=%f bottom=%f",
                     targetMarginX,
                     targetMarginY,
-                    targetMarginX + mScaledTargetSize.width,
-                    targetMarginY + mScaledTargetSize.height));
+                    targetMarginX + mScaledTargetSize.getWidthUnchecked(),
+                    targetMarginY + mScaledTargetSize.getHeightUnchecked()));
         }
 
         canvas.drawColor(mBlackColor);
@@ -310,16 +326,18 @@ public class CameraPreviewView extends SurfaceView {
         float top = y - 0.5f * mFocusSize;
 
         // Convert UI coordinates into scaled target size coordinates
-        left += 0.5f * (mScaledTargetSize.width - size.width);
-        top += 0.5f * (mScaledTargetSize.height - size.height);
+        left += 0.5f * (mScaledTargetSize.getWidthUnchecked() - size.getWidthUnchecked());
+        top += 0.5f * (mScaledTargetSize.getHeightUnchecked() - size.getHeightUnchecked());
 
         // Clamp coordinates by scaled target size
-        left = Math.max(0, Math.min(mScaledTargetSize.width - mFocusSize, left));
-        top = Math.max(0, Math.min(mScaledTargetSize.height - mFocusSize, top));
+        left = Math.max(0, Math.min(mScaledTargetSize.getWidthUnchecked() - mFocusSize, left));
+        top = Math.max(0, Math.min(mScaledTargetSize.getHeightUnchecked() - mFocusSize, top));
 
         // Translate the scaled target size coordinates into the scaled preview size coordinates
-        left += 0.5f * (mScaledPreviewSize.width - mScaledTargetSize.width);
-        top += 0.5f * (mScaledPreviewSize.height - mScaledTargetSize.height);
+        left += 0.5f
+                * (mScaledPreviewSize.getWidthUnchecked() - mScaledTargetSize.getWidthUnchecked());
+        top += 0.5f * (mScaledPreviewSize.getHeightUnchecked()
+                - mScaledTargetSize.getHeightUnchecked());
 
         return new RectF(left, top, left + mFocusSize, top + mFocusSize);
     }

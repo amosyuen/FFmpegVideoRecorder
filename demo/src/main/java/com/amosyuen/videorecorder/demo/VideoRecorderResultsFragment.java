@@ -24,6 +24,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.amosyuen.videorecorder.activity.FFmpegPreviewActivity;
+import com.amosyuen.videorecorder.activity.params.FFmpegPreviewActivityParams;
 import com.yqritc.recyclerviewflexibledivider.HorizontalDividerItemDecoration;
 
 import java.io.File;
@@ -281,12 +282,15 @@ public class VideoRecorderResultsFragment extends Fragment {
                 });
             }
 
-            public void setVideoFile(VideoFile videoFile) {
+            public void setVideoFile(final VideoFile videoFile) {
                 mView.setOnClickListener(new OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         Intent intent = new Intent(mView.getContext(), FFmpegPreviewActivity.class);
-                        intent.setData(Uri.fromFile(mVideoFile.videoFile));
+                        intent.putExtra(
+                                FFmpegPreviewActivity.REQUEST_PARAMS_KEY,
+                                FFmpegPreviewActivityParams.builder()
+                                        .setVideoFileUri(videoFile.videoFile).build());
                         mView.getContext().startActivity(intent);
                     }
                 });

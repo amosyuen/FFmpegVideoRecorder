@@ -15,6 +15,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.CallSuper;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SurfaceHolder;
@@ -29,25 +31,37 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 
 import com.amosyuen.videorecorder.R;
-import com.amosyuen.videorecorder.util.Util;
+import com.amosyuen.videorecorder.activity.params.ActivityThemeParamsI;
+import com.amosyuen.videorecorder.activity.params.FFmpegPreviewActivityParams;
+import com.amosyuen.videorecorder.ui.ViewUtil;
+
+import java.security.InvalidParameterException;
+
+import static com.amosyuen.videorecorder.activity.FFmpegRecorderActivity.LOG_TAG;
 
 public class FFmpegPreviewActivity
         extends AbstractDynamicStyledActivity
         implements OnClickListener, OnCompletionListener, Callback, OnVideoSizeChangedListener,
                 OnLayoutChangeListener {
 
-    public static final String CAN_CANCEL_KEY = "can-cancel";
+    public static final String REQUEST_PARAMS_KEY = "params";
+
+    public static final int RESULT_ERROR = RESULT_FIRST_USER;
+    public static final String RESULT_ERROR_PATH_KEY = "error";
 
     protected static final int PROGRESS_UPDATE_INTERVAL_MILLIS = 50;
 
-    protected Uri mVideoFileUri;
-    protected boolean mCanCancel;
-    protected MediaPlayer mMediaPlayer;
+    // User params
+    protected FFmpegPreviewActivityParams mParams;
+
+    // UI variables
     protected RelativeLayout mPreviewVideoParent;
     protected SurfaceView mSurfaceView;
     protected ImageView mPlayButton;
     protected ProgressBar mProgressBar;
 
+    // State variables
+    protected MediaPlayer mMediaPlayer;
     protected int mVideoWidth;
     protected int mVideoHeight;
     protected DecelerateInterpolator mInterpolator;
@@ -55,6 +69,12 @@ public class FFmpegPreviewActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        if (!extractIntentParams()) {
+            return;
+        }
+        layoutView();
+        setupToolbar((Toolbar) findViewById(R.id.toolbar));
 
         mPreviewVideoParent = (RelativeLayout) findViewById(R.id.preview_video_parent);
         mPreviewVideoParent.addOnLayoutChangeListener(this);
@@ -67,8 +87,8 @@ public class FFmpegPreviewActivity
         mPlayButton.setOnClickListener(this);
 
         mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
-        mProgressBar.setProgressDrawable(
-                Util.tintDrawable(mProgressBar.getProgressDrawable(), getProgressColor()));
+        mProgressBar.setProgressDrawable(ViewUtil.tintDrawable(
+                mProgressBar.getProgressDrawable(), getThemeParams().getProgressColor()));
 
         mInterpolator = new DecelerateInterpolator();
     }
@@ -80,11 +100,20 @@ public class FFmpegPreviewActivity
 
     @Override
     protected boolean extractIntentParams() {
-        super.extractIntentParams();
         Intent intent = getIntent();
-        mVideoFileUri = intent.getData();
-        mCanCancel = intent.getBooleanExtra(CAN_CANCEL_KEY, false);
+        mParams = (FFmpegPreviewActivityParams)
+                        intent.getSerializableExtra(REQUEST_PARAMS_KEY);
+        if (mParams == null) {
+            onError(new InvalidParameterException(
+                    "Intent did not have FFmpegPreviewActivity.REQUEST_PARAMS_KEY set."));
+            return false;
+        }
         return true;
+    }
+
+    @Override
+    protected ActivityThemeParamsI getThemeParams() {
+        return mParams.getThemeParams();
     }
 
     @Override
@@ -93,21 +122,21 @@ public class FFmpegPreviewActivity
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowHomeEnabled(true);
 
-        toolbar.setNavigationIcon(
-                Util.tintDrawable(toolbar.getNavigationIcon(), getToolbarWidgetColor()));
+        toolbar.setNavigationIcon(ViewUtil.tintDrawable(
+                toolbar.getNavigationIcon(), getThemeParams().getToolbarWidgetColor()));
     }
 
     @Override
     @CallSuper
     public boolean onCreateOptionsMenu(final Menu menu) {
-        if (mCanCancel) {
+        if (mParams.isConfirmation()) {
             getMenuInflater().inflate(R.menu.menu_done, menu);
             MenuItem menuItemFinish = menu.findItem(R.id.menu_finish);
             if (menuItemFinish != null) {
                 Drawable menuItemFinishIcon = menuItemFinish.getIcon();
                 if (menuItemFinishIcon != null) {
-                    menuItemFinish.setIcon(
-                            Util.tintDrawable(menuItemFinishIcon, getToolbarWidgetColor()));
+                    menuItemFinish.setIcon(ViewUtil.tintDrawable(
+                            menuItemFinishIcon, getThemeParams().getToolbarWidgetColor()));
                 }
             }
         }
@@ -151,7 +180,7 @@ public class FFmpegPreviewActivity
 
     @Override
     public void onBackPressed() {
-        if (mCanCancel) {
+        if (mParams.isConfirmation()) {
             new AlertDialog.Builder(this)
                     .setCancelable(false)
                     .setTitle(R.string.are_you_sure)
@@ -169,6 +198,23 @@ public class FFmpegPreviewActivity
         }
     }
 
+    protected void onError(Exception e) {
+        Log.e(LOG_TAG, "Unexpected Error", e);
+        Intent intent = new Intent();
+        intent.putExtra(RESULT_ERROR_PATH_KEY, e);
+        finishWithResult(RESULT_ERROR, intent);
+    }
+
+    protected void finishWithResult(int result) {
+        finishWithResult(result, null);
+    }
+
+    protected void finishWithResult(int result, Intent intent) {
+        stop();
+        setResult(result, intent);
+        finish();
+    }
+
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         try {
@@ -177,7 +223,7 @@ public class FFmpegPreviewActivity
             mMediaPlayer.setOnVideoSizeChangedListener(this);
             mMediaPlayer.reset();
             mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-            mMediaPlayer.setDataSource(this, mVideoFileUri);
+            mMediaPlayer.setDataSource(this, Uri.parse(mParams.getVideoFileUri()));
             mMediaPlayer.setDisplay(holder);
             mMediaPlayer.prepare();
             mMediaPlayer.seekTo(0);
@@ -287,11 +333,5 @@ public class FFmpegPreviewActivity
         animation.setInterpolator(mInterpolator);
         animation.start();
         return animation;
-    }
-
-    protected void finishWithResult(int result) {
-        stop();
-        setResult(result);
-        finish();
     }
 }

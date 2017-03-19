@@ -12,7 +12,6 @@ import android.util.DisplayMetrics;
 import android.view.View;
 
 import com.amosyuen.videorecorder.R;
-import com.amosyuen.videorecorder.util.Util;
 
 import java.util.List;
 
@@ -21,8 +20,8 @@ import java.util.List;
  */
 public class ProgressSectionsView extends View
 {
-	private int mMinProgress = 1000;
-	private int mMaxProgress = 8000;
+	private long mMinProgress = 1000;
+	private long mMaxProgress = 8000;
 	private int mCursorFlashIntervalMillis = 500;
 	private int mCursorWidthPixels;
 	private int mSeparatorWidthPixels;
@@ -51,9 +50,9 @@ public class ProgressSectionsView extends View
         mSeparatorWidthPixels = Math.round(2 * displayMetrics.density);
 
 		Resources.Theme theme = getContext().getTheme();
-		int colorAccent = Util.getThemeColorAttribute(theme, R.attr.colorAccent);
-		int colorPrimary = Util.getThemeColorAttribute(theme, R.attr.colorPrimary);
-		int colorPrimaryDark = Util.getThemeColorAttribute(theme, R.attr.colorPrimaryDark);
+		int colorAccent = ViewUtil.getThemeColorAttribute(theme, R.attr.colorAccent);
+		int colorPrimary = ViewUtil.getThemeColorAttribute(theme, R.attr.colorPrimary);
+		int colorPrimaryDark = ViewUtil.getThemeColorAttribute(theme, R.attr.colorPrimaryDark);
 
 		mProgressPaint = new Paint();
 		mProgressPaint.setStyle(Paint.Style.FILL);
@@ -80,17 +79,17 @@ public class ProgressSectionsView extends View
 		mProvider = provider;
 	}
 
-	public int getMinProgress() {
+	public long getMinProgress() {
 		return mMinProgress;
 	}
 
-	public void setMinProgress(int minProgress) {
+	public void setMinProgress(long minProgress) {
 		this.mMinProgress = minProgress;
 	}
 
-	public int getMaxProgress() { return mMaxProgress; }
+	public long getMaxProgress() { return mMaxProgress; }
 
-	public void setMaxProgress(int time){
+	public void setMaxProgress(long time){
 		mMaxProgress = time;
 	}
 
@@ -179,7 +178,7 @@ public class ProgressSectionsView extends View
 
 		int height = getMeasuredHeight();
 		int width = getMeasuredWidth();
-		int maxProgress;
+		long maxProgress;
 		if (mMaxProgress > 0) {
 			maxProgress = mMaxProgress;
 		} else {

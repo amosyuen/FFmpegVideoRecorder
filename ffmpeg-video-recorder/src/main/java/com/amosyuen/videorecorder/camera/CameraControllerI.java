@@ -1,13 +1,12 @@
 package com.amosyuen.videorecorder.camera;
 
 import android.graphics.Rect;
-import android.hardware.Camera;
 import android.media.MediaRecorder;
 import android.support.annotation.Nullable;
 import android.view.SurfaceHolder;
 
 import com.amosyuen.videorecorder.recorder.common.ImageSize;
-import com.amosyuen.videorecorder.recorder.params.CameraParams;
+import com.amosyuen.videorecorder.recorder.params.CameraParamsI;
 
 import java.io.IOException;
 
@@ -40,7 +39,7 @@ public interface CameraControllerI {
      * Open the camera that best matches the specified params.
      * This should be run on a background thread to avoid blocking the UI thread.
      */
-    void openCamera(CameraParams params, int surfaceRotationDegrees);
+    void openCamera(CameraParamsI params, int surfaceRotationDegrees);
 
     /**
      * Close the camera and free up resources.

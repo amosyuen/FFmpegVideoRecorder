@@ -1,20 +1,28 @@
 package com.amosyuen.videorecorder.util;
 
 
+import android.content.Context;
+import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.media.MediaRecorder;
 import android.support.annotation.AttrRes;
 import android.support.annotation.ColorInt;
+import android.util.Log;
 import android.util.TypedValue;
+import android.view.Surface;
+import android.view.WindowManager;
 
+import com.amosyuen.videorecorder.activity.params.InteractionParamsI;
+import com.amosyuen.videorecorder.camera.CameraControllerI;
 import com.amosyuen.videorecorder.recorder.FFmpegFrameRecorder;
-import com.amosyuen.videorecorder.recorder.MediaClipsRecorder;
 import com.amosyuen.videorecorder.recorder.common.ImageSize;
-import com.amosyuen.videorecorder.recorder.params.EncoderParams;
-import com.amosyuen.videorecorder.recorder.params.RecorderParams;
+import com.amosyuen.videorecorder.recorder.params.EncoderParamsI;
+import com.amosyuen.videorecorder.recorder.params.RecorderParamsI;
 import com.google.common.base.Preconditions;
+
+import org.bytedeco.javacv.FrameGrabber;
 
 import java.io.File;
 
@@ -23,63 +31,93 @@ import java.io.File;
  */
 public class Util {
 
-    @ColorInt
-    public static int getThemeColorAttribute(Resources.Theme theme, @AttrRes int attribute) {
-        TypedValue typedValue = new TypedValue();
-        theme.resolveAttribute(attribute, typedValue, true);
-        return typedValue.data;
+    public static boolean isLandscapeAngle(int orientationDegrees) {
+        return (orientationDegrees > 45 && orientationDegrees < 135)
+                || (orientationDegrees > 225 && orientationDegrees < 315);
     }
 
-    public static Drawable tintDrawable(Drawable drawable, @ColorInt int colorInt) {
-        drawable.mutate();
-        drawable.setColorFilter(colorInt, PorterDuff.Mode.SRC_ATOP);
-        return drawable;
+    public static int roundOrientation(int orientation) {
+        return ((orientation + 45) / 90 * 90) % 360;
     }
 
-    public static void setMediaRecorderParams(
-            MediaRecorder mediaRecorder,
-            RecorderParams params,
+    public static void setMediaRecorderEncoderParams(
+            MediaRecorder recorder, EncoderParamsI params) {
+        // Sources must be set first
+        recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        recorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
+        // Output format second
+        recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+
+        recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+        if (params.getAudioChannelCount().isPresent()) {
+            recorder.setAudioChannels(params.getAudioChannelCount().get());
+        }
+        if (params.getAudioBitrate().isPresent()) {
+            recorder.setAudioEncodingBitRate(params.getAudioBitrate().get());
+        }
+        if (params.getAudioSamplingRateHz().isPresent()) {
+            recorder.setAudioSamplingRate(params.getAudioSamplingRateHz().get());
+        }
+
+        recorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
+        if (params.getVideoBitrate().isPresent()) {
+            recorder.setVideoEncodingBitRate(params.getVideoBitrate().get());
+        }
+    }
+
+    public static void setMediaRecorderInteractionParams(
+            MediaRecorder recorder, InteractionParamsI params,
             long millisRecorded,
             long bytesRecorded) {
-        // Sources must be set first
-        mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-        mediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
-        // Output format second
-        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-
-        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-        mediaRecorder.setAudioChannels(params.getAudioChannelCount());
-        mediaRecorder.setAudioEncodingBitRate(params.getAudioBitrate());
-        mediaRecorder.setAudioSamplingRate(params.getAudioSamplingRateHz());
-
-        mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
-        mediaRecorder.setVideoEncodingBitRate(params.getVideoBitrate());
-
-        if (params.getMaxRecordingMillis() > 0) {
+        if (params.getMinRecordingMillis() > 0) {
             int remainingMillis = (int)(params.getMaxRecordingMillis() - millisRecorded);
             Preconditions.checkArgument(remainingMillis > 0);
-            mediaRecorder.setMaxDuration(remainingMillis);
+            recorder.setMaxDuration(remainingMillis);
         }
         if (params.getMaxFileSizeBytes() > 0) {
             int remainingBytes = (int)(params.getMaxFileSizeBytes() - bytesRecorded);
             Preconditions.checkArgument(remainingBytes > 0);
-            mediaRecorder.setMaxFileSize(remainingBytes);
+            recorder.setMaxFileSize(remainingBytes);
         }
     }
 
-    public static FFmpegFrameRecorder createFrameRecorder(
-            File outputFile, EncoderParams params) {
-        FFmpegFrameRecorder recorder = new FFmpegFrameRecorder(outputFile, params.getAudioChannelCount());
+    /**
+     * Some params should be set directly from the camera as they may not exactly match the desired
+     * params.
+     */
+    public static void setMediaRecorderCameraParams(
+            MediaRecorder recorder, CameraControllerI cameraController) {
+        ImageSize pictureSize = cameraController.getPictureSize();
+        recorder.setVideoSize(pictureSize.getWidthUnchecked(), pictureSize.getHeightUnchecked());
+        recorder.setOrientationHint(cameraController.getPreviewDisplayOrientationDegrees());
 
-        recorder.setVideoBitrate(params.getVideoBitrate());
-        recorder.setVideoCodec(params.getVideoCodec());
-        recorder.setFrameRate(params.getVideoFrameRate());
+        int[] frameRateRange = cameraController.getFrameRateRange();
+        int fps = frameRateRange[0] / 1000;
+        recorder.setVideoFrameRate(fps);
+    }
 
-        recorder.setAudioBitrate(params.getAudioBitrate());
-        recorder.setAudioCodec(params.getAudioCodec());
-        recorder.setSampleRate(params.getAudioSamplingRateHz());
+    public static FFmpegFrameRecorder createFrameRecorder(File outputFile, EncoderParamsI params) {
+        // Task transformer will set the audio channel count based on input files if it is < 0.
+        FFmpegFrameRecorder recorder =
+                new FFmpegFrameRecorder(outputFile, params.getAudioChannelCount().or(-1));
 
-        recorder.setFormat(params.getVideoOutputFormat());
+        recorder.setVideoCodec(params.getVideoCodec().ffmpegCodecValue);
+        if (params.getVideoBitrate().isPresent()) {
+            recorder.setVideoBitrate(params.getVideoBitrate().get());
+        }
+        if (params.getVideoFrameRate().isPresent()) {
+            recorder.setFrameRate(params.getVideoFrameRate().get());
+        }
+
+        recorder.setAudioCodec(params.getAudioCodec().ffmpegCodecValue);
+        if (params.getAudioBitrate().isPresent()) {
+            recorder.setAudioBitrate(params.getAudioBitrate().get());
+        }
+        if (params.getAudioSamplingRateHz().isPresent()) {
+            recorder.setSampleRate(params.getAudioSamplingRateHz().get());
+        }
+
+        recorder.setFormat(params.getOutputFormat().getFileExtension());
 
         return recorder;
     }

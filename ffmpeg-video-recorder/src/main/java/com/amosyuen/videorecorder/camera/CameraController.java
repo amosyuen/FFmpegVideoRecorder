@@ -7,11 +7,10 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 import android.view.SurfaceHolder;
 
+import com.amosyuen.videorecorder.recorder.common.ImageFit;
 import com.amosyuen.videorecorder.recorder.common.ImageScale;
 import com.amosyuen.videorecorder.recorder.common.ImageSize;
-import com.amosyuen.videorecorder.recorder.common.ImageFit;
-import com.amosyuen.videorecorder.recorder.params.CameraParams;
-import com.amosyuen.videorecorder.util.VideoUtil;
+import com.amosyuen.videorecorder.recorder.params.CameraParamsI;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSet;
@@ -88,7 +87,7 @@ public class CameraController implements CameraControllerI {
     }
 
     @Override
-    public void openCamera(CameraParams params, int surfaceRotationDegrees) {
+    public void openCamera(CameraParamsI params, int surfaceRotationDegrees) {
         if (mCamera != null) {
             closeCamera();
         }
@@ -122,7 +121,7 @@ public class CameraController implements CameraControllerI {
         // Preview and picture sizes
         ImageSize targetSize = params.getVideoSize();
         if (targetSize.isAtLeastOneDimensionDefined()) {
-            if (VideoUtil.isLandscapeAngle(surfaceRotationDegrees)) {
+            if (com.amosyuen.videorecorder.util.Util.isLandscapeAngle(surfaceRotationDegrees)) {
                 targetSize = targetSize.toBuilder().invert().build();
             }
             ImageFit imageFit = params.getVideoImageFit();
@@ -130,22 +129,25 @@ public class CameraController implements CameraControllerI {
             ImageSize bestPictureSize = getBestImageSize(
                     camera.getParameters().getSupportedPictureSizes(),
                     targetSize, imageFit, videoImageScale);
-            parameters.setPictureSize(bestPictureSize.width, bestPictureSize.height);
+            parameters.setPictureSize(bestPictureSize.getWidthUnchecked(), bestPictureSize.getHeightUnchecked());
             Log.v(LOG_TAG, String.format("Set camera picture size %s", bestPictureSize));
 
             ImageSize bestPreviewSize = getBestImageSize(
                     camera.getParameters().getSupportedPreviewSizes(),
                     bestPictureSize, imageFit, videoImageScale);
-            parameters.setPreviewSize(bestPreviewSize.width, bestPreviewSize.height);
+            parameters.setPreviewSize(bestPreviewSize.getWidthUnchecked(), bestPreviewSize.getHeightUnchecked());
             Log.v(LOG_TAG, String.format("Set camera preview size %s", bestPreviewSize));
         }
 
         // Preview frame rate
-        List<int[]> fpsRanges = parameters.getSupportedPreviewFpsRange();
-        int[] bestFpsRange = VideoUtil.getBestFpsRange(fpsRanges, params.getVideoFrameRate());
-        parameters.setPreviewFpsRange(bestFpsRange[0], bestFpsRange[1]);
-        Log.v(LOG_TAG, String.format(
-                "Set camera fps range to [%d, %d]", bestFpsRange[0], bestFpsRange[1]));
+        if (params.getVideoFrameRate().isPresent()) {
+            List<int[]> fpsRanges = parameters.getSupportedPreviewFpsRange();
+            int[] bestFpsRange = CameraUtil.getBestFpsRange(fpsRanges, params.getVideoFrameRate().get());
+
+            parameters.setPreviewFpsRange(bestFpsRange[0], bestFpsRange[1]);
+            Log.v(LOG_TAG, String.format(
+                    "Set camera fps range to [%d, %d]", bestFpsRange[0], bestFpsRange[1]));
+        }
 
         // Flash Mode
         FlashMode flashMode = FlashMode.OFF;
@@ -158,7 +160,7 @@ public class CameraController implements CameraControllerI {
         }
 
         // Display orientation
-        mPreviewDisplayOrientationDegrees = VideoUtil.determineCameraDisplayRotation(
+        mPreviewDisplayOrientationDegrees = CameraUtil.determineCameraDisplayRotation(
                 surfaceRotationDegrees, mCameraInfo.orientation, cameraFacing);
         camera.setDisplayOrientation(mPreviewDisplayOrientationDegrees);
         Log.v(LOG_TAG, String.format(
@@ -180,7 +182,7 @@ public class CameraController implements CameraControllerI {
         for (Camera.Size size : supportedSizes) {
             pictureSizes.add(new ImageSize(size.width, size.height));
         }
-        return VideoUtil.getBestResolution(pictureSizes, targetSize, imageFit, videoImageScale);
+        return CameraUtil.getBestResolution(pictureSizes, targetSize, imageFit, videoImageScale);
     }
 
     @Override

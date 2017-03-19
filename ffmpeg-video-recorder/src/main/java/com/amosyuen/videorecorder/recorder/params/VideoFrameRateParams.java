@@ -1,25 +1,24 @@
 package com.amosyuen.videorecorder.recorder.params;
 
-
-import java.io.Serializable;
-
 /**
- * Parameters for video frame rate.
+ * Common utils for {@link VideoFrameRateParamsI}.
  */
-public interface VideoFrameRateParams extends Serializable {
+public final class VideoFrameRateParams {
 
-    /**
-     * Get the desired frame rate in frames per second.
-     */
-    int getVideoFrameRate();
+    private VideoFrameRateParams() {}
 
-    interface BuilderI<T extends BuilderI<T>> {
+    public static final class Builder {
 
-        /**
-         * Set the desired frame rate in frames per second.
-         */
-        T videoFrameRate(int val);
+        public static <T extends VideoFrameRateParamsI.BuilderI<T>> T setOnlyClassDefaults(
+                T builder) {
+            return builder;
+        }
 
-        VideoFrameRateParams build();
+        public static <T extends VideoFrameRateParamsI.BuilderI<T>> T mergeOnlyClass(
+                T builder, VideoFrameRateParamsI params) {
+            return builder.setVideoFrameRate(params.getVideoFrameRate());
+        }
+
+        private Builder() {}
     }
 }

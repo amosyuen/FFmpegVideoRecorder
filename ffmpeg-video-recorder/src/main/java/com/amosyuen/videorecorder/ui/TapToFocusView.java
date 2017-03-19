@@ -11,7 +11,6 @@ import android.view.View;
 
 import com.amosyuen.videorecorder.camera.CameraControllerI;
 import com.amosyuen.videorecorder.recorder.common.ImageSize;
-import com.amosyuen.videorecorder.util.VideoUtil;
 
 /**
  * View to draw an indicator for a rectangle.
@@ -112,11 +111,7 @@ public class TapToFocusView extends View implements View.OnLayoutChangeListener 
         // coordinate space, taking into account camera rotation and flipping
         // Note: Use float so that division is float division
         float focusSize = CAMERA_FOCUS_MAX - CAMERA_FOCUS_MIN;
-        int orientationDegrees =
-                VideoUtil.determineCameraDisplayRotation(
-                        VideoUtil.getContextRotation(getContext()),
-                        cameraController.getCameraOrientationDegrees(),
-                        cameraController.getCameraFacing());
+        int orientationDegrees = cameraController.getPreviewDisplayOrientationDegrees();
         mFocusMatrix = new Matrix();
         mFocusMatrix.postScale(focusSize / (right - left), focusSize / (top - bottom));
         mFocusMatrix.postTranslate(-0.5f * focusSize, -0.5f * focusSize);
@@ -136,16 +131,18 @@ public class TapToFocusView extends View implements View.OnLayoutChangeListener 
         float top = y - 0.5f * mFocusSize;
 
         // Convert UI coordinates into scaled target size coordinates
-        left += 0.5f * (scaledTargetSize.width - size.width);
-        top += 0.5f * (scaledTargetSize.height - size.height);
+        left += 0.5f * (scaledTargetSize.getWidthUnchecked() - size.getWidthUnchecked());
+        top += 0.5f * (scaledTargetSize.getHeightUnchecked() - size.getHeightUnchecked());
 
         // Clamp coordinates by scaled target size
-        left = Math.max(0, Math.min(scaledTargetSize.width - mFocusSize, left));
-        top = Math.max(0, Math.min(scaledTargetSize.height - mFocusSize, top));
+        left = Math.max(0, Math.min(scaledTargetSize.getWidthUnchecked() - mFocusSize, left));
+        top = Math.max(0, Math.min(scaledTargetSize.getHeightUnchecked() - mFocusSize, top));
 
         // Translate the scaled target size coordinates into the scaled preview size coordinates
-        left += 0.5f * (scaledPreviewSize.width - scaledTargetSize.width);
-        top += 0.5f * (scaledPreviewSize.height - scaledTargetSize.height);
+        left += 0.5f
+                * (scaledPreviewSize.getWidthUnchecked() - scaledTargetSize.getWidthUnchecked());
+        top += 0.5f
+                * (scaledPreviewSize.getHeightUnchecked() - scaledTargetSize.getHeightUnchecked());
 
         return new RectF(left, top, left + mFocusSize, top + mFocusSize);
     }

@@ -34,7 +34,7 @@ package com.amosyuen.videorecorder.recorder;
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * to use, copy, modify, mergeOnlyClass, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
@@ -513,7 +513,7 @@ public class FFmpegFrameRecorder extends FrameRecorder {
 
             /* put sample parameters */
             video_c.bit_rate(videoBitrate);
-            /* resolution must be a multiple of two. Scale height to maintain the aspect ratio. */
+            /* resolution must be a multiple of two. Scale mHeight to maintain the aspect ratio. */
             if (imageWidth % 2 == 1) {
                 int roundedWidth = imageWidth + 1;
                 imageHeight = (roundedWidth * imageHeight + imageWidth / 2) / imageWidth;
