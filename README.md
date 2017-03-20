@@ -1,7 +1,8 @@
 # FFmpegVideoRecorder - Customizable Video Recording Library for Android
 
-The library provides a way to record multiple videos and merge them together using FFmpeg Recorder
-from JavaCV. It is designed to allow maximum customization of the video encoding and recoridng.
+The library provides a way to record multiple videos using MediaRecorder and merge them together
+using FFmpeg Recorder from JavaCV. It is designed to allow maximum customization of the video
+encoding and recording.
 
 It has built in activities for easy recording and previewing. But it also exposes basic components
 that can be used to customize your own UI and logic.
@@ -13,24 +14,31 @@ that can be used to customize your own UI and logic.
 - Able to record multiple clips and combine them into one video
 - Camera preview image is scaled, cropped, and padded to exactly how it will be recorded
 - Can generate a thumbnail image for the video
-- Can set attributes such as:
+- Can set recording parameters such as:
+    - video codec
     - video width
     - video height
-    - video scaling
-    - video padding
-    - video bitrate
-    - video codec
     - video frame rate
+    - video bitrate
+    - video scaling
+    - video image fit
+    - video cropping
+    - video padding
     - audio codec
     - audio bitrate
     - audio channel count
     - audio sampling rate
+- Can set interaction parameters such as:
     - min and max recording time
     - max file size
+    - tap to focus duration
+    - tap to focus size
+- Can set theme colors parameters
 
 ### Components
 
-All components are designed to be extensible and usable without all the other components.
+All components are designed to be extensible and usable without all the other components. Some of
+the main components:
 
 ##### CameraController
 
