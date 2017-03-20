@@ -5,8 +5,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
-import android.graphics.Color;
-import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.media.MediaMetadataRetriever;
@@ -14,7 +12,6 @@ import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.StringRes;
 import android.support.v4.app.ActivityCompat;
@@ -35,6 +32,7 @@ import android.widget.TextView;
 
 import com.amosyuen.videorecorder.BuildConfig;
 import com.amosyuen.videorecorder.R;
+import com.amosyuen.videorecorder.activity.manager.TapToFocusManager;
 import com.amosyuen.videorecorder.activity.params.ActivityThemeParams;
 import com.amosyuen.videorecorder.activity.params.FFmpegPreviewActivityParams;
 import com.amosyuen.videorecorder.activity.params.FFmpegRecorderActivityParams;
@@ -45,12 +43,11 @@ import com.amosyuen.videorecorder.camera.CameraControllerI;
 import com.amosyuen.videorecorder.recorder.FFmpegFrameRecorder;
 import com.amosyuen.videorecorder.recorder.MediaClipsRecorder;
 import com.amosyuen.videorecorder.recorder.VideoTransformerTask;
-import com.amosyuen.videorecorder.recorder.common.ImageSize;
 import com.amosyuen.videorecorder.recorder.params.CameraParams;
 import com.amosyuen.videorecorder.recorder.params.RecorderParamsI;
 import com.amosyuen.videorecorder.ui.CameraPreviewView;
 import com.amosyuen.videorecorder.ui.ProgressSectionsView;
-import com.amosyuen.videorecorder.ui.TapToFocusView;
+import com.amosyuen.videorecorder.ui.CameraTapAreaView;
 import com.amosyuen.videorecorder.ui.ViewUtil;
 import com.amosyuen.videorecorder.util.Util;
 import com.github.rahatarmanahmed.cpv.CircularProgressView;
@@ -90,10 +87,10 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
     // User params
     FFmpegRecorderActivityParams mParams;
 
-    // Ui variables
+    // UI variables
     protected ProgressSectionsView mProgressView;
     protected CameraPreviewView mCameraPreviewView;
-    protected TapToFocusView mFocusRectView;
+    protected CameraTapAreaView mTapToFocusView;
     protected AppCompatImageButton mRecordButton;
     protected AppCompatImageButton mFlashButton;
     protected AppCompatImageButton mSwitchCameraButton;
@@ -103,11 +100,12 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
 
     // State variables
     protected ActivityOrientationEventListener mOrientationEventListener;
+    protected TapToFocusManager mFocusManager;
+    protected int mContextOrientation;
     protected int mOpenCameraOrientationDegrees;
     protected MediaClipsRecorder mMediaClipsRecorder;
     protected CameraControllerI mCameraController;
     protected int mOriginalRequestedOrientation;
-    protected long mResumeAutoFocusTaskStartMillis;
     protected OpenCameraTask mOpenCameraTask;
     protected SaveVideoTask mSaveVideoTask;
     protected File mVideoOutputFile;
@@ -141,17 +139,12 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         mCameraPreviewView = (CameraPreviewView) findViewById(R.id.recorder_view);
         mCameraPreviewView.getHolder().addCallback(this);
         mCameraPreviewView.setParams(mParams.getRecorderParams());
-        mCameraPreviewView.setCameraController(mCameraController);
-        mCameraPreviewView.setFocusSize(getResources().getDimensionPixelSize(R.dimen.focus_size));
-        mCameraPreviewView.setFocusWeight(FOCUS_WEIGHT);
+        mCameraPreviewView.setVisibility(View.INVISIBLE);
 
-        mFocusRectView = (TapToFocusView) findViewById(R.id.focus_rectangle_view);
-        Paint focusPaint = new Paint();
-        focusPaint.setColor(Color.WHITE);
-        focusPaint.setStyle(Paint.Style.STROKE);
-        focusPaint.setStrokeWidth(2);
-        focusPaint.setShadowLayer(1f, 1f, 1f, Color.BLACK);
-        mFocusRectView.setPaint(focusPaint);
+        mTapToFocusView = (CameraTapAreaView) findViewById(R.id.tap_to_focus_view);
+
+        mFocusManager = new TapToFocusManager(mCameraController, mCameraPreviewView, mTapToFocusView,
+                FOCUS_WEIGHT, mParams.getInteractionParams().getTapToFocusHoldTimeMillis());
 
         mRecordButton = (AppCompatImageButton) findViewById(R.id.record_button);
         mRecordButton.setOnTouchListener(FFmpegRecorderActivity.this);
@@ -320,7 +313,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
 
         Log.d(LOG_TAG, String.format("Opening camera facing %s", facing));
         showProgress(R.string.initializing);
-        mCameraPreviewView.setPreviewSize(ImageSize.UNDEFINED);
+        mCameraPreviewView.setPreviewSize(null);
         mOpenCameraOrientationDegrees = mOrientationEventListener.mOrientationDegrees;
         mOpenCameraTask = new OpenCameraTask();
         mOpenCameraTask.execute(Preconditions.checkNotNull(facing));
@@ -339,15 +332,14 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
 
     @Override
     public void onCameraOpen() {
-        mCameraController.startPreview();
         mCameraPreviewView.setPreviewSize(mCameraController.getPreviewSize());
         setCameraPreviewDisplayIfReady();
+        mCameraController.startPreview();
     }
 
     protected void setCameraPreviewDisplayIfReady() {
         if (mCameraController.isCameraOpen()) {
             try {
-                Log.v(LOG_TAG, "Surface holder " + mCameraPreviewView.getHolder());
                 mCameraController.setPreviewDisplay(mCameraPreviewView.getHolder());
             } catch (IOException exception) {
                 Log.e(LOG_TAG, "Error setting camera preview display", exception);
@@ -357,16 +349,16 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
 
     @Override
     public void onCameraClose() {
-        mCameraPreviewView.setPreviewSize(ImageSize.UNDEFINED);
+        mCameraPreviewView.setPreviewSize(null);
     }
 
     @Override
     public void onCameraStartPreview() {
-        mCameraPreviewView.setIsPreviewing(true);
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 hideProgress();
+                mCameraPreviewView.setVisibility(View.VISIBLE);
             }
         });
         Log.d(LOG_TAG, "Ready to record");
@@ -374,22 +366,22 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
 
     @Override
     public void onCameraStopPreview() {
-        mCameraPreviewView.setIsPreviewing(false);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mCameraPreviewView.setVisibility(View.INVISIBLE);
+            }
+        });
     }
 
     @Override
     public void onFlashModeChanged(CameraControllerI.FlashMode flashMode) {}
 
     @Override
-    public void onCameraFocusOnRect(Rect rect) {
-        //mFocusRectView.setRect(rect);
-        runTaskToAutoFocusAfterInactivity();
-    }
+    public void onCameraFocusOnRect(Rect rect) {}
 
     @Override
-    public void onCameraAutoFocus() {
-        mFocusRectView.clearRect();
-    }
+    public void onCameraAutoFocus() {}
 
     protected void showProgress(@StringRes int progressTextRes) {
         if (!mProgressBar.isIndeterminate()) {
@@ -437,6 +429,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         if (mMediaClipsRecorder.getClips().isEmpty() && mOriginalRequestedOrientation == -1) {
             setRequestedOrientation(getResources().getConfiguration().orientation);
         }
+        mFocusManager.cancelDelayedAutoFocus();
     }
 
     @Override
@@ -489,7 +482,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
             return;
         }
         stopRecording();
-        runTaskToAutoFocusAfterInactivity();
+        mFocusManager.autoFocusAfterDelay();
     }
 
     protected void stopRecording() {
@@ -524,28 +517,6 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
             }
         }
         return false;
-    }
-
-    protected void runTaskToAutoFocusAfterInactivity() {
-        final long tapToFocusHoldTimeMillis = getInteractionParams().getTapToFocusHoldTimeMillis();
-        if (tapToFocusHoldTimeMillis <= 0) {
-            return;
-        }
-        mResumeAutoFocusTaskStartMillis = SystemClock.uptimeMillis();
-        if (mCameraController.canAutoFocus()) {
-            mFocusRectView.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    if (SystemClock.uptimeMillis()
-                            >= mResumeAutoFocusTaskStartMillis + tapToFocusHoldTimeMillis
-                            && mCameraController.canAutoFocus()
-                            && !mMediaClipsRecorder.isRecording()) {
-                        Log.v(LOG_TAG, "Reverting to auto focus");
-                        mCameraController.autoFocus();
-                    }
-                }
-            }, tapToFocusHoldTimeMillis);
-        }
     }
 
     @Override
@@ -605,6 +576,14 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         discardRecording();
         setResult(RESULT_CANCELED);
         finish();
+    }
+
+    @Override
+    public void finish() {
+        if (mFocusManager != null) {
+            mFocusManager.close();
+        }
+        super.finish();
     }
 
     public void discardRecording() {
@@ -689,11 +668,17 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         @Override
         public void onOrientationChanged(int orientationDegrees)
         {
-            // If the view orientation when we opened the camera doesn't match the current
-            // orientation, reopen the camera.
+            // Check that the configuration orientation matches the size orientation to ensure
+            // re-layouts have already happened.
+            // Also check if the orientation degrees don't match the degrees when we opened the
+            // camera.
             mOrientationDegrees = ViewUtil.getContextRotation(FFmpegRecorderActivity.this);
-            if (mCameraController.isCameraOpen()
-                    && mOpenCameraOrientationDegrees != mOrientationDegrees) {
+            boolean isDegreesLandscape = Util.isLandscapeAngle(mOrientationDegrees);
+            View decorView = getWindow().getDecorView();
+            boolean isSizeLandscape = decorView.getMeasuredWidth() > decorView.getMeasuredHeight();
+            if (isDegreesLandscape == isSizeLandscape
+                    && mOpenCameraOrientationDegrees != mOrientationDegrees
+                    && mCameraController.isCameraOpen()) {
                 openCamera(mCameraController.getCameraFacing());
             }
         }

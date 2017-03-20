@@ -163,7 +163,17 @@ public class VideoRecorderResultsFragment extends Fragment {
                 Log.e(LOG_TAG, String.format("Video file is missing thumbnail %s", file.getName()));
                 continue;
             }
-            mVideoFileAdapter.mVideoFiles.add(VideoFile.create(file, thumbnailFile));
+            VideoFile videoFile = VideoFile.create(file, thumbnailFile);
+            // Try reading the file. Delete unreadable files.
+            MediaMetadataRetriever metadataRetriever = new MediaMetadataRetriever();
+            try {
+                metadataRetriever.setDataSource(videoFile.getVideoFile().getAbsolutePath());
+                mVideoFileAdapter.mVideoFiles.add(videoFile);
+            } catch (Exception e) {
+                videoFile.delete();
+            } finally {
+                metadataRetriever.release();
+            }
         }
 
         if (!mVideoFileAdapter.mVideoFiles.isEmpty()) {
@@ -188,8 +198,7 @@ public class VideoRecorderResultsFragment extends Fragment {
         }
 
         public void deleteVideoFile(VideoFile videoFile) {
-            videoFile.getVideoFile().delete();
-            videoFile.getThumbnailFile().delete();
+            videoFile.delete();
             int index = mVideoFiles.indexOf(videoFile);
             mVideoFiles.remove(index);
             notifyItemRemoved(index);
@@ -197,8 +206,7 @@ public class VideoRecorderResultsFragment extends Fragment {
 
         public void clearVideoFiles() {
             for (VideoFile videoFile : mVideoFiles) {
-                videoFile.getVideoFile().delete();
-                videoFile.getThumbnailFile().delete();
+                videoFile.delete();
             }
             mVideoFiles.clear();
             notifyDataSetChanged();
@@ -332,7 +340,7 @@ public class VideoRecorderResultsFragment extends Fragment {
                             Integer.parseInt(metadataRetriever.extractMetadata(
                                     MediaMetadataRetriever.METADATA_KEY_BITRATE)), true));
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "Error extracting video birate", e);
+                    Log.e(LOG_TAG, "Error extracting video bitrate", e);
                     mVideoBitrateTextView.setText("");
                 } finally {
                     metadataRetriever.release();

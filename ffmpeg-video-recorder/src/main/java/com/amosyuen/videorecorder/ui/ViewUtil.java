@@ -16,7 +16,7 @@ import android.view.WindowManager;
  */
 public final class ViewUtil {
 
-    public static boolean isContextLandscape(Context context) {
+    public static boolean isContextConfigurationLandscape(Context context) {
         return context.getResources().getConfiguration().orientation
                 == Configuration.ORIENTATION_LANDSCAPE;
     }

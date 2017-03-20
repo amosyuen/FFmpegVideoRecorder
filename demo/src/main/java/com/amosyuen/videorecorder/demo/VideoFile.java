@@ -15,6 +15,11 @@ public abstract class VideoFile implements Comparable<VideoFile>, Serializable {
     public abstract File getVideoFile();
     public abstract File getThumbnailFile();
 
+    public void delete() {
+        getVideoFile().delete();
+        getThumbnailFile().delete();
+    }
+
     @Override
     public int compareTo(VideoFile file) {
         return (int)(file.getVideoFile().lastModified() - getVideoFile().lastModified());
