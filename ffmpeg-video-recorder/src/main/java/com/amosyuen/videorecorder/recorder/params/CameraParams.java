@@ -85,6 +85,7 @@ public abstract class CameraParams implements CameraParamsI {
         @Override
         public abstract Builder setVideoImageFit(ImageFit val);
 
+        @Override
         public abstract CameraParams build();
     }
 }

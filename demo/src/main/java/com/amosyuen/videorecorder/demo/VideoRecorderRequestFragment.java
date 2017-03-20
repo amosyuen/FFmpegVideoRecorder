@@ -11,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.SwitchCompat;
@@ -184,7 +185,7 @@ public class VideoRecorderRequestFragment extends Fragment {
 
     @Override
     public void onRequestPermissionsResult(
-            int requestCode, String permissions[], int[] grantResults) {
+            int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
         switch (requestCode) {
             case REQUEST_VIDEO_PERMISSIONS_REQUEST:
                 handleRequestPermissionsResult();

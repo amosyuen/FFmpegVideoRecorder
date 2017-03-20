@@ -11,7 +11,6 @@ import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -63,7 +62,7 @@ public class CameraTapAreaView extends View {
         setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         mTapAreaListeners = new ArrayList<>();
-        mTapSizePercent = 0.1f;
+        mTapSizePercent = 0.15f;
         mPaint = new Paint();
         mPaint.setColor(Color.WHITE);
         mPaint.setStyle(Paint.Style.STROKE);
@@ -181,7 +180,7 @@ public class CameraTapAreaView extends View {
     }
 
     public interface TapAreaListener {
-        void onTapArea(RectF tapArea);
+        void onTapArea(RectF tapAreaRect);
         void onClearTapArea();
     }
 }

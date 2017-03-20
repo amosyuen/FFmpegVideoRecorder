@@ -77,6 +77,7 @@ public abstract class ActivityThemeParams implements ActivityThemeParamsI {
         @Override
         public abstract Builder setProgressColor(@ColorInt int val);
 
+        @Override
         public abstract ActivityThemeParams build();
     }
 }

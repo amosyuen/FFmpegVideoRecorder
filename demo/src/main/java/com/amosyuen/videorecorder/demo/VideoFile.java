@@ -1,6 +1,8 @@
 package com.amosyuen.videorecorder.demo;
 
 
+import android.support.annotation.NonNull;
+
 import com.google.auto.value.AutoValue;
 
 import java.io.File;
@@ -21,7 +23,7 @@ public abstract class VideoFile implements Comparable<VideoFile>, Serializable {
     }
 
     @Override
-    public int compareTo(VideoFile file) {
+    public int compareTo(@NonNull VideoFile file) {
         return (int)(file.getVideoFile().lastModified() - getVideoFile().lastModified());
     }
 

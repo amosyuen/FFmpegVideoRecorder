@@ -42,7 +42,7 @@ public abstract class EncoderParams implements EncoderParamsI {
     }
 
     @AutoValue.Builder
-    public abstract static class Builder implements EncoderParams.BuilderI<Builder> {
+    public abstract static class Builder implements EncoderParamsI.BuilderI<Builder> {
 
         public static <T extends EncoderParamsI.BuilderI<T>> T setOnlyClassDefaults(T builder) {
             return builder
@@ -116,6 +116,7 @@ public abstract class EncoderParams implements EncoderParamsI {
         @Override
         public abstract Builder setOutputFormat(OutputFormat val);
 
+        @Override
         public abstract EncoderParams build();
     }
 }

@@ -14,7 +14,6 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.StringRes;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.AppCompatImageButton;
@@ -46,8 +45,8 @@ import com.amosyuen.videorecorder.recorder.VideoTransformerTask;
 import com.amosyuen.videorecorder.recorder.params.CameraParams;
 import com.amosyuen.videorecorder.recorder.params.RecorderParamsI;
 import com.amosyuen.videorecorder.ui.CameraPreviewView;
-import com.amosyuen.videorecorder.ui.ProgressSectionsView;
 import com.amosyuen.videorecorder.ui.CameraTapAreaView;
+import com.amosyuen.videorecorder.ui.ProgressSectionsView;
 import com.amosyuen.videorecorder.ui.ViewUtil;
 import com.amosyuen.videorecorder.util.Util;
 import com.github.rahatarmanahmed.cpv.CircularProgressView;
@@ -142,6 +141,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         mCameraPreviewView.setVisibility(View.INVISIBLE);
 
         mTapToFocusView = (CameraTapAreaView) findViewById(R.id.tap_to_focus_view);
+        mTapToFocusView.setTapSizePercent(getInteractionParams().getTapToFocusSizePercent());
 
         mFocusManager = new TapToFocusManager(mCameraController, mCameraPreviewView, mTapToFocusView,
                 FOCUS_WEIGHT, mParams.getInteractionParams().getTapToFocusHoldTimeMillis());
@@ -554,10 +554,11 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
             @DrawableRes int resId = flashMode == CameraControllerI.FlashMode.ON
                     ? R.drawable.ic_flash_on_white_36dp
                     : R.drawable.ic_flash_off_white_36dp;
-            mFlashButton.setImageDrawable(ActivityCompat.getDrawable(this, resId));
+            mFlashButton.setImageDrawable(ContextCompat.getDrawable(this, resId));
         }
     }
 
+    @Override
     public void onMediaRecorderError(final Exception e) {
         Log.e(LOG_TAG, "Media recorder error");
         mCameraController.lock();
@@ -666,7 +667,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         }
 
         @Override
-        public void onOrientationChanged(int orientationDegrees)
+        public void onOrientationChanged(int orientation)
         {
             // Check that the configuration orientation matches the size orientation to ensure
             // re-layouts have already happened.
@@ -731,7 +732,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         }
 
         @Override
-        protected Exception doInBackground(Object[] params) {
+        protected Exception doInBackground(Object... params) {
             mVideoOutputFile = new File(Uri.parse(mParams.getVideoOutputFileUri()).getPath());
 
             mVideoThumbnailOutputFile = mParams.getVideoThumbnailOutputFileUri().isPresent()
@@ -779,7 +780,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         }
 
         @Override
-        protected void onProgressUpdate(Object[] values) {
+        protected void onProgressUpdate(Object... values) {
             super.onProgressUpdate(values);
 
             if (values.length == 0) {
@@ -810,15 +811,15 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         }
 
         @Override
-        protected void onPostExecute(Exception e) {
-            super.onPostExecute(e);
+        protected void onPostExecute(Exception result) {
+            super.onPostExecute(result);
             mVideoTransformerTask = null;
 
-            if (e == null) {
+            if (result == null) {
                 startPreviewActivity();
             } else {
-                Log.e(LOG_TAG, "Error saving video", e);
-                onError(e);
+                Log.e(LOG_TAG, "Error saving video", result);
+                onError(result);
             }
         }
     }

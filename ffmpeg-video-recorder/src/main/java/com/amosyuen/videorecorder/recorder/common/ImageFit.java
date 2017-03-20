@@ -1,7 +1,5 @@
 package com.amosyuen.videorecorder.recorder.common;
 
-import java.security.InvalidParameterException;
-
 /**
  * How to fit an image to desired dimensions.
  */

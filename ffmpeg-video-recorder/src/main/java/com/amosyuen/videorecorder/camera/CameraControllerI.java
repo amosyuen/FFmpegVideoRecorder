@@ -134,8 +134,8 @@ public interface CameraControllerI {
 
     /**
      * Set camera to focus on a rectangle in camera space with specified weight.
-     * @param rect Should be in the space of -1000:-1000 to 1000:1000
-     * @param focusWeight
+     * @param rect Should be in the range of [-1000:-1000] to [1000:1000]
+     * @param focusWeight Should be in the range [1,1000]
      * @return whether the camera was able to focus on a rect.
      */
     boolean focusOnRect(Rect rect, int focusWeight);
@@ -147,7 +147,7 @@ public interface CameraControllerI {
 
     /**
      * Set camera to auto focus.
-     * @return whether the camera was able to autofocus.
+     * @return whether the camera was able to auto focus.
      */
     boolean autoFocus();
 

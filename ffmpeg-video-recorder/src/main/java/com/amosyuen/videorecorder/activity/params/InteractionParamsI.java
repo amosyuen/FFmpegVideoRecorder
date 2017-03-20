@@ -29,6 +29,11 @@ public interface InteractionParamsI extends Serializable {
      */
     long getTapToFocusHoldTimeMillis();
 
+    /**
+     * Get the percentage size of the preview area that the camera should focus on when tapped.
+     */
+    float getTapToFocusSizePercent();
+
     interface BuilderI<T extends BuilderI<T>> {
 
         /**
@@ -51,6 +56,12 @@ public interface InteractionParamsI extends Serializable {
          * reverting to auto focus. Default to 5 seconds.
          */
         T setTapToFocusHoldTimeMillis(long val);
+
+        /**
+         * Set the percentage size of the preview area that the camera should focus on when tapped.
+         * Default value is {@code 0.1}.
+         */
+        T setTapToFocusSizePercent(float val);
 
         InteractionParamsI build();
     }

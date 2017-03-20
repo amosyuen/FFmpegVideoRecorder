@@ -76,6 +76,7 @@ public class TapToFocusManager implements
         return mFocusHoldMillis;
     }
 
+    @Override
     public void finalize() throws Throwable {
         close();
         super.finalize();

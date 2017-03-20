@@ -394,6 +394,8 @@ public class VideoRecorderResultsFragment extends Fragment {
                                 mAudioChannelsTextView.setText(String.format(Locale.US, "%d",
                                         mediaFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT)));
                                 break;
+                            default:
+                                break;
                         }
                     }
                 } catch (Exception e) {

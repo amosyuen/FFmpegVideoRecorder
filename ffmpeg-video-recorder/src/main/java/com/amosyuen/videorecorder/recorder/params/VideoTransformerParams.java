@@ -78,6 +78,7 @@ public abstract class VideoTransformerParams implements VideoTransformerParamsI 
         @Override
         public abstract Builder setShouldPadVideo(boolean val);
 
+        @Override
         public abstract VideoTransformerParams build();
     }
 }

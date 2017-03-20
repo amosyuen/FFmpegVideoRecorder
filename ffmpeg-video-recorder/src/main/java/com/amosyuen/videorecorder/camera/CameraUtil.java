@@ -55,8 +55,7 @@ public final class CameraUtil {
                 .min(cameraSize)
                 .getArea();
         long pixelsWasted = Math.max(0, cameraSize.getArea() - recordedNonUpscaledPixels);
-        float score = 100f * recordedNonUpscaledPixels - pixelsWasted;
-        return score;
+        return 100f * recordedNonUpscaledPixels - pixelsWasted;
     }
 
     /**

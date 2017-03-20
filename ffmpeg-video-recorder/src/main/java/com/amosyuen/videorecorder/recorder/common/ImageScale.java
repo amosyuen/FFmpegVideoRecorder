@@ -1,7 +1,5 @@
 package com.amosyuen.videorecorder.recorder.common;
 
-import java.security.InvalidParameterException;
-
 /**
  * The way to scale an image.
  */

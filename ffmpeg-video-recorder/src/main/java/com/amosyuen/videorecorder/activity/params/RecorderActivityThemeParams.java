@@ -114,6 +114,7 @@ public abstract class RecorderActivityThemeParams
         @Override
         public abstract Builder setWidgetColor(@ColorInt int val);
 
+        @Override
         public abstract RecorderActivityThemeParams build();
     }
 }

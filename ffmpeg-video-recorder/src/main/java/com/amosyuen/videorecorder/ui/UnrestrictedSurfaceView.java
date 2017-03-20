@@ -1,18 +1,13 @@
 package com.amosyuen.videorecorder.ui;
 
 import android.content.Context;
-import android.graphics.Canvas;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.SurfaceView;
 
 import com.amosyuen.videorecorder.recorder.common.ImageSize;
 import com.google.common.base.Preconditions;
-
-import static android.R.attr.width;
-import static android.view.View.MeasureSpec.UNSPECIFIED;
 
 /**
  * Surface view that overrides measure spec constraints when setting fixed size.

@@ -37,8 +37,6 @@ import com.amosyuen.videorecorder.ui.ViewUtil;
 
 import java.security.InvalidParameterException;
 
-import static com.amosyuen.videorecorder.activity.FFmpegRecorderActivity.LOG_TAG;
-
 public class FFmpegPreviewActivity
         extends AbstractDynamicStyledActivity
         implements OnClickListener, OnCompletionListener, Callback, OnVideoSizeChangedListener,
@@ -48,6 +46,8 @@ public class FFmpegPreviewActivity
 
     public static final int RESULT_ERROR = RESULT_FIRST_USER;
     public static final String RESULT_ERROR_PATH_KEY = "error";
+
+    private static final String LOG_TAG = "FFmpegPreviewActivity";
 
     protected static final int PROGRESS_UPDATE_INTERVAL_MILLIS = 50;
 
@@ -228,6 +228,7 @@ public class FFmpegPreviewActivity
             mMediaPlayer.prepare();
             mMediaPlayer.seekTo(0);
         } catch (Exception e) {
+            Log.e(LOG_TAG, "Error setting up media player", e);
         }
     }
 

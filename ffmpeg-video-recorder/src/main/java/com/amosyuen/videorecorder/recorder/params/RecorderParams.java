@@ -159,6 +159,7 @@ public abstract class RecorderParams implements RecorderParamsI {
         @Override
         public abstract Builder setOutputFormat(OutputFormat val);
 
+        @Override
         public abstract RecorderParams build();
     }
 }

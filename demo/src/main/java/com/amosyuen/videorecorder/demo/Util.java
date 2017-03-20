@@ -1,7 +1,7 @@
 package com.amosyuen.videorecorder.demo;
 
 
-import java.text.SimpleDateFormat;
+import java.text.DateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
@@ -39,7 +39,7 @@ public final class Util {
     }
 
     public static String getHumanReadableDate(long millis) {
-        return SimpleDateFormat.getDateTimeInstance().format(new Date(millis));
+        return DateFormat.getDateTimeInstance().format(new Date(millis));
     }
 
     public static String getMimetype(String mimeType) {
