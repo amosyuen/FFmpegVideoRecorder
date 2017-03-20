@@ -40,24 +40,24 @@ that can be used to customize your own UI and logic.
 All components are designed to be extensible and usable without all the other components. Some of
 the main components:
 
-##### CameraController
+#### CameraController
 
 Wrapper for camera library that abstracts away some of the complications about checking support
 for various features.
 
-##### CameraPreviewView
+#### CameraPreviewView
 
 SurfaceView that scales and crops the view so that it matches the desired resolution.
 
-##### MediaClipsRecorder
+#### MediaClipsRecorder
 
 Recorder that simplifies logic for recording multiple video clips.
 
-##### VideoTransformerTask
+#### VideoTransformerTask
 
 Task that combines multiple video files and transforms the video frames into the desired resolution.
 
-##### FFmpegRecorderActivity
+#### FFmpegRecorderActivity
 
 Activity that allows the user to record videos in a way similar to instagram and snapchat
 
@@ -68,7 +68,7 @@ Activity that allows the user to record videos in a way similar to instagram and
 
 ![Record Video Activity Screenshot](./screenshots/record_video_activity.png "Record Video Activity")
 
-##### FFmpegPreviewActivity
+#### FFmpegPreviewActivity
 
 Activity to preview the recorded video before selecting the video
 
@@ -82,9 +82,7 @@ Activity to preview the recorded video before selecting the video
 
 There is a demo activity that allows you to try different settings for recording videos.
 
-![Preview Video Activity Screenshot](./screenshots/demo_recording_options.png "Demo Recording Options Activity")
-
-![Preview Video Activity Screenshot](./screenshots/demo_results.png "Demo Recorded Videos")
+![Preview Video Activity Screenshot](./screenshots/demo_recording_options.png "Demo Recording Options Activity") ![Preview Video Activity Screenshot](./screenshots/demo_results.png "Demo Recorded Videos")
 
 ## Installation
 
@@ -137,14 +135,32 @@ git clone git://github.com/amosyuen/FFmpegVideoRecorder.git
 	```java
 	private static final int RECORD_VIDEO_REQUEST = 1000;
 
-	Intent intent = new Intent(this, FFmpegRecorderActivity.class);
-	RecorderActivityParams params = new RecorderActivityParams.Builder(videoFile)
-        .videoThumbnailOutput(thumbnailFile)
-        .videoWidth(640)
-        .videoHeight(480)
-        .build();
-    intent.putExtra(FFmpegRecorderActivity.RECORDER_ACTIVITY_PARAMS_KEY, params);
-    startActivityForResult(intent, RECORD_VIDEO_REQUEST);
+    public void startActivity(File videoFile, File thumbnailFile) {
+        FFmpegRecorderActivityParams.Builder paramsBuilder =
+                FFmpegRecorderActivityParams.builder(getContext())
+                        .setVideoOutputFileUri(videoFile)
+                        .setVideoThumbnailOutputFileUri(thumbnailFile);
+                      
+        paramsBuilder.recorderParamsBuilder()
+                .setVideoSize(new ImageSize(640, 480))
+                .setVideoCodec(VideoCodec.H264)
+                .setVideoBitrate(100000)
+                .setVideoFrameRate(30)
+                .setVideoImageFit(ImageFit.FILL)
+                .setVideoImageScale(ImageScale.DOWNSCALE)
+                .setShouldCropVideo(true)
+                .setShouldPadVideo(true)
+                .setVideoCameraFacing(Facing.BACK)
+                .setAudioCodec(AudioCodec.ACC)
+                .setAudioSamplingRateHz(44100)
+                .setAudioBitrate(100000)
+                .setAudioChannelCount(2)
+                .setOutputFormat(OutputFormat.MP4);
+           
+        Intent intent = new Intent(this, FFmpegRecorderActivity.class);
+        intent.putExtra(FFmpegRecorderActivity.REQUEST_PARAMS_KEY, paramsBuilder.build());
+        startActivityForResult(intent, RECORD_VIDEO_REQUEST);
+    }
     ```
 
 4. Override `onActivityResult` method and handle request code sent in step 3.
@@ -174,7 +190,7 @@ git clone git://github.com/amosyuen/FFmpegVideoRecorder.git
 
 ### UnsatisfiedLinkError
 
-This error means that the native libraries weren't installed properly. One common problem is that
+This error means that the native libraries were not installed properly. One common problem is that
 Android doesn't support loading both 64-bit and 32-bit native libraries at the same time.
 Unfortunately the FFmpeg library used in this library only has 32-bit binaries. So if your app
 includes another dependency that has 64-bit libraries, this will make the app unable to load the
