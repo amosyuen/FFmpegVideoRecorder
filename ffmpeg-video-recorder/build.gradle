@@ -41,7 +41,7 @@ android {
     buildToolsVersion '25.0.2'
 
     defaultConfig {
-        minSdkVersion 17
+        minSdkVersion 14
         targetSdkVersion 25
         versionCode versionCode
         versionName libraryVersion
@@ -66,8 +66,8 @@ configurations {
 }
 
 dependencies {
-    compile 'com.android.support:appcompat-v7:25.2.0'
-    compile 'com.android.support:support-v4:25.2.0'
+    compile 'com.android.support:appcompat-v7:25.3.0'
+    compile 'com.android.support:support-v4:25.3.0'
     //noinspection GradleDynamicVersion
     compile 'com.android.support:support-annotations:+'
     compile 'com.github.rahatarmanahmed:circularprogressview:2.5.0'
