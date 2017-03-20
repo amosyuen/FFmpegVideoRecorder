@@ -347,6 +347,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
     protected void setCameraPreviewDisplayIfReady() {
         if (mCameraController.isCameraOpen()) {
             try {
+                Log.v(LOG_TAG, "Surface holder " + mCameraPreviewView.getHolder());
                 mCameraController.setPreviewDisplay(mCameraPreviewView.getHolder());
             } catch (IOException exception) {
                 Log.e(LOG_TAG, "Error setting camera preview display", exception);

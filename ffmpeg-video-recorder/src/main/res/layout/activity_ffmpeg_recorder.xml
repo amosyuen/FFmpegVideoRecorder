@@ -17,7 +17,8 @@
             android:id="@+id/recorder_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_centerInParent="true"/>
+            android:layout_centerInParent="true"
+            android:background="@android:color/black"/>
 
         <com.amosyuen.videorecorder.ui.TapToFocusView
             android:id="@+id/focus_rectangle_view"

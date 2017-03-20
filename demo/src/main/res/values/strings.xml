@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">FFmpegVideoRecorder Demo</string>
-    <string name="audio_bitrate">Audio Bitrate (bytes)</string>
+    <string name="audio_bitrate">Audio Bitrate (bytes/s)</string>
     <string name="audio_channel_count">Audio Channel Count</string>
     <string name="audio_codec">Audio Codec</string>
     <string name="audio_options">Audio Options</string>
@@ -19,8 +19,8 @@
     <string name="error_value_is_zero">Value is zero</string>
     <string name="launch_video_recorder">Launch Video Recorder</string>
     <string name="max_file_size">Max file size (MB)</string>
-    <string name="max_recording_time">Max recording (seconds)</string>
-    <string name="min_recording_time">Min recording (seconds)</string>
+    <string name="max_recording_time">Max recording (s)</string>
+    <string name="min_recording_time">Min recording (s)</string>
     <string name="ok">OK</string>
     <string name="output_format">Output Format</string>
     <string name="recording">Recording</string>
@@ -29,7 +29,7 @@
     <string name="success">Success</string>
     <string name="thumbnail_preview">Thumbnail Preview</string>
     <string name="video_bitrate">Video Bitrate</string>
-    <string name="video_bitrate_bytes">Video Bitrate (bytes)</string>
+    <string name="video_bitrate_bytes">Video Bitrate (bytes/s)</string>
     <string name="video_camera_facing">Video Camera Facing</string>
     <string name="video_codec">Video Codec</string>
     <string name="video_date">Video Date</string>

@@ -4,6 +4,7 @@ package com.amosyuen.videorecorder.ui;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -18,9 +19,13 @@ import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.RelativeLayout;
 
+import com.amosyuen.videorecorder.R;
 import com.amosyuen.videorecorder.camera.CameraControllerI;
 import com.amosyuen.videorecorder.recorder.common.ImageFit;
 import com.amosyuen.videorecorder.recorder.common.ImageScale;
@@ -31,7 +36,7 @@ import com.google.common.base.Preconditions;
 /**
  * View that previews the camera. Scales and limits the view according to the desired dimensions.
  */
-public class CameraPreviewView extends SurfaceView {
+public class CameraPreviewView extends RelativeLayout {
 
     protected static final String LOG_TAG = "CameraPreviewView";
 
@@ -48,31 +53,33 @@ public class CameraPreviewView extends SurfaceView {
     protected int mFocusWeight;
 
     // Params
+    protected SurfaceView mSurfaceView;
     protected ImageSize mScaledPreviewSize = ImageSize.UNDEFINED;
     protected ImageSize mScaledTargetSize = ImageSize.UNDEFINED;
-    @ColorInt protected int mBlackColor;
     protected Matrix mFocusMatrix;
 
     public CameraPreviewView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        init();
+        init(context);
     }
 
     public CameraPreviewView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        init();
+        init(context);
     }
 
     @RequiresApi(api = VERSION_CODES.LOLLIPOP)
     public CameraPreviewView(
             Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
-        init();
+        init(context);
     }
 
-    protected void init() {
-        mBlackColor = ContextCompat.getColor(getContext(), android.R.color.black);
-        setWillNotDraw(false);
+    protected void init(Context context) {
+        inflate(context, R.layout.view_camera_preview, this);
+        mSurfaceView = (SurfaceView) findViewById(R.id.surface_view);
+        // Needed in order to clip the bounds
+        mSurfaceView.setWillNotDraw(false);
     }
 
     @Nullable
@@ -90,6 +97,10 @@ public class CameraPreviewView extends SurfaceView {
 
     public void setUIInteractionListener(UIInteractionListener UIInteractionListener) {
         mUIInteractionListener = UIInteractionListener;
+    }
+
+    public SurfaceHolder getHolder() {
+        return mSurfaceView.getHolder();
     }
 
     public ImageSize getScaledPreviewSize() {
@@ -249,6 +260,8 @@ public class CameraPreviewView extends SurfaceView {
         mScaledTargetSize = newScaledTargetSize;
         mScaledPreviewSize = newScaledPreviewSize;
         setMeasuredDimension(
+                mScaledTargetSize.getWidthUnchecked(), mScaledTargetSize.getHeightUnchecked());
+        mSurfaceView.getHolder().setFixedSize(
                 mScaledPreviewSize.getWidthUnchecked(), mScaledPreviewSize.getHeightUnchecked());
         if (!hasChanged) {
             return;
@@ -273,29 +286,21 @@ public class CameraPreviewView extends SurfaceView {
     }
 
     @Override
-    public void draw(Canvas canvas) {
-        if (mScaledTargetSize.areBothDimensionsDefined()) {
-            // Clip the drawable bounds to the target size
-            float targetMarginX =
-                    Math.max(0, 0.5f * (canvas.getWidth() - mScaledTargetSize.getWidthUnchecked()));
-            float targetMarginY = Math.max(0,
-                    0.5f * (canvas.getHeight() - mScaledTargetSize.getHeightUnchecked()));
+    public void dispatchDraw(Canvas canvas) {
+        if (mScaledPreviewSize.areBothDimensionsDefined()) {
+            float marginX = Math.max(0,
+                    0.5f * (canvas.getWidth() - mScaledPreviewSize.getWidthUnchecked()));
+            float marginY = Math.max(0,
+                    0.5f * (canvas.getHeight() - mScaledPreviewSize.getHeightUnchecked()));
             canvas.clipRect(
-                    targetMarginX,
-                    targetMarginY,
-                    targetMarginX + mScaledTargetSize.getWidthUnchecked(),
-                    targetMarginY + mScaledTargetSize.getHeightUnchecked());
-            Log.v(LOG_TAG, String.format("ClipRect left=%f top=%f right=%f bottom=%f",
-                    targetMarginX,
-                    targetMarginY,
-                    targetMarginX + mScaledTargetSize.getWidthUnchecked(),
-                    targetMarginY + mScaledTargetSize.getHeightUnchecked()));
+                    marginX,
+                    marginY,
+                    marginX + mScaledPreviewSize.getWidthUnchecked(),
+                    marginY + mScaledPreviewSize.getHeightUnchecked());
         }
 
-        canvas.drawColor(mBlackColor);
-
         if (mPreviewSize != null && mIsPreviewing) {
-            super.draw(canvas);
+            super.dispatchDraw(canvas);
         }
     }
 
