@@ -151,7 +151,7 @@ git clone git://github.com/amosyuen/FFmpegVideoRecorder.git
                 .setShouldCropVideo(true)
                 .setShouldPadVideo(true)
                 .setVideoCameraFacing(Facing.BACK)
-                .setAudioCodec(AudioCodec.ACC)
+                .setAudioCodec(AudioCodec.AAC)
                 .setAudioSamplingRateHz(44100)
                 .setAudioBitrate(100000)
                 .setAudioChannelCount(2)
