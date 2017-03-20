@@ -53,15 +53,15 @@ public class Util {
 
     public static void setMediaRecorderInteractionParams(
             MediaRecorder recorder, InteractionParamsI params,
-            long millisRecorded,
+            int millisRecorded,
             long bytesRecorded) {
         if (params.getMinRecordingMillis() > 0) {
-            int remainingMillis = (int)(params.getMaxRecordingMillis() - millisRecorded);
+            int remainingMillis = params.getMaxRecordingMillis() - millisRecorded;
             Preconditions.checkArgument(remainingMillis > 0);
             recorder.setMaxDuration(remainingMillis);
         }
         if (params.getMaxFileSizeBytes() > 0) {
-            int remainingBytes = (int)(params.getMaxFileSizeBytes() - bytesRecorded);
+            long remainingBytes = params.getMaxFileSizeBytes() - bytesRecorded;
             Preconditions.checkArgument(remainingBytes > 0);
             recorder.setMaxFileSize(remainingBytes);
         }

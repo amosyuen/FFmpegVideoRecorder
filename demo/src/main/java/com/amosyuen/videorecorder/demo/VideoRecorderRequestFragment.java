@@ -164,7 +164,6 @@ public class VideoRecorderRequestFragment extends Fragment {
         mMaxRecordingEditText.setText("10");
 
         mMaxFileSizeEditText = (EditText) view.findViewById(R.id.max_file_size);
-        mMaxFileSizeEditText.setText("0");
 
         ArrayAdapter<OutputFormat> outputFormatAdapter = new ArrayAdapter<>(
                 getContext(), android.R.layout.simple_spinner_item, OutputFormat.values());
@@ -328,7 +327,6 @@ public class VideoRecorderRequestFragment extends Fragment {
                 if (mErrorView == null) {
                     mErrorView = editText;
                 }
-                return Optional.absent();
             }
         } else if (!allowEmpty) {
             editText.setError(getString(R.string.error_value_is_empty));
@@ -356,11 +354,11 @@ public class VideoRecorderRequestFragment extends Fragment {
                 validateEmptyPositiveIntegerEditText(mAudioChannelCountEditText);
 
         Optional<Integer> minRecordingSeconds =
-                validateEmptyNonNegativeIntegerEditText(mMinRecordingEditText);
+                validateEmptyPositiveIntegerEditText(mMinRecordingEditText);
         Optional<Integer> maxRecordingSeconds =
-                validateEmptyNonNegativeIntegerEditText(mMaxRecordingEditText);
+                validateEmptyPositiveIntegerEditText(mMaxRecordingEditText);
         Optional<Integer> maxFileSizeMegaBytes =
-                validateEmptyNonNegativeIntegerEditText(mMaxFileSizeEditText);
+                validateEmptyPositiveIntegerEditText(mMaxFileSizeEditText);
 
         if (mErrorView != null) {
             mErrorView.requestFocus();
@@ -394,12 +392,12 @@ public class VideoRecorderRequestFragment extends Fragment {
                 .setOutputFormat((OutputFormat) mOutputFormatSpinner.getSelectedItem());
 
         if (minRecordingSeconds.isPresent()) {
-            paramsBuilder.interactionParamsBuilder()
-                    .setMinRecordingMillis(TimeUnit.SECONDS.toMillis(minRecordingSeconds.get()));
+            paramsBuilder.interactionParamsBuilder().setMinRecordingMillis(
+                    (int) TimeUnit.SECONDS.toMillis(minRecordingSeconds.get()));
         }
         if (maxRecordingSeconds.isPresent()) {
-            paramsBuilder.interactionParamsBuilder()
-                    .setMaxRecordingMillis(TimeUnit.SECONDS.toMillis(maxRecordingSeconds.get()));
+            paramsBuilder.interactionParamsBuilder().setMaxRecordingMillis(
+                    (int) TimeUnit.SECONDS.toMillis(maxRecordingSeconds.get()));
         }
         if (maxFileSizeMegaBytes.isPresent()) {
             paramsBuilder.interactionParamsBuilder()

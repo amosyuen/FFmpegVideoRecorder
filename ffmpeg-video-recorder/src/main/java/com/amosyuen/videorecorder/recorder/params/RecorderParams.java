@@ -6,6 +6,7 @@ import com.amosyuen.videorecorder.recorder.common.ImageScale;
 import com.amosyuen.videorecorder.recorder.common.ImageSize;
 import com.google.auto.value.AutoValue;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 
 /**
  * Parameters for recording video.
@@ -95,6 +96,17 @@ public abstract class RecorderParams implements RecorderParamsI {
             return mergeOnlyClass(builder, params);
         }
 
+        public static <T extends RecorderParamsI> T validateOnlyClass(T params) {
+            return params;
+        }
+
+        public static <T extends RecorderParamsI> T validate(T params) {
+            EncoderParams.Builder.validateOnlyClass(params);
+            VideoFrameRateParams.Builder.validateOnlyClass(params);
+            validateOnlyClass(params);
+            return params;
+        }
+
         protected Builder() {}
 
         @Override
@@ -159,7 +171,11 @@ public abstract class RecorderParams implements RecorderParamsI {
         @Override
         public abstract Builder setOutputFormat(OutputFormat val);
 
+        abstract RecorderParams autoBuild();
+
         @Override
-        public abstract RecorderParams build();
+        public RecorderParams build() {
+            return validate(autoBuild());
+        }
     }
 }

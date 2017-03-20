@@ -243,7 +243,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
         // Then other config
         Util.setMediaRecorderEncoderParams(recorder, getRecorderParams());
         Util.setMediaRecorderInteractionParams(recorder, getInteractionParams(),
-                mMediaClipsRecorder.getRecordedMillis(), mMediaClipsRecorder.getRecordedBytes());
+                (int) mMediaClipsRecorder.getRecordedMillis(), mMediaClipsRecorder.getRecordedBytes());
         Util.setMediaRecorderCameraParams(recorder, mCameraController);
     }
 

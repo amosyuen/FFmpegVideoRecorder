@@ -1,6 +1,10 @@
 package com.amosyuen.videorecorder.activity.params;
 
+import com.amosyuen.videorecorder.recorder.params.EncoderParams;
+import com.amosyuen.videorecorder.recorder.params.RecorderParamsI;
+import com.amosyuen.videorecorder.recorder.params.VideoFrameRateParams;
 import com.google.auto.value.AutoValue;
+import com.google.common.base.Preconditions;
 
 /**
  * Parameters for the video recorder activity.
@@ -14,13 +18,13 @@ public abstract class InteractionParams implements InteractionParamsI {
     public abstract long getMaxFileSizeBytes();
 
     @Override
-    public abstract long getMinRecordingMillis();
+    public abstract int getMinRecordingMillis();
 
     @Override
-    public abstract long getMaxRecordingMillis();
+    public abstract int getMaxRecordingMillis();
 
     @Override
-    public abstract long getTapToFocusHoldTimeMillis();
+    public abstract int getTapToFocusHoldTimeMillis();
 
     @Override
     public abstract float getTapToFocusSizePercent();
@@ -39,7 +43,7 @@ public abstract class InteractionParams implements InteractionParamsI {
             return builder
                     .setMaxFileSizeBytes(Long.MAX_VALUE)
                     .setMinRecordingMillis(1)
-                    .setMaxRecordingMillis(Long.MAX_VALUE)
+                    .setMaxRecordingMillis(Integer.MAX_VALUE)
                     .setTapToFocusHoldTimeMillis(5000)
                     .setTapToFocusSizePercent(0.15f);
         }
@@ -54,24 +58,41 @@ public abstract class InteractionParams implements InteractionParamsI {
                     .setTapToFocusSizePercent(params.getTapToFocusSizePercent());
         }
 
+        public static <T extends InteractionParamsI> T validateOnlyClass(T params) {
+            Preconditions.checkState(params.getMaxFileSizeBytes() > 0);
+            Preconditions.checkState(params.getMinRecordingMillis() > 0);
+            Preconditions.checkState(params.getMaxRecordingMillis() > 0);
+            Preconditions.checkState(
+                    params.getMaxRecordingMillis() >= params.getMinRecordingMillis());
+            Preconditions.checkState(params.getTapToFocusHoldTimeMillis() > 0);
+            Preconditions.checkState(
+                    params.getTapToFocusSizePercent() > 0
+                            && params.getTapToFocusSizePercent() <= 1f);
+            return params;
+        }
+
         protected Builder() {}
 
         @Override
         public abstract Builder setMaxFileSizeBytes(long val);
 
         @Override
-        public abstract Builder setMinRecordingMillis(long val);
+        public abstract Builder setMinRecordingMillis(int val);
 
         @Override
-        public abstract Builder setMaxRecordingMillis(long val);
+        public abstract Builder setMaxRecordingMillis(int val);
 
         @Override
-        public abstract Builder setTapToFocusHoldTimeMillis(long val);
+        public abstract Builder setTapToFocusHoldTimeMillis(int val);
 
         @Override
         public abstract Builder setTapToFocusSizePercent(float val);
 
+        abstract InteractionParams autoBuild();
+
         @Override
-        public abstract InteractionParams build();
+        public InteractionParams build() {
+            return validateOnlyClass(autoBuild());
+        }
     }
 }

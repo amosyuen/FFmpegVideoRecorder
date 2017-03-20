@@ -2,6 +2,7 @@ package com.amosyuen.videorecorder.recorder.params;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 
 /**
  * Parameters for encoding video.
@@ -70,6 +71,20 @@ public abstract class EncoderParams implements EncoderParamsI {
             return mergeOnlyClass(builder, params);
         }
 
+        public static <T extends EncoderParamsI> T validateOnlyClass(T params) {
+            Preconditions.checkState(params.getAudioBitrate().or(1) > 0);
+            Preconditions.checkState(params.getAudioChannelCount().or(1) > 0);
+            Preconditions.checkState(params.getAudioSamplingRateHz().or(1) > 0);
+            Preconditions.checkState(params.getVideoBitrate().or(1) > 0);
+            return params;
+        }
+
+        public static <T extends EncoderParamsI> T validate(T params) {
+            VideoFrameRateParams.Builder.validateOnlyClass(params);
+            validateOnlyClass(params);
+            return params;
+        }
+
         protected Builder() {}
 
         @Override
@@ -116,7 +131,11 @@ public abstract class EncoderParams implements EncoderParamsI {
         @Override
         public abstract Builder setOutputFormat(OutputFormat val);
 
+        abstract EncoderParams autoBuild();
+
         @Override
-        public abstract EncoderParams build();
+        public EncoderParams build() {
+            return validate(autoBuild());
+        }
     }
 }
