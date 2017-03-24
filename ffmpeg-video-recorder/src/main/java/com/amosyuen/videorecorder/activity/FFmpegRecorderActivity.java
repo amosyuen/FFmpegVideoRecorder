@@ -560,8 +560,7 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
 
     @Override
     public void onMediaRecorderError(final Exception e) {
-        Log.e(LOG_TAG, "Media recorder error");
-        mCameraController.lock();
+        Log.e(LOG_TAG, "Media recorder error", e);
         onError(e);
     }
 
@@ -656,6 +655,10 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
             return;
         }
         mMediaClipsRecorder.release();
+        // Try to lock the camera if we can so that we can close it
+        try {
+            mCameraController.lock();
+        } catch (Throwable expected) {}
         mCameraController.closeCamera();
     }
 

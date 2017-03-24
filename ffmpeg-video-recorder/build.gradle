@@ -20,8 +20,8 @@ ext {
     siteUrl = 'https://github.com/amosyuen/FFmpegVideoRecorder'
     gitUrl = 'https://github.com/amosyuen/FFmpegVideoRecorder.git'
 
-    libraryVersion = '2.0.0'
-    versionCode = 9
+    libraryVersion = '2.0.1'
+    versionCode = 10
 
     developerId = 'amosyuen'
     developerName = 'Amos Yuen'
