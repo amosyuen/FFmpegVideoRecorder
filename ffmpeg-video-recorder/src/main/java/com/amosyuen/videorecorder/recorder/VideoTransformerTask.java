@@ -116,7 +116,10 @@ public class VideoTransformerTask implements Runnable {
                         filter.push(frame);
                         frame = Preconditions.checkNotNull(filter.pull());
                     }
-                    mRecorder.setTimestamp(processedMillis + frameGrabber.getTimestamp());
+                    long timestampMillis = processedMillis + frameGrabber.getTimestamp();
+                    if (timestampMillis > mRecorder.getTimestamp()) {
+                        mRecorder.setTimestamp(timestampMillis);
+                    }
                     mRecorder.record(frame);
                     currMillis = Math.max(currMillis, frameGrabber.getTimestamp());
                     if (mProgressListener != null) {
