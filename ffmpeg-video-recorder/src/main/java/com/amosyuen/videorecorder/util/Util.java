@@ -78,7 +78,7 @@ public class Util {
         recorder.setOrientationHint(cameraController.getPreviewDisplayOrientationDegrees());
 
         int[] frameRateRange = cameraController.getFrameRateRange();
-        int fps = frameRateRange[0] / 1000;
+        int fps = frameRateRange[1] / 1000;
         recorder.setVideoFrameRate(fps);
     }
 

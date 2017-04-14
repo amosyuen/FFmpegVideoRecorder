@@ -59,44 +59,32 @@ public final class CameraUtil {
     }
 
     /**
-     *  Choose the best fps range for the target fps.
+     *  Choose the best fps range for the target fps. Tries to choose an fps range with a max
+     *  greater than the target FPS. Also tries to choose an FPS range with the largest range to
+     *  allow the most flexibility with exposure.
      */
     public static int[] getBestFpsRange(List<int[]> fpsRanges, float targetFps) {
         int targetFpsInt = (int)(1000f * targetFps);
-        int bestFpsRangeAvgDist = Integer.MAX_VALUE;
         int[] bestFpsRange = null;
-        // Choose the closest range whose minimum fps is greater than or equal to the target fps
+        int bestFpsRangeSize = -1;
+        // Choose the range whose max fps is greater than the target FPS and has the greatest range.
         for (int[] fpsRange : fpsRanges) {
-            if (fpsRange[0] >= targetFpsInt) {
-                int avgFpsDist = Math.abs(targetFpsInt - (fpsRange[0] + fpsRange[1]) / 2);
-                if (avgFpsDist < bestFpsRangeAvgDist) {
+            if (fpsRange[1] >= targetFpsInt) {
+                int fpsRangeSize = fpsRange[1] - fpsRange[0];
+                if (fpsRangeSize > bestFpsRangeSize) {
                     bestFpsRange = fpsRange;
-                    bestFpsRangeAvgDist = avgFpsDist;
+                    bestFpsRangeSize = fpsRangeSize;
                 }
             }
         }
-        // If no range was found above choose the closest range whose maximum fps is greater than or
-        // equal to the target fps
+        // If no range was found then choose the range with the max closest to the target FPS.
         if (bestFpsRange == null) {
             for (int[] fpsRange : fpsRanges) {
-                if (fpsRange[1] >= targetFpsInt) {
-                    int avgFpsDist = Math.abs(targetFpsInt - (fpsRange[0] + fpsRange[1]) / 2);
-                    if (avgFpsDist < bestFpsRangeAvgDist) {
-                        bestFpsRange = fpsRange;
-                        bestFpsRangeAvgDist = avgFpsDist;
-                    }
-                }
-            }
-        }
-        // If no range was found, just choose the closest range with the largest fps
-        if (bestFpsRange == null) {
-            for (int[] fpsRange : fpsRanges) {
-                if (bestFpsRange == null || fpsRange[1] >= bestFpsRange[1]) {
-                    int avgFpsDist = Math.abs(targetFpsInt - (fpsRange[0] + fpsRange[1]) / 2);
-                    if (avgFpsDist < bestFpsRangeAvgDist) {
-                        bestFpsRange = fpsRange;
-                        bestFpsRangeAvgDist = avgFpsDist;
-                    }
+                int fpsRangeSize = fpsRange[1] - fpsRange[0];
+                if (bestFpsRange == null || fpsRange[1] > bestFpsRange[1]
+                        || fpsRangeSize > bestFpsRangeSize) {
+                    bestFpsRange = fpsRange;
+                    bestFpsRangeSize = fpsRangeSize;
                 }
             }
         }

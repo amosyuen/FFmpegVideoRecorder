@@ -2,6 +2,7 @@ package com.amosyuen.videorecorder.camera;
 
 import android.graphics.Rect;
 import android.hardware.Camera;
+import android.hardware.Camera.Parameters;
 import android.media.MediaRecorder;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -161,6 +162,9 @@ public class CameraController implements CameraControllerI {
             int[] bestFpsRange =
                     CameraUtil.getBestFpsRange(fpsRanges, params.getVideoFrameRate().get());
 
+            for (int[] range : fpsRanges)
+                Log.v(LOG_TAG, String.format(
+                        "FPS Range [%d,%d]", range[0], range[1]));
             parameters.setPreviewFpsRange(bestFpsRange[0], bestFpsRange[1]);
             Log.v(LOG_TAG, String.format(
                     "Set camera fps range to [%d, %d]", bestFpsRange[0], bestFpsRange[1]));
@@ -169,6 +173,24 @@ public class CameraController implements CameraControllerI {
         // Flash Mode
         FlashMode flashMode = FlashMode.OFF;
         setFlashModeParams(flashMode, parameters);
+
+        // Exposure
+        if (parameters.isAutoExposureLockSupported()) {
+            parameters.setAutoExposureLock(false);
+        }
+
+        // Scene Mode
+        if (parameters.getSupportedSceneModes().contains(Parameters.SCENE_MODE_AUTO)) {
+            parameters.setSceneMode(Parameters.SCENE_MODE_AUTO);
+        }
+
+        // White Balance Mode
+        if (parameters.getSupportedWhiteBalance().contains(Parameters.WHITE_BALANCE_AUTO)) {
+            parameters.setWhiteBalance(Parameters.WHITE_BALANCE_AUTO);
+        }
+        if (parameters.isAutoWhiteBalanceLockSupported()) {
+            parameters.setAutoWhiteBalanceLock(false);
+        }
 
         camera.setParameters(parameters);
 
