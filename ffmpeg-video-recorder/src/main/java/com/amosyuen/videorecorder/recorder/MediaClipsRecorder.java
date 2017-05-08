@@ -39,6 +39,7 @@ public class MediaClipsRecorder implements
     protected long mStartTimeMillis;
     protected CameraControllerI.Facing mFacing;
     protected int mViewOrientationDegrees;
+    protected boolean mMediaServerStopErrorRetried;
 
     public MediaClipsRecorder(
             @NonNull MediaRecorderConfigurer mediaRecorderConfigurer,
@@ -182,7 +183,6 @@ public class MediaClipsRecorder implements
             return;
         }
         stop();
-        mMediaRecorder.reset();
         mMediaRecorder.release();
         mMediaRecorder = null;
     }
@@ -217,6 +217,12 @@ public class MediaClipsRecorder implements
         final Exception error;
         switch (what) {
             case MediaRecorder.MEDIA_ERROR_SERVER_DIED:
+                if (!mMediaServerStopErrorRetried) {
+                    mMediaRecorder.release();
+                    mMediaRecorder = new MediaRecorder();
+                    mMediaServerStopErrorRetried = true;
+                    return;
+                }
                 error = new RuntimeException("Media recorder server died.");
                 break;
             case MediaRecorder.MEDIA_RECORDER_ERROR_UNKNOWN:
