@@ -16,6 +16,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static android.R.attr.duration;
+
 /**
  * Media recorder for recording multiple clips
  */
@@ -160,9 +162,10 @@ public class MediaClipsRecorder implements
         if (!isRecording()) {
             return;
         }
+        long duration = getCurrentRecordedTimeMillis();
+        mStartTimeMillis = 0;
         try {
             mMediaRecorder.stop();
-            long duration = getCurrentRecordedTimeMillis();
             long fileDuration = getCurrentFileDuration();
             Log.v(LOG_TAG, String.format(
                     "File duration %d compared to computed duration %d", fileDuration, duration));
@@ -175,7 +178,6 @@ public class MediaClipsRecorder implements
         }
         mMediaRecorder.reset();
         mCurrentFile = null;
-        mStartTimeMillis = 0;
     }
 
     public void release() {

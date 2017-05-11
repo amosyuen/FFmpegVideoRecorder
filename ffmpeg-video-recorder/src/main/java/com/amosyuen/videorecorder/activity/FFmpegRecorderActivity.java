@@ -60,6 +60,8 @@ import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static android.icu.lang.UCharacter.GraphemeClusterBreak.T;
+
 /**
  * Activity for recording audio and video
  */
@@ -421,15 +423,22 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
     }
 
     protected void startRecording() {
-        Log.v(LOG_TAG, "Start recording");
-        mCameraController.unlock();
-        mMediaClipsRecorder.start();
-        mSwitchCameraButton.setVisibility(View.INVISIBLE);
-        // Lock the orientation the first time we start recording if there is no request orientation
-        if (mMediaClipsRecorder.getClips().isEmpty() && mOriginalRequestedOrientation == -1) {
-            setRequestedOrientation(getResources().getConfiguration().orientation);
+        synchronized (mCameraController) {
+            Log.v(LOG_TAG, "Start recording");
+            try {
+                mCameraController.unlock();
+            } catch (Throwable e) {
+                Log.e(LOG_TAG, "Error unlocking the camera when starting recording");
+            }
+            mMediaClipsRecorder.start();
+            mSwitchCameraButton.setVisibility(View.INVISIBLE);
+            // Lock the orientation the first time we start recording if there is no request orientation
+
+            if (mMediaClipsRecorder.getClips().isEmpty() && mOriginalRequestedOrientation == -1) {
+                setRequestedOrientation(getResources().getConfiguration().orientation);
+            }
+            mFocusManager.cancelDelayedAutoFocus();
         }
-        mFocusManager.cancelDelayedAutoFocus();
     }
 
     @Override
@@ -486,14 +495,20 @@ public class FFmpegRecorderActivity extends AbstractDynamicStyledActivity implem
     }
 
     protected void stopRecording() {
-        if (mParams == null || !mMediaClipsRecorder.isRecording()) {
-            return;
-        }
-        Log.v(LOG_TAG, "Stop recording");
-        mMediaClipsRecorder.stop();
-        mCameraController.lock();
-        if (mSaveVideoTask == null && mCameraController.getCameraCount() > 1) {
-            mSwitchCameraButton.setVisibility(View.VISIBLE);
+        synchronized (mCameraController) {
+            if (mParams == null || !mMediaClipsRecorder.isRecording()) {
+                return;
+            }
+            Log.v(LOG_TAG, "Stop recording");
+            mMediaClipsRecorder.stop();
+            try {
+                mCameraController.lock();
+            } catch (Throwable e) {
+                Log.e(LOG_TAG, "Error locking the camera when stopping recording");
+            }
+            if (mSaveVideoTask == null && mCameraController.getCameraCount() > 1) {
+                mSwitchCameraButton.setVisibility(View.VISIBLE);
+            }
         }
     }
 
