@@ -355,7 +355,9 @@ public class CameraController implements CameraControllerI {
 
     @Override
     public boolean supportsFlashMode(FlashMode flashMode) {
-        return mParameters != null && !Sets.intersection(
+        return mParameters != null
+                && mParameters.getSupportedFlashModes() != null
+                && !Sets.intersection(
                         ImmutableSet.copyOf(mParameters.getSupportedFlashModes()),
                         FLASH_MODE_MAP.get(flashMode))
                 .isEmpty();
@@ -380,14 +382,16 @@ public class CameraController implements CameraControllerI {
     }
 
     protected synchronized boolean setFlashModeParams(FlashMode flashMode, Camera.Parameters params) {
-        Set<String> supportedFlashModes = ImmutableSet.copyOf(params.getSupportedFlashModes());
-        for (String cameraFlashMode : FLASH_MODE_MAP.get(flashMode)) {
-            if (supportedFlashModes.contains(cameraFlashMode)) {
-                if (params.getFlashMode().equals(cameraFlashMode)) {
-                    return false;
+        if (params.getSupportedFlashModes() != null) {
+            Set<String> supportedFlashModes = ImmutableSet.copyOf(params.getSupportedFlashModes());
+            for (String cameraFlashMode : FLASH_MODE_MAP.get(flashMode)) {
+                if (supportedFlashModes.contains(cameraFlashMode)) {
+                    if (params.getFlashMode().equals(cameraFlashMode)) {
+                        return false;
+                    }
+                    params.setFlashMode(cameraFlashMode);
+                    return true;
                 }
-                params.setFlashMode(cameraFlashMode);
-                return true;
             }
         }
         return false;
@@ -431,7 +435,8 @@ public class CameraController implements CameraControllerI {
 
     @Override
     public boolean canAutoFocus() {
-        return mParameters != null && !Sets.intersection(
+        return mParameters != null
+                && !Sets.intersection(
                         ImmutableSet.copyOf(mParameters.getSupportedFocusModes()),
                         FOCUS_MODE_PREFERRED_ORDER)
                 .isEmpty();
