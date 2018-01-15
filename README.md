@@ -91,7 +91,7 @@ There is a demo activity that allows you to try different settings for recording
 ### Gradle
 
 ```
-compile 'com.amosyuen.ffmpegvideorecorder:ffmpeg-video-recorder:2.0.2'
+compile 'com.amosyuen.ffmpegvideorecorder:ffmpeg-video-recorder:2.0.3'
 ```
 
 ### Maven
@@ -100,7 +100,7 @@ compile 'com.amosyuen.ffmpegvideorecorder:ffmpeg-video-recorder:2.0.2'
 <dependency>
   <groupId>com.amosyuen.ffmpegvideorecorder</groupId>
   <artifactId>ffmpeg-video-recorder</artifactId>
-  <version>2.0.2</version>
+  <version>2.0.3</version>
   <type>pom</type>
 </dependency>
 ```
@@ -108,7 +108,7 @@ compile 'com.amosyuen.ffmpegvideorecorder:ffmpeg-video-recorder:2.0.2'
 ### Ivy
 
 ```
-<dependency org='com.amosyuen.ffmpegvideorecorder' name='ffmpeg-video-recorder' rev='2.0.2'>
+<dependency org='com.amosyuen.ffmpegvideorecorder' name='ffmpeg-video-recorder' rev='2.0.3'>
   <artifact name='$AID' ext='pom'></artifact>
 </dependency>
 ```

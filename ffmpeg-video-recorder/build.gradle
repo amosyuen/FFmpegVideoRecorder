@@ -20,8 +20,8 @@ ext {
     siteUrl = 'https://github.com/amosyuen/FFmpegVideoRecorder'
     gitUrl = 'https://github.com/amosyuen/FFmpegVideoRecorder.git'
 
-    libraryVersion = '2.0.2'
-    versionCode = 11
+    libraryVersion = '2.0.3'
+    versionCode = 12
 
     developerId = 'amosyuen'
     developerName = 'Amos Yuen'
@@ -37,12 +37,12 @@ version = libraryVersion
 
 // TODO: Take a look at http://ph0b.com/android-studio-gradle-and-ndk-integration/
 android {
-    compileSdkVersion 25
-    buildToolsVersion '25.0.2'
+    compileSdkVersion 27
+    buildToolsVersion '27.0.3'
 
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 25
+        targetSdkVersion 27
         versionCode versionCode
         versionName libraryVersion
 
@@ -66,14 +66,15 @@ configurations {
 }
 
 dependencies {
-    compile 'com.android.support:appcompat-v7:25.3.0'
-    compile 'com.android.support:support-v4:25.3.0'
+    compile 'com.android.support:appcompat-v7:27.0.2'
+    compile 'com.android.support:support-v4:27.0.2'
     //noinspection GradleDynamicVersion
     compile 'com.android.support:support-annotations:+'
     compile 'com.github.rahatarmanahmed:circularprogressview:2.5.0'
     // Needed for nested builders
-    provided 'com.google.auto.value:auto-value:1.4-rc3'
-    compile 'com.google.guava:guava:20.0'
+    compileOnly 'com.google.auto.value:auto-value:1.5'
+    annotationProcessor  'com.google.auto.value:auto-value:1.5'
+    compile 'com.google.guava:guava:23.3-android'
 
     compile group: 'org.bytedeco', name: 'javacpp', version: '1.2.5'
     compile group: 'org.bytedeco', name: 'javacv', version: '1.2'
