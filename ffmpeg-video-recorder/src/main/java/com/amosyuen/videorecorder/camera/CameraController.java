@@ -180,7 +180,7 @@ public class CameraController implements CameraControllerI {
         }
 
         // Scene Mode
-        if (parameters.getSupportedSceneModes().contains(Parameters.SCENE_MODE_AUTO)) {
+        if (parameters.getSupportedSceneModes()!=null && parameters.getSupportedSceneModes().contains(Parameters.SCENE_MODE_AUTO)) {
             parameters.setSceneMode(Parameters.SCENE_MODE_AUTO);
         }
 
